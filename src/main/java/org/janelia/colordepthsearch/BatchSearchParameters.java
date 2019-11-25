@@ -18,6 +18,7 @@ public class BatchSearchParameters {
     private Double pixColorFluctuation = 2.0;
     private Integer xyShift = 0;
     private boolean mirrorMask = false;
+    private String outputFile;
 
     public String getSearchPrefix() {
         return searchPrefix;
@@ -125,5 +126,17 @@ public class BatchSearchParameters {
      */
     public void setMirrorMask(boolean mirrorMask) {
         this.mirrorMask = mirrorMask;
+    }
+
+    public String getOutputFile() {
+        return outputFile;
+    }
+
+    /**
+     * Set the path to the output file on S3.
+     * @param outputFile
+     */
+    public void setOutputFile(String outputFile) {
+        this.outputFile = outputFile;
     }
 }

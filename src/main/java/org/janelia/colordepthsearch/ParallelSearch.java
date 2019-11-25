@@ -2,6 +2,7 @@ package org.janelia.colordepthsearch;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.amazonaws.services.lambda.AWSLambdaAsync;
@@ -14,14 +15,17 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ListObjectsV2Request;
 import com.amazonaws.services.s3.model.ListObjectsV2Result;
 import com.amazonaws.services.s3.model.S3ObjectSummary;
+import com.fasterxml.uuid.Generators;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
+ *
+ *
  * @author <a href="mailto:rokickik@janelia.hhmi.org">Konrad Rokicki</a>
  */
-public class ParallelSearch implements RequestHandler<ParallelSearchParameters, Long> {
+public class ParallelSearch implements RequestHandler<ParallelSearchParameters, String> {
 
     private static final Logger log = LoggerFactory.getLogger(ParallelSearch.class);
 
@@ -29,16 +33,18 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
     private static final int MAX_PARALLELISM = 1000;
 
     @Override
-    public Long handleRequest(ParallelSearchParameters params, Context context) {
+    public String handleRequest(ParallelSearchParameters params, Context context) {
 
         final String region = LambdaUtils.getMandatoryEnv("AWS_REGION");
         final String maskBucket = LambdaUtils.getMandatoryEnv("MASK_BUCKET");
         final String libraryBucket = LambdaUtils.getMandatoryEnv("LIBRARY_BUCKET");
+        final String searchBucket = LambdaUtils.getMandatoryEnv("SEARCH_BUCKET");
         final String searchFunction = LambdaUtils.getMandatoryEnv("SEARCH_FUNCTION");
 
         log.debug("Environment:\n  region: {}\n  maskBucket: {}\n  libraryBucket: {}\n  searchFunction: {}",
                 region, maskBucket, libraryBucket, searchFunction);
-        log.debug("Received color depth parallel search request: {}", LambdaUtils.toJson(params));
+        String paramsJson = LambdaUtils.toJson(params);
+        log.debug("Received color depth parallel search request: {}", paramsJson);
 
         if (LambdaUtils.isEmpty(params.getLibraries())) {
             log.error("No color depth libraries specified");
@@ -63,8 +69,8 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
 
         // Find all keys to search
         List<String> libraries = params.getLibraries();
-        final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(region).build();
         List<String> keys = new ArrayList<>();
+        final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(region).build();
         for(String library : libraries) {
 
             ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(libraryBucket).withPrefix(library);
@@ -103,8 +109,6 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
         List<List<String>> partitions = Lists.partition(keys, batchSize);
         log.info("Num partitions: {}", partitions.size());
 
-        // TODO: put batches in DB
-
         AWSLambdaAsync client = AWSLambdaAsyncClientBuilder.standard()
                 .withRegion(region)
                 .build();
@@ -114,9 +118,25 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
                 .lambdaFunctionNameResolver((method, annotation, config) -> searchFunction)
                 .build(BatchSearchService.class);
 
+        UUID uid = Generators.timeBasedGenerator().generate();
+
+        String username = "anonymous";
+        String outputKey = String.format("%s/%s/", username, uid.toString());
+        String outputMetadataKey = String.format("%s/%s/metadata", username, uid.toString());
+        String outputUri = String.format("s3://%s/%s", searchBucket, outputKey);
+
+        log.info("Saving metadata to s3://{}/{}", searchBucket, outputMetadataKey);
+        SearchMetadata metadata = new SearchMetadata();
+        metadata.setParameters(params);
+        metadata.setPartitions(partitions.size());
+        s3.putObject(searchBucket, outputMetadataKey, LambdaUtils.toJson(metadata));
+
+        // TODO: grant read permission to outputUri to the webpage user
+
         // Dispatch all batches
         int i = 0;
         for (List<String> batchKeys : partitions) {
+            String outputFile = outputUri+"batch_"+i;
             BatchSearchParameters searchParameters = new BatchSearchParameters();
             searchParameters.setDataThreshold(params.getDataThreshold());
             searchParameters.setMaskKeys(params.getMaskKeys());
@@ -127,14 +147,15 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
             searchParameters.setXyShift(params.getXyShift());
             searchParameters.setSearchPrefix(libraryBucket);
             searchParameters.setSearchKeys(batchKeys);
+            searchParameters.setOutputFile(outputFile);
             batchSearch.search(searchParameters);
             log.info("Invoked batch #{}", ++i);
         }
 
-        log.info("Parallel search started");
+        log.info("Parallel search started with output at {}", outputUri);
 
-        // TODO: return id of the search
-        return 1L;
+        // Return the s3 bucket where the results will be saved
+        return outputUri;
     }
 
 }

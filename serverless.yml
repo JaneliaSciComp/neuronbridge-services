@@ -3,11 +3,14 @@ service: color-depth-search
 custom:
   maskBucket: color-depth-masks
   libraryBucket: color-depth-libraries
+  searchBucket: color-depth-searches
 
 provider:
   name: aws
   region: us-east-1
   stage: dev
+  tracing:
+    lambda: true
 
   iamRoleStatements:
     - Effect: Allow
@@ -20,8 +23,18 @@ provider:
         - "arn:aws:s3:::${self:custom.libraryBucket}/*"
     - Effect: Allow
       Action:
+        - s3:PutObject
+      Resource:
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
+    - Effect: Allow
+      Action:
         - lambda:InvokeFunction
       Resource: "*"
+#    - Effect: Allow
+#      Action:
+#        - xray:PutTraceSegments
+#        - xray:PutTelemetryRecords
+#      Resource: "*"
 
 package:
   individually: true
@@ -39,16 +52,8 @@ functions:
     environment:
       MASK_BUCKET: ${self:custom.maskBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
       SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
-
-  parallelSearchMonitor:
-    package:
-      artifact: target/colordepthsearch-aws-dev.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.ParallelMonitor
-    memorySize: 512
-    # 15 minute timeout
-    timeout: 900
 
   search:
     package:
@@ -71,3 +76,8 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:custom.libraryBucket}
+
+    S3BucketSearches:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.searchBucket}

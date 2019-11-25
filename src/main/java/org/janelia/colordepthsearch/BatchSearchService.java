@@ -10,7 +10,12 @@ import com.amazonaws.services.lambda.model.InvocationType;
  */
 public interface BatchSearchService {
 
-    @LambdaFunction(functionName="search", invocationType=InvocationType.Event)
+    @LambdaFunction(
+            // This function name is actually ignored later because we have to inject a
+            // generated name, but it's necessary for it to be defined.
+            functionName="search",
+            // This makes the function async
+            invocationType=InvocationType.Event)
     Void search(BatchSearchParameters parameters);
 
 }

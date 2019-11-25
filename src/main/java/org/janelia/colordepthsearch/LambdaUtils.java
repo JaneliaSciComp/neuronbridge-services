@@ -5,7 +5,6 @@ import java.util.Collection;
 import com.amazonaws.util.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.slf4j.Logger;
 
 /**
  * Useful utility functions for writing AWS Lambda functions in Java.

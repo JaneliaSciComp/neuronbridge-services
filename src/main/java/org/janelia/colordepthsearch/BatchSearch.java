@@ -2,6 +2,7 @@ package org.janelia.colordepthsearch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
+import com.amazonaws.services.s3.AmazonS3URI;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import ij.ImagePlus;
@@ -85,21 +87,21 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
 
         // Load each search image and compare it to all the masks already in memory
         List<MaskSearchResult> results = new ArrayList<>();
-        for (String key : params.getSearchKeys()) {
+        for (String searchKey : params.getSearchKeys()) {
             try {
-                S3Object maskObject = s3.getObject(params.getSearchPrefix(), key);
-                if (maskObject==null) {
-                    log.error("Error loading search image {}", key);
+                S3Object searchObject = s3.getObject(params.getSearchPrefix(), searchKey);
+                if (searchObject==null) {
+                    log.error("Error loading search image {}", searchKey);
                 }
                 else {
                     ImagePlus searchImage;
-                    try (S3ObjectInputStream s3is = maskObject.getObjectContent()) {
-                        searchImage = readImagePlus(key, key, s3is);
+                    try (S3ObjectInputStream s3is = searchObject.getObjectContent()) {
+                        searchImage = readImagePlus(searchKey, searchKey, s3is);
                     }
 
                     int maskIndex = 0;
                     for (ImagePlus maskImage : maskImages) {
-                        Integer maskThreshold = params.getMaskThresholds().get(maskIndex++);
+                        Integer maskThreshold = params.getMaskThresholds().get(maskIndex);
 
                         double pixfludub = params.getPixColorFluctuation() / 100;
                         final ColorMIPMaskCompare cc = new ColorMIPMaskCompare(
@@ -107,20 +109,26 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
                                 null, 0, false,
                                 params.getDataThreshold(), pixfludub, params.getXyShift());
                         ColorMIPMaskCompare.Output output = cc.runSearch(searchImage.getProcessor(), null);
+
                         if (output.matchingPixNum>0) {
-                            results.add(new MaskSearchResult(searchImage.getTitle(), output.matchingPixNum, output.matchingPct));
+                            results.add(new MaskSearchResult(searchImage.getTitle(), maskIndex,
+                                    output.matchingPixNum, output.matchingPct));
                         }
+
+                        maskIndex++;
                     }
                 }
             }
             catch (Exception e) {
-                log.error("Error searching {}", key, e);
+                log.error("Error searching {}", searchKey, e);
             }
         }
 
-        log.info("Found {} matches", results.size());
+        StringWriter sw = new StringWriter();
 
         if (!results.isEmpty()) {
+            log.info("Found {} matches.", results.size());
+
             // Sort the results
             results.sort((o1, o2) -> {
                 Integer i1 = o1.getMatchingSlices();
@@ -128,16 +136,31 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
                 return i2.compareTo(i1); // reverse sort
             });
 
-            // Print results
-            int i = 0;
-            for (MaskSearchResult result : results) {
-                log.info("Match {} - {}", result.getMatchingSlices(), result.getFilepath());
-                if (i>3) break;
-                i++;
+            if (params.getOutputFile()==null) {
+                // Print some results to the log
+                int i = 0;
+                for (MaskSearchResult result : results) {
+                    log.info("Match {} - {}", result.getMatchingSlices(), result.getFilepath());
+                    if (i > 8) break;
+                    i++;
+                }
             }
+            else {
+                // Save results to the output file
+                for (MaskSearchResult result : results) {
+                    sw.write(String.format("%d\t%d\t%2.2f\t%s\n",
+                            result.getMaskIndex(), result.getMatchingSlices(), result.getMatchingSlicesPct(), result.getFilepath()));
+                }
+            }
+        }
+        else {
+            log.info("No matches found.");
+        }
 
-            // TODO: save results to database
-
+        if (params.getOutputFile()!=null) {
+            AmazonS3URI outputUri = new AmazonS3URI(params.getOutputFile());
+            s3.putObject(outputUri.getBucket(), outputUri.getKey(), sw.toString());
+            log.info("Results written to {}", outputUri);
         }
 
         return null; // null response because this lambda runs asynchronously and updates a database
