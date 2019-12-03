@@ -148,7 +148,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
             else {
                 // Save results to the output file
                 for (MaskSearchResult result : results) {
-                    sw.write(String.format("%d\t%d\t%2.2f\t%s\n",
+                    sw.write(String.format("%d\t%d\t%2.4f\t%s\n",
                             result.getMaskIndex(), result.getMatchingSlices(), result.getMatchingSlicesPct(), result.getFilepath()));
                 }
             }

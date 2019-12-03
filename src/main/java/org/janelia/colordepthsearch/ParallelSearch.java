@@ -136,7 +136,7 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
         // Dispatch all batches
         int i = 0;
         for (List<String> batchKeys : partitions) {
-            String outputFile = outputUri+"batch_"+i;
+            String outputFile = String.format("%sbatch_%04d", outputUri, i);
             BatchSearchParameters searchParameters = new BatchSearchParameters();
             searchParameters.setDataThreshold(params.getDataThreshold());
             searchParameters.setMaskKeys(params.getMaskKeys());
