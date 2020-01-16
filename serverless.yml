@@ -1,0 +1,89 @@
+service: trigger-color-depth-mips
+frameworkVersion: ">=1.59.3"
+
+
+custom:
+  templatesBucket: janelia.hhmi.org-templates-dev
+  inputsBucket: janelia.hhmi.org-unalignedstacks-dev
+  outputsBucket: janelia.hhmi.org-alignedmips-dev
+  jobDefinition: 'AlignStackAndGenerateMIPs:14'
+  jobQueue: 'align-spot-dev'
+
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  stage: dev
+  region: us-east-1
+  memorySize: 128
+  environment:
+    JOB_DEFINITION: ${self:custom.jobDefinition}
+    JOB_QUEUE: ${self:custom.jobQueue}
+    TEMPLATES_BUCKET: ${self:custom.templatesBucket}
+    INPUTS_BUCKET: ${self:custom.inputsBucket}
+    OUTPUTS_BUCKET: ${self:custom.outputsBucket}
+    DEBUG: true
+  tracing:
+    lambda: true
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - logs:CreateLogGroup
+        - logs:CreateLogStream
+        - logs:PutLogEvents
+      Resource:
+        - arn:aws:logs:*:*:*
+    - Effect: Allow
+      Action:
+        - batch:SubmitJob
+      Resource: "arn:aws:batch:*:*:*"
+    - Effect: Allow
+      Action:
+        - s3:GetBucketNotification
+        - s3:PutBucketNotification
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::${self:custom.inputsBucket}"
+    - Effect: Allow
+      Action:
+        - s3:DeleteObject
+        - s3:GetObject
+      Resource: "arn:aws:s3:::${self:custom.inputsBucket}/*"
+    - Effect: Allow
+      Action:
+        - s3:ListBucket
+      Resource: "arn:aws:s3:::${self:custom.inputsBucket}"
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+      Resource: "arn:aws:s3:::${self:custom.outputsBucket}/*"
+
+
+package:
+  include:
+    - "*.js"
+    - package.json
+  exclude:
+    - ./*.sh
+    - ./*.json
+    - '!./package*.json'
+
+
+functions:
+  colorDepthMips:
+    handler: src/cdm/index.generateColorDepthMips
+    name: ${self:provider.stage}-generateColorDepthMips
+    description: align the input and generate color depth mips
+    events:
+      - s3:
+          bucket: ${self:custom.inputsBucket}
+          event: s3:ObjectCreated:*
+          existing: true
+          rules:
+            - suffix: .json
+    memorySize: 128
+    timeout: 10
+    tags:
+      Project: CDCS
+      Stage: ${self:provider.stage}
