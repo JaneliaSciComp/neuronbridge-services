@@ -1,4 +1,4 @@
-service: color-depth-search
+service: color-depth-search-test
 
 custom:
   maskBucket: color-depth-masks
@@ -9,6 +9,9 @@ provider:
   name: aws
   region: us-east-1
   stage: dev
+  tags:
+    Project: CDCS
+    Developer: ${env:USER}
   tracing:
     lambda: true
 
@@ -64,20 +67,21 @@ functions:
     # 5 minute timeout
     timeout: 300
 
-resources:
+#resources:
+#
+#  Resources:
+#    S3BucketInputs:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: ${self:custom.maskBucket}
+#
+#    S3BucketOutputs:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: ${self:custom.libraryBucket}
+#
+#    S3BucketSearches:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: ${self:custom.searchBucket}
 
-  Resources:
-    S3BucketInputs:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.maskBucket}
-
-    S3BucketOutputs:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.libraryBucket}
-
-    S3BucketSearches:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.searchBucket}
