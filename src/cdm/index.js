@@ -112,7 +112,7 @@ const processS3EventNotification = async (notif) => {
         console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
 
         // move the metadata file to the output bucket
-        await writeDataAsJson (outputsBucket, `/${user}/${sampleName}.json`, metadata);
+        await writeDataAsJson (outputsBucket, `${user}/${sampleName}.json`, metadata);
         await deleteData(inputsBucket, inputFilepath);
     } catch (e) {
         console.error(`Error processing ${inputsBucket}:${inputFilepath}`, e);
