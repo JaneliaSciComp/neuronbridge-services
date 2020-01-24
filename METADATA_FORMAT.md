@@ -2,12 +2,12 @@
 
 These are examples of how metadata is formatted on S3 for use by the NeuronBridge website and other clients of the Color Depth Cloud API. 
 
-## Getting constants
+## Constants
 
 This is a static configuration file which defines constants used through-out the results so that they can be easily updated. It also allows us to minimize the size of the other files by extracting long constants. 
 
 s3://color-depth-metadata/params.json
-```json
+```javascript
 {
     image_url_prefix: "https://color-depth-mips.s3.us-east-1.amazonaws.com/JRC2018_Unisex_20x_HR/",
     thumbnail_url_prefix: "https://color-depth-thumbnails.s3.us-east-1.amazonaws.com/JRC2018_Unisex_20x_HR/",
@@ -15,11 +15,12 @@ s3://color-depth-metadata/params.json
     default_body_id: ""360677632
 
 }
+```
 
-## Getting metadata for an LM line name
+## Metadata for an LM line name
 
 s3://color-depth-metadata/by_line/JHS_K_85321.json
-```json
+```javascript
 {
     results: [
         {
@@ -40,15 +41,13 @@ s3://color-depth-metadata/by_line/JHS_K_85321.json
 }
 ```
 
-To construct the 
-
-Note that the URL prefix is configured elsewhere and should be prepended to the url, e.g.
+To construct the full path to an image, one needs to take the prefix from the constants file and prepend it to the URL, e.g.
 https://color-depth-mips.s3.us-east-1.amazonaws.com/JRC2018_Unisex_20x_HR/flylight_splitgal4_drivers/JHS_K_85321-20141222_80_A3-f-20x-brain-JRC2018_Unisex_20x_HR-color_depth_1.png
 
-## Getting metadata for an EM skeleton
+## Metadata for an EM skeleton
 
 s3://color-depth-metadata/by_body/360677632.json
-```json
+```javascript
 {
     results: [
         {
@@ -67,12 +66,12 @@ s3://color-depth-metadata/by_body/360677632.json
 }
 ```
 
-## Getting precomputed matches (EM->LM or LM->EM)
+## Precomputed matches (EM->LM or LM->EM)
 
 The same metadata that's available above is also denormalized in the match files for rapid access.
 
 s3://color-depth-metadata/precomputed_emlm_matches/2711777432142086155.json
-```json
+```javascript
 {
     results: [
         {
