@@ -12,7 +12,7 @@ s3://color-depth-metadata/params.json
     image_url_prefix: "https://color-depth-mips.s3.us-east-1.amazonaws.com/JRC2018_Unisex_20x_HR/",
     thumbnail_url_prefix: "https://color-depth-thumbnails.s3.us-east-1.amazonaws.com/JRC2018_Unisex_20x_HR/",
     default_line_name: "SS12345",
-    default_body_id: ""360677632
+    default_body_id: "360677632"
 
 }
 ```
