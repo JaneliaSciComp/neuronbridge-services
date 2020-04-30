@@ -1,0 +1,87 @@
+service: color-depth-search-test
+
+custom:
+  maskBucket: color-depth-masks
+  libraryBucket: color-depth-libraries
+  searchBucket: color-depth-searches
+
+provider:
+  name: aws
+  region: us-east-1
+  stage: dev
+  tags:
+    Project: CDCS
+    Developer: ${env:USER}
+  tracing:
+    lambda: true
+
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:ListBucket
+      Resource:
+        - "arn:aws:s3:::${self:custom.maskBucket}/*"
+        - "arn:aws:s3:::${self:custom.libraryBucket}"
+        - "arn:aws:s3:::${self:custom.libraryBucket}/*"
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+      Resource:
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+      Resource: "*"
+#    - Effect: Allow
+#      Action:
+#        - xray:PutTraceSegments
+#        - xray:PutTelemetryRecords
+#      Resource: "*"
+
+package:
+  individually: true
+
+functions:
+
+  parallelSearch:
+    package:
+      artifact: target/colordepthsearch-aws-dev.jar
+    runtime: java8
+    handler: org.janelia.colordepthsearch.ParallelSearch
+    memorySize: 512
+    # 5 minute timeout
+    timeout: 300
+    environment:
+      MASK_BUCKET: ${self:custom.maskBucket}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
+
+  search:
+    package:
+      artifact: target/colordepthsearch-aws-dev.jar
+    runtime: java8
+    handler: org.janelia.colordepthsearch.BatchSearch
+    memorySize: 512
+    # 5 minute timeout
+    timeout: 300
+
+#resources:
+#
+#  Resources:
+#    S3BucketInputs:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: ${self:custom.maskBucket}
+#
+#    S3BucketOutputs:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: ${self:custom.libraryBucket}
+#
+#    S3BucketSearches:
+#      Type: AWS::S3::Bucket
+#      Properties:
+#        BucketName: ${self:custom.searchBucket}
+
