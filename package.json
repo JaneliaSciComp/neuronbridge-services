@@ -1,0 +1,9 @@
+{
+    "name": "compute-color-depth-masks",
+    "main": "colorDepthMips.js",
+    "dependencies": {
+        "aws-sdk": "^2.585.0",
+        "serverless": "^1.59.3"
+    },
+    "devDependencies": {}
+}

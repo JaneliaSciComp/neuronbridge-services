@@ -1,0 +1,30 @@
+{
+    "computeEnvironmentName": "compute-alignment-dev",
+    "type": "MANAGED",
+    "state": "ENABLED",
+    "computeResources": {
+        "type": "EC2",
+        "allocationStrategy": "BEST_FIT_PROGRESSIVE",
+        "minvCpus": 0,
+        "desiredvCpus": 0,
+        "maxvCpus": 64,
+        "instanceTypes": [
+            "optimal"
+        ],
+        "imageId": "ami-0b99f97b0f8e3252b",
+        "subnets": [
+            "subnet-5e11c814"
+        ],
+        "securityGroupIds": [
+            "sg-963ee8df"
+        ],
+        "ec2KeyPair": "ec2_batch",
+        "instanceRole": "arn:aws:iam::777794738451:instance-profile/ecsInstanceRole",
+        "tags": {
+            "Name": "align_compute",
+            "Project": "CDCS",
+            "Stage": "dev"
+        }
+    },
+    "serviceRole": "arn:aws:iam::777794738451:role/service-role/AWSBatchServiceRole"
+}
