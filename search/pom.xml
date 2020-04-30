@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.janelia</groupId>
-    <artifactId>colordepthsearch-aws</artifactId>
+    <artifactId>neuronbridge-search</artifactId>
     <packaging>jar</packaging>
     <version>dev</version>
 

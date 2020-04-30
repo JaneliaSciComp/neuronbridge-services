@@ -1,19 +1,22 @@
-service: color-depth-search-test
+service: neuronbridge-search
 
 custom:
   maskBucket: color-depth-masks
   libraryBucket: color-depth-libraries
   searchBucket: color-depth-searches
+  version: 0.0.1
+  tracing: false
 
 provider:
   name: aws
   region: us-east-1
   stage: dev
   tags:
-    Project: CDCS
-    Developer: ${env:USER}
+    PROJECT: NeuronBridge
+    DEVELOPER: ${env:USER}
+    VERSION: ${self:custom.version}
   tracing:
-    lambda: true
+    lambda: ${self:custom.tracing}
 
   iamRoleStatements:
     - Effect: Allow
@@ -33,11 +36,6 @@ provider:
       Action:
         - lambda:InvokeFunction
       Resource: "*"
-#    - Effect: Allow
-#      Action:
-#        - xray:PutTraceSegments
-#        - xray:PutTelemetryRecords
-#      Resource: "*"
 
 package:
   individually: true
@@ -46,7 +44,7 @@ functions:
 
   parallelSearch:
     package:
-      artifact: target/colordepthsearch-aws-dev.jar
+      artifact: target/neuronbridge-search.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.ParallelSearch
     memorySize: 512
@@ -60,7 +58,7 @@ functions:
 
   search:
     package:
-      artifact: target/colordepthsearch-aws-dev.jar
+      artifact: target/neuronbridge-search.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.BatchSearch
     memorySize: 512
