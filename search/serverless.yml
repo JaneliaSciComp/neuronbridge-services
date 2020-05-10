@@ -1,20 +1,24 @@
-service: neuronbridge-search
+service: janelia-neuronbridge-services
 
 custom:
-  maskBucket: color-depth-masks
-  libraryBucket: color-depth-libraries
-  searchBucket: color-depth-searches
-  version: 0.0.1
-  tracing: false
+  libraryBucket: janelia-flylight-color-depth
+  maskBucket: janelia-neuronbridge-masks-${self:provider.stage}
+  searchBucket: janelia-neuronbridge-searches-${self:provider.stage}
+  version: 1.0.0
+  tracing: true
 
 provider:
   name: aws
-  region: us-east-1
-  stage: dev
+  region: ${opt:region, 'us-east-1'}
+  stage: ${opt:stage, 'dev'}
   tags:
     PROJECT: NeuronBridge
-    DEVELOPER: ${env:USER}
     VERSION: ${self:custom.version}
+    DEVELOPER: ${env:USER}
+  stackTags:
+    PROJECT: NeuronBridge
+    VERSION: ${self:custom.version}
+    DEVELOPER: ${env:USER}
   tracing:
     lambda: ${self:custom.tracing}
 
@@ -24,9 +28,12 @@ provider:
         - s3:GetObject
         - s3:ListBucket
       Resource:
+        - "arn:aws:s3:::${self:custom.maskBucket}"
         - "arn:aws:s3:::${self:custom.maskBucket}/*"
         - "arn:aws:s3:::${self:custom.libraryBucket}"
         - "arn:aws:s3:::${self:custom.libraryBucket}/*"
+        - "arn:aws:s3:::${self:custom.searchBucket}"
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
     - Effect: Allow
       Action:
         - s3:PutObject
@@ -36,6 +43,10 @@ provider:
       Action:
         - lambda:InvokeFunction
       Resource: "*"
+    - Effect: Allow
+      Action:
+        - states:StartExecution
+      Resource: "*"
 
 package:
   individually: true
@@ -44,7 +55,7 @@ functions:
 
   parallelSearch:
     package:
-      artifact: target/neuronbridge-search.jar
+      artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.ParallelSearch
     memorySize: 512
@@ -55,31 +66,80 @@ functions:
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
+      STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
 
   search:
     package:
-      artifact: target/neuronbridge-search.jar
+      artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.BatchSearch
     memorySize: 512
     # 5 minute timeout
     timeout: 300
 
-#resources:
-#
-#  Resources:
-#    S3BucketInputs:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: ${self:custom.maskBucket}
-#
-#    S3BucketOutputs:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: ${self:custom.libraryBucket}
-#
-#    S3BucketSearches:
-#      Type: AWS::S3::Bucket
-#      Properties:
-#        BucketName: ${self:custom.searchBucket}
+  monitor:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/monitor.isSearchDone
+    memorySize: 128
+    timeout: 60
 
+stepFunctions:
+
+  stateMachines:
+    searchMonitorStateMachine:
+      name: searchMonitorStateMachine
+      definition:
+        Comment: "Monitors a parallel Color Depth Search and notifies the user upon completion"
+        StartAt: Monitor
+        States:
+          Monitor:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [monitor, Arn]
+            Retry:
+              - ErrorEquals: 
+                - Lambda.TooManyRequestsException
+                IntervalSeconds: 1
+                MaxAttempts: 100
+            Next: AreWeDoneYet
+          AreWeDoneYet:
+            Type: Choice
+            Choices:
+              - Variable: "$.completed"
+                BooleanEquals: true
+                Next: EndState
+            Default: Wait
+          Wait:
+            Type: Wait
+            Seconds: 1
+            Next: Monitor
+          EndState:
+            Type: Pass
+            End: true
+
+  validate: true # enable pre-deployment definition validation
+
+
+resources:
+
+  Resources:
+    S3BucketInputs:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.maskBucket}
+
+    S3BucketSearches:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.searchBucket}
+
+  Outputs:
+    SearchMonitorStateMachine:
+      Description: The ARN of the state machine
+      Value:
+        Ref: SearchMonitorStateMachine
+
+
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
