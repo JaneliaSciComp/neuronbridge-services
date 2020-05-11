@@ -5,7 +5,7 @@ custom:
   maskBucket: janelia-neuronbridge-masks-${self:provider.stage}
   searchBucket: janelia-neuronbridge-searches-${self:provider.stage}
   version: 1.0.0
-  tracing: true
+  tracing: false
 
 provider:
   name: aws
@@ -58,7 +58,7 @@ functions:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.ParallelSearch
-    memorySize: 512
+    memorySize: 256
     # 5 minute timeout
     timeout: 300
     environment:
@@ -73,7 +73,7 @@ functions:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.BatchSearch
-    memorySize: 512
+    memorySize: 256
     # 5 minute timeout
     timeout: 300
 
