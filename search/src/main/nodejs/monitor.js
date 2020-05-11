@@ -113,7 +113,7 @@ exports.isSearchDone = async (event, context) => {
         };
     }
     else {
-        console.log(`Search still running: ${numRemaining}/${numPartitions}`);
+        console.log(`Search still running: ${numComplete}/${numPartitions}`);
         // Return results which Step Functions will use to determine if this monitor should run again
         return {
             ...event,
