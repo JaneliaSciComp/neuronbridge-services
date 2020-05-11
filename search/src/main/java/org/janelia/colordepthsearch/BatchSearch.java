@@ -8,7 +8,6 @@ import com.amazonaws.services.s3.AmazonS3URI;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.xray.AWSXRay;
-import com.amazonaws.xray.entities.Subsegment;
 import ij.ImagePlus;
 import ij.io.Opener;
 import org.apache.commons.lang3.time.StopWatch;
@@ -37,6 +36,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
     @Override
     public Void handleRequest(BatchSearchParameters params, Context context) {
 
+        AWSXRay.beginSubsegment("Read parameters");
         final String region = LambdaUtils.getMandatoryEnv("AWS_REGION");
 
         log.debug("Environment:\n  region: {}",
@@ -46,30 +46,27 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(region).build();
 
         if (LambdaUtils.isEmpty(params.getSearchKeys())) {
-            log.error("No images to search");
-            System.exit(1);
+            throw new IllegalArgumentException("No images to search");
         }
 
         if (LambdaUtils.isEmpty(params.getMaskKeys())) {
-            log.error("No masks to search");
-            System.exit(1);
+            throw new IllegalArgumentException("No masks to search");
         }
 
         if (LambdaUtils.isEmpty(params.getMaskThresholds())) {
-            log.error("No mask thresholds specified");
-            System.exit(1);
+            throw new IllegalArgumentException("No mask thresholds specified");
         }
 
         if (params.getMaskThresholds().size()!=params.getMaskKeys().size()) {
-            log.error("Number of mask thresholds does not match number of masks ({}!={})",
-                    params.getMaskThresholds().size(), params.getMaskKeys().size());
-            System.exit(1);
+            throw new IllegalArgumentException("Number of mask thresholds does not match number of masks");
         }
 
         // Preload all masks into memory
         List<ImagePlus> maskImages = new ArrayList<>();
 
-        Subsegment segment = AWSXRay.beginSubsegment("Load masks");
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Load masks");
+
         try {
             for (String maskKey : params.getMaskKeys()) {
                 S3Object maskObject = s3.getObject(params.getMaskPrefix(), maskKey);
@@ -82,107 +79,87 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
             }
         }
         catch (Exception e) {
-            segment.addException(e);
-            log.error("Error loading mask images", e);
-            System.exit(1);
+            throw new IllegalStateException("Error loading mask images", e);
         }
-        finally {
-            AWSXRay.endSubsegment();
-        }
+
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Search");
 
         log.debug("Searching {} images with {} masks", params.getSearchKeys().size(), maskImages.size());
         List<MaskSearchResult> results = new ArrayList<>();
 
-        Subsegment segment2 = AWSXRay.beginSubsegment("Search");
-        try {
-            // Load each search image and compare it to all the masks already in memory
-            for (String searchKey : params.getSearchKeys()) {
-                try {
-                    S3Object searchObject = s3.getObject(params.getSearchPrefix(), searchKey);
-                    if (searchObject == null) {
-                        log.error("Error loading search image {}", searchKey);
-                    } else {
-                        ImagePlus searchImage;
-                        try (S3ObjectInputStream s3is = searchObject.getObjectContent()) {
-                            searchImage = readImagePlus(searchKey, searchKey, s3is);
-                        }
-
-                        int maskIndex = 0;
-                        for (ImagePlus maskImage : maskImages) {
-                            Integer maskThreshold = params.getMaskThresholds().get(maskIndex);
-
-                            double pixfludub = params.getPixColorFluctuation() / 100;
-                            final ColorMIPMaskCompare cc = new ColorMIPMaskCompare(
-                                    maskImage.getProcessor(), maskThreshold, params.isMirrorMask(),
-                                    null, 0, false,
-                                    params.getDataThreshold(), pixfludub, params.getXyShift());
-                            ColorMIPMaskCompare.Output output = cc.runSearch(searchImage.getProcessor(), null);
-
-                            if (output.matchingPixNum > 0) {
-                                results.add(new MaskSearchResult(
-                                        searchImage.getTitle(),
-                                        maskIndex,
-                                        output.matchingPixNum));
-                            }
-
-                            maskIndex++;
-                        }
+        // Load each search image and compare it to all the masks already in memory
+        for (String searchKey : params.getSearchKeys()) {
+            try {
+                S3Object searchObject = s3.getObject(params.getSearchPrefix(), searchKey);
+                if (searchObject == null) {
+                    log.error("Error loading search image {}", searchKey);
+                }
+                else {
+                    ImagePlus searchImage;
+                    try (S3ObjectInputStream s3is = searchObject.getObjectContent()) {
+                        searchImage = readImagePlus(searchKey, searchKey, s3is);
                     }
-                } catch (Exception e) {
-                    log.error("Error searching {}", searchKey, e);
-                }
-            }
 
-            log.info("Found {} matches.", results.size());
+                    int maskIndex = 0;
+                    for (ImagePlus maskImage : maskImages) {
+                        Integer maskThreshold = params.getMaskThresholds().get(maskIndex);
 
-        }
-        catch (Exception e) {
-            segment2.addException(e);
-            log.error("Error searching images", e);
-            System.exit(1);
-        }
-        finally {
-            AWSXRay.endSubsegment();
-        }
+                        double pixfludub = params.getPixColorFluctuation() / 100;
+                        final ColorMIPMaskCompare cc = new ColorMIPMaskCompare(
+                                maskImage.getProcessor(), maskThreshold, params.isMirrorMask(),
+                                null, 0, false,
+                                params.getDataThreshold(), pixfludub, params.getXyShift());
+                        ColorMIPMaskCompare.Output output = cc.runSearch(searchImage.getProcessor(), null);
 
-        Subsegment segment3 = AWSXRay.beginSubsegment("Sort and save results");
-        try {
-            // Sort the results
-            results.sort((o1, o2) -> {
-                Double i1 = o1.getScore();
-                Double i2 = o2.getScore();
-                return i2.compareTo(i1); // reverse sort
-            });
+                        if (output.matchingPixNum > 0) {
+                            results.add(new MaskSearchResult(
+                                    searchImage.getTitle(),
+                                    maskIndex,
+                                    output.matchingPixNum));
+                        }
 
-            if (params.getOutputFile()==null) {
-                // Print some results to the log
-                int i = 0;
-                for (MaskSearchResult result : results) {
-                    log.info("Match {} - {}", result.getScore(), result.getFilepath());
-                    if (i > 9) break;
-                    i++;
+                        maskIndex++;
+                    }
                 }
-            }
-            else {
-                try {
-                    AmazonS3URI outputUri = new AmazonS3URI(params.getOutputFile());
-                    LambdaUtils.putObject(s3, outputUri, results);
-                    log.info("Results written to {}", outputUri);
-                }
-                catch (Exception e) {
-                    throw new RuntimeException("Error writing results", e);
-                }
+            } catch (Exception e) {
+                log.error("Error searching {}", searchKey, e);
             }
         }
-        catch (Exception e) {
-            segment3.addException(e);
-            log.error("Error searching images", e);
-            System.exit(1);
+
+        log.info("Found {} matches.", results.size());
+
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Sort and save results");
+
+        // Sort the results
+        results.sort((o1, o2) -> {
+            Double i1 = o1.getScore();
+            Double i2 = o2.getScore();
+            return i2.compareTo(i1); // reverse sort
+        });
+
+        if (params.getOutputFile()==null) {
+            // Print some results to the log
+            int i = 0;
+            for (MaskSearchResult result : results) {
+                log.info("Match {} - {}", result.getScore(), result.getFilepath());
+                if (i > 9) break;
+                i++;
+            }
         }
-        finally {
-            AWSXRay.endSubsegment();
+        else {
+            try {
+                AmazonS3URI outputUri = new AmazonS3URI(params.getOutputFile());
+                LambdaUtils.putObject(s3, outputUri, results);
+                log.info("Results written to {}", outputUri);
+            }
+            catch (Exception e) {
+                throw new RuntimeException("Error writing results", e);
+            }
         }
 
+        AWSXRay.endSubsegment();
         return null; // null response because this lambda runs asynchronously and updates a database
     }
 

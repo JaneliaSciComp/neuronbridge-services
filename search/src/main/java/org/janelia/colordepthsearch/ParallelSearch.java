@@ -8,11 +8,15 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
-import com.amazonaws.services.s3.model.*;
+import com.amazonaws.services.s3.model.ListObjectsV2Request;
+import com.amazonaws.services.s3.model.ListObjectsV2Result;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 import com.amazonaws.services.stepfunctions.AWSStepFunctions;
 import com.amazonaws.services.stepfunctions.AWSStepFunctionsClientBuilder;
 import com.amazonaws.services.stepfunctions.model.StartExecutionRequest;
 import com.amazonaws.services.stepfunctions.model.StartExecutionResult;
+import com.amazonaws.xray.AWSXRay;
+import com.amazonaws.xray.entities.Subsegment;
 import com.fasterxml.uuid.Generators;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -24,7 +28,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- *
+ * Execute a parallel color depth search using BatchSearch lambda functions.
  *
  * @author <a href="mailto:rokickik@janelia.hhmi.org">Konrad Rokicki</a>
  */
@@ -37,6 +41,8 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
 
     @Override
     public String handleRequest(ParallelSearchParameters params, Context context) {
+
+        AWSXRay.beginSubsegment("Read parameters");
 
         final String region = LambdaUtils.getMandatoryEnv("AWS_REGION");
         final String maskBucket = LambdaUtils.getMandatoryEnv("MASK_BUCKET");
@@ -51,30 +57,28 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
         log.info("Received color depth parallel search request: {}", paramsJson);
 
         if (LambdaUtils.isEmpty(params.getLibraries())) {
-            log.error("No color depth libraries specified");
-            System.exit(1);
+            throw new IllegalArgumentException("No color depth libraries specified");
         }
 
         if (LambdaUtils.isEmpty(params.getMaskKeys())) {
-            log.error("No masks specified");
-            System.exit(1);
+            throw new IllegalArgumentException("No masks specified");
         }
 
         if (LambdaUtils.isEmpty(params.getMaskThresholds())) {
-            log.error("No mask thresholds specified");
-            System.exit(1);
+            throw new IllegalArgumentException("No mask thresholds specified");
         }
 
         if (params.getMaskThresholds().size()!=params.getMaskKeys().size()) {
-            log.error("Number of mask thresholds does not match number of masks ({}!={})",
-                    params.getMaskThresholds().size(), params.getMaskKeys().size());
-            System.exit(1);
+            throw new IllegalArgumentException("Number of mask thresholds does not match number of masks");
         }
+
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Get library keys");
+        final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(region).build();
+        List<String> keys = new ArrayList<>();
 
         // Find all keys to search
         List<String> libraries = params.getLibraries();
-        List<String> keys = new ArrayList<>();
-        final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(region).build();
         for(String library : libraries) {
             log.info("Finding images in library bucket {} with prefix {}", libraryBucket, library);
             ListObjectsV2Request req = new ListObjectsV2Request().withBucketName(libraryBucket).withPrefix(library);
@@ -94,13 +98,14 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
         }
 
         if (keys.isEmpty()) {
-            log.error("No images to search");
-            System.exit(1);
+            throw new IllegalStateException("No images to search");
         }
 
-        log.info("Total number of images to search: {}", keys.size());
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Calculate partitions");
 
-        // Calculate batch size
+        log.info("Total number of images to search: {}", keys.size());
+        // Calculate batch size, capping at a max level of parallelism
         int batchSize = DEFAULT_BATCH_SIZE;
         int total = keys.size();
         int numBatches = total / batchSize;
@@ -123,7 +128,10 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
                 .build(BatchSearchService.class);
 
         UUID uid = Generators.timeBasedGenerator().generate();
-        int numPartitions = partitions.size();
+        int numPartitions = 50;// partitions.size();
+
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Persist metadata");
 
         String username = "anonymous";
         String outputKey = String.format("%s/%s", username, uid.toString());
@@ -143,9 +151,13 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
 
         // TODO: grant read permission to outputUri to the web page user
 
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Execute batches");
+
         // Dispatch all batches
         int i = 0;
         for (List<String> batchKeys : partitions) {
+            if (i>=numPartitions) break;
             String outputFile = String.format("%s/batch_%04d.json", outputFolderUri, i);
             BatchSearchParameters searchParameters = new BatchSearchParameters();
             searchParameters.setDataThreshold(params.getDataThreshold());
@@ -159,10 +171,13 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
             searchParameters.setSearchKeys(batchKeys);
             searchParameters.setOutputFile(outputFile);
             batchSearch.search(searchParameters);
-            log.info("Invoked batch #{}", ++i);
+            log.info("Dispatched batch #{}", i++);
         }
 
         log.info("Parallel search started with output at {}", outputFolderUri);
+
+        AWSXRay.endSubsegment();
+        AWSXRay.beginSubsegment("Start monitor");
 
         if (stateMachineArn!=null) {
             MonitorStateMachineInput monitorStateMachineInput = new MonitorStateMachineInput(searchBucket, outputKey);
@@ -175,6 +190,8 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
             StartExecutionResult result = stepFunctions.startExecution(executionRequest);
             log.info("Step function started: {}", result.getExecutionArn());
         }
+
+        AWSXRay.endSubsegment();
 
         // Return the s3 bucket where the results will be saved
         return outputFolderUri;

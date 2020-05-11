@@ -72,6 +72,22 @@
             <artifactId>aws-java-sdk-stepfunctions</artifactId>
             <version>1.11.86</version>
         </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-xray-recorder-sdk-core</artifactId>
+        </dependency>
+        <!--
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-xray-recorder-sdk-aws-sdk</artifactId>
+        </dependency>
+        -->
+        <!-- Instruments all AWS SDK for Java clients automatically.
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-xray-recorder-sdk-aws-sdk-instrumentor</artifactId>
+        </dependency>
+        -->
 
         <!-- Utilities -->
         <dependency>
@@ -127,19 +143,6 @@
                     <artifactId>log4j</artifactId>
                 </exclusion>
             </exclusions>
-        </dependency>
-
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-xray-recorder-sdk-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-xray-recorder-sdk-aws-sdk</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
-            <artifactId>aws-xray-recorder-sdk-aws-sdk-instrumentor</artifactId>
         </dependency>
 
     </dependencies>
