@@ -11,12 +11,12 @@ async function getAllKeys(params,  allKeys = []) {
     response.Contents.forEach(obj => allKeys.push(obj.Key));
     if (response.NextContinuationToken) {
         params.ContinuationToken = response.NextContinuationToken;
-        await getAllKeys(params, allKeys); // RECURSIVE CALL
+        await getAllKeys(params, allKeys); // recursive call
     }
     return allKeys;
 }
 
-// Read a JSON file from S3 and parse it into an object
+// Parse a JSON file from S3
 async function getObject(bucket, key) {
     try {
         if (DEBUG) console.log(`Getting object from ${bucket}:${key}`);
@@ -31,6 +31,7 @@ async function getObject(bucket, key) {
     }
 }
 
+// Write an object into S3 as JSON
 async function putObject(bucket, key, data) {
     try {
         if (DEBUG) console.log(`Putting object to ${bucket}:${key}`);
@@ -82,12 +83,13 @@ exports.isSearchDone = async (event, context) => {
     const numRemaining = numPartitions - numComplete;
 
     if (completed) {
-        console.log(`Search complete: ${numRemaining}/${numPartitions}`);
+        console.log(`Search complete: ${numComplete}/${numPartitions}`);
 
+        // Calculate total search time
         const now = new Date();
         const endTime = moment(now.toISOString());
-        const elapsed = endTime.diff(startTime, "s");
-        console.log(`Search took ${elapsed} seconds`);
+        const elapsedSecs = endTime.diff(startTime, "s");
+        console.log(`Search took ${elapsedSecs} seconds`);
 
         // Combine all the results
         const allMatches = [];
@@ -104,10 +106,10 @@ exports.isSearchDone = async (event, context) => {
         // Collate all matches to a file
         await putObject(bucket, prefix+"/results.json", sortedMatches);
 
-        // TODO: in the future this might write to a WebSocket to notify the user that the search is complete
         // Return results which Step Functions will use to determine if this monitor should run again
         return {
-            elapsedSecs: elapsed,
+            ...event,
+            elapsedSecs: elapsedSecs,
             numPartitions: numPartitions,
             completed: true
         };

@@ -16,7 +16,6 @@ import com.amazonaws.services.stepfunctions.AWSStepFunctionsClientBuilder;
 import com.amazonaws.services.stepfunctions.model.StartExecutionRequest;
 import com.amazonaws.services.stepfunctions.model.StartExecutionResult;
 import com.amazonaws.xray.AWSXRay;
-import com.amazonaws.xray.entities.Subsegment;
 import com.fasterxml.uuid.Generators;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -128,7 +127,7 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
                 .build(BatchSearchService.class);
 
         UUID uid = Generators.timeBasedGenerator().generate();
-        int numPartitions = 50;// partitions.size();
+        int numPartitions = partitions.size();
 
         AWSXRay.endSubsegment();
         AWSXRay.beginSubsegment("Persist metadata");
@@ -148,8 +147,6 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
         catch (Exception e) {
             throw new RuntimeException("Error writing results", e);
         }
-
-        // TODO: grant read permission to outputUri to the web page user
 
         AWSXRay.endSubsegment();
         AWSXRay.beginSubsegment("Execute batches");
