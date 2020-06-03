@@ -1,5 +1,8 @@
 package org.janelia.colordepthsearch;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.s3.AmazonS3;
@@ -8,16 +11,14 @@ import com.amazonaws.services.s3.AmazonS3URI;
 import com.amazonaws.services.s3.model.S3Object;
 import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.xray.AWSXRay;
-import ij.ImagePlus;
-import ij.io.Opener;
-import org.apache.commons.lang3.time.StopWatch;
+
+import org.janelia.colormipsearch.api.ColorMIPCompareOutput;
+import org.janelia.colormipsearch.api.ColorMIPMaskCompare;
+import org.janelia.colormipsearch.api.ColorMIPMaskCompareFactory;
+import org.janelia.colormipsearch.api.imageprocessing.ImageArray;
+import org.janelia.colormipsearch.api.imageprocessing.ImageArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.imageio.ImageIO;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  *  Search a list of color depth images using a list of masks.
@@ -61,7 +62,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         }
 
         // Preload all masks into memory
-        List<ImagePlus> maskImages = new ArrayList<>();
+        List<ImageArray> maskImages = new ArrayList<>();
 
         AWSXRay.endSubsegment();
         AWSXRay.beginSubsegment("Load masks");
@@ -70,7 +71,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
             for (String maskKey : params.getMaskKeys()) {
                 S3Object maskObject = s3.getObject(params.getMaskPrefix(), maskKey);
                 try (S3ObjectInputStream s3is = maskObject.getObjectContent()) {
-                    maskImages.add(readImagePlus(maskKey, maskKey, s3is));
+                    maskImages.add(ImageArrayUtils.readImageArray(maskKey, maskKey, s3is));
                 }
             }
             if (maskImages.isEmpty()) {
@@ -100,26 +101,30 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
                     log.error("Error loading search image {}", searchKey);
                 }
                 else {
-                    ImagePlus searchImage;
+                    ImageArray searchImage;
                     try (S3ObjectInputStream s3is = searchObject.getObjectContent()) {
-                        searchImage = readImagePlus(searchKey, searchKey, s3is);
+                        searchImage = ImageArrayUtils.readImageArray(searchKey, searchKey, s3is);
                     }
 
                     int maskIndex = 0;
-                    for (ImagePlus maskImage : maskImages) {
+                    for (ImageArray maskImage : maskImages) {
                         Integer maskThreshold = params.getMaskThresholds().get(maskIndex);
 
                         double pixfludub = params.getPixColorFluctuation() / 100;
-                        final ColorMIPMaskCompare cc = new ColorMIPMaskCompare(
-                                maskImage.getProcessor(), maskThreshold, params.isMirrorMask(),
-                                null, 0, false,
-                                params.getDataThreshold(), pixfludub, params.getXyShift());
-                        ColorMIPMaskCompare.Output output = cc.runSearch(searchImage.getProcessor(), null);
+                        final ColorMIPMaskCompare cc = ColorMIPMaskCompareFactory.createMaskComparator(
+                                maskImage,
+                                maskThreshold,
+                                params.isMirrorMask(),
+                                params.getDataThreshold(),
+                                pixfludub,
+                                params.getXyShift()
+                        );
+                        ColorMIPCompareOutput output = cc.runSearch(searchImage);
 
-                        if (output.matchingPixNum > params.getMinMatchingPix()) {
+                        if (output.getMatchingPixNum() > params.getMinMatchingPix()) {
                             results.get(maskIndex).add(new MaskSearchResult(
-                                    searchImage.getTitle(),
-                                    output.matchingPixNum));
+                                    searchKey,
+                                    output.getMatchingPixNum()));
                         }
 
                         maskIndex++;
@@ -171,61 +176,6 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
 
         AWSXRay.endSubsegment();
         return null; // null response because this lambda runs asynchronously and updates a database
-    }
-
-    private enum ImageFormat {
-        PNG,
-        TIFF,
-        UNKNOWN
-    }
-
-    private ImageFormat getImageFormat(String filepath) {
-
-        String lowerPath = filepath.toLowerCase();
-
-        if (lowerPath.endsWith(".png")) {
-            return ImageFormat.PNG;
-        }
-        else if (lowerPath.endsWith(".tiff") || lowerPath.endsWith(".tif")) {
-            return ImageFormat.TIFF;
-        }
-
-        log.info("Image format unknown: {}", filepath);
-        return ImageFormat.UNKNOWN;
-    }
-
-    private ImagePlus readPngToImagePlus(String title, S3ObjectInputStream stream) throws IOException {
-        StopWatch s = new StopWatch();
-        s.start();
-        ImagePlus imagePlus = new ImagePlus(title, ImageIO.read(stream));
-        log.debug("Reading {} took {} ms", title, s.getTime());
-        return imagePlus;
-    }
-
-    private ImagePlus readTiffToImagePlus(String title, S3ObjectInputStream stream) throws IOException {
-        StopWatch s = new StopWatch();
-        s.start();
-        ImagePlus imagePlus = new Opener().openTiff(stream, title);
-        log.debug("Reading {} took {} ms", title, s.getTime());
-        return imagePlus;
-    }
-
-    private ImagePlus readImagePlus(String filepath, String title, S3ObjectInputStream stream) throws IOException {
-        try {
-            switch (getImageFormat(filepath)) {
-                case PNG:
-                    return readPngToImagePlus(title, stream);
-                case TIFF:
-                    return readTiffToImagePlus(title, stream);
-            }
-        }
-        catch (IOException e) {
-            throw new IOException("Error reading "+filepath, e);
-        }
-        finally {
-            stream.abort(); // Avoid "Not all bytes were read" error
-        }
-        throw new IllegalArgumentException("Image must be in PNG or TIFF format");
     }
 
 }

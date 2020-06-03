@@ -14,10 +14,9 @@
     </properties>
 
     <repositories>
-        <!-- for BioFormats -->
         <repository>
-            <id>imagej-repository</id>
-            <url>https://maven.scijava.org/content/repositories/ome-releases/</url>
+            <id>janelia-repository</id>
+            <url>https://nexus.janelia.org/repository/maven-releases</url>
             <snapshots>
                 <enabled>false</enabled>
             </snapshots>
@@ -116,31 +115,9 @@
 
         <!-- Image Processing -->
         <dependency>
-            <groupId>net.imagej</groupId>
-            <artifactId>ij</artifactId>
-            <version>1.51p</version>
-        </dependency>
-        <dependency>
-            <groupId>loci</groupId>
-            <artifactId>bio-formats</artifactId>
-            <version>4.4.12</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>loci</groupId>
-                    <artifactId>jai_imageio</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>loci</groupId>
-            <artifactId>loci_plugins</artifactId>
-            <version>4.4.12</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-            </exclusions>
+            <groupId>org.janelia.colormipsearch</groupId>
+            <artifactId>colormipsearch-api</artifactId>
+            <version>1.1</version>
         </dependency>
 
     </dependencies>
