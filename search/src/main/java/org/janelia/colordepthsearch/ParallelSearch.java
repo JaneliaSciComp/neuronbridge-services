@@ -138,11 +138,10 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
         String outputFolderUri = String.format("s3://%s/%s", searchBucket, outputKey);
 
         try {
-            log.info("Saving metadata to s3://{}/{}", searchBucket, outputMetadataUri);
             AmazonS3URI outputUri = new AmazonS3URI(outputMetadataUri);
             SearchMetadata searchMetadata = new SearchMetadata(params, numPartitions);
             LambdaUtils.putObject(s3, outputUri, searchMetadata);
-            log.info("Results written to {}", outputUri);
+            log.info("Metadata written to {}", outputUri);
         }
         catch (Exception e) {
             throw new RuntimeException("Error writing results", e);

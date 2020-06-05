@@ -19,6 +19,7 @@ public class BatchSearchParameters {
     private Integer xyShift = 0;
     private boolean mirrorMask = false;
     private String outputFile;
+    private Integer minMatchingPix = 5;
 
     public String getSearchPrefix() {
         return searchPrefix;
@@ -138,5 +139,13 @@ public class BatchSearchParameters {
      */
     public void setOutputFile(String outputFile) {
         this.outputFile = outputFile;
+    }
+
+    public Integer getMinMatchingPix() {
+        return minMatchingPix;
+    }
+
+    public void setMinMatchingPix(Integer minMatchingPix) {
+        this.minMatchingPix = minMatchingPix;
     }
 }

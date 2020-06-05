@@ -86,7 +86,12 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         AWSXRay.beginSubsegment("Search");
 
         log.debug("Searching {} images with {} masks", params.getSearchKeys().size(), maskImages.size());
-        List<MaskSearchResult> results = new ArrayList<>();
+        
+        // Create a result array for each mask
+        List<List<MaskSearchResult>> results = new ArrayList<>();
+        for (ImagePlus maskImage : maskImages) {
+            results.add(new ArrayList<>());
+        }    
 
         // Load each search image and compare it to all the masks already in memory
         for (String searchKey : params.getSearchKeys()) {
@@ -99,6 +104,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
                     ImagePlus searchImage;
                     try (S3ObjectInputStream s3is = searchObject.getObjectContent()) {
                         searchImage = readImagePlus(searchKey, searchKey, s3is);
+                        s3is.abort(); // Avoid "Not all bytes were read" error
                     }
 
                     int maskIndex = 0;
@@ -112,10 +118,9 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
                                 params.getDataThreshold(), pixfludub, params.getXyShift());
                         ColorMIPMaskCompare.Output output = cc.runSearch(searchImage.getProcessor(), null);
 
-                        if (output.matchingPixNum > 0) {
-                            results.add(new MaskSearchResult(
+                        if (output.matchingPixNum > params.getMinMatchingPix()) {
+                            results.get(maskIndex).add(new MaskSearchResult(
                                     searchImage.getTitle(),
-                                    maskIndex,
                                     output.matchingPixNum));
                         }
 
@@ -132,20 +137,27 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         AWSXRay.endSubsegment();
         AWSXRay.beginSubsegment("Sort and save results");
 
-        // Sort the results
-        results.sort((o1, o2) -> {
-            Double i1 = o1.getScore();
-            Double i2 = o2.getScore();
-            return i2.compareTo(i1); // reverse sort
-        });
+        // Sort the results for each mask
+        for (List<MaskSearchResult> maskResults : results) {
+            maskResults.sort((o1, o2) -> {
+                Double i1 = o1.getScore();
+                Double i2 = o2.getScore();
+                return i2.compareTo(i1); // reverse sort
+            });
+        }
 
         if (params.getOutputFile()==null) {
             // Print some results to the log
-            int i = 0;
-            for (MaskSearchResult result : results) {
-                log.info("Match {} - {}", result.getScore(), result.getFilepath());
-                if (i > 9) break;
-                i++;
+            int maskIndex = 0;
+            for (List<MaskSearchResult> maskResults : results) {
+                log.info("Mask #{}", maskIndex);
+                int i = 0;
+                for (MaskSearchResult result : maskResults) {
+                    log.info("Match {} - {}", result.getScore(), result.getFilepath());
+                    if (i > 9) break;
+                    i++;
+                }
+                maskIndex++;
             }
         }
         else {
