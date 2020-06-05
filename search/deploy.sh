@@ -1,4 +1,4 @@
 #!/bin/sh
 mvn clean install \
-    && serverless deploy
+    && serverless deploy -s dev
 
