@@ -5,7 +5,7 @@ custom:
   maskBucket: janelia-neuronbridge-masks-${self:provider.stage}
   searchBucket: janelia-neuronbridge-searches-${self:provider.stage}
   version: 1.0.0
-  tracing: false
+  tracing: true
 
 provider:
   name: aws
@@ -95,7 +95,10 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/monitor.isSearchDone
     memorySize: 128
-    timeout: 60
+    # 5 minute timeout because the last iteration also runs the reduce step
+    timeout: 300
+    environment:
+      SEARCH_TIMEOUT_SECS: 300
 
 stepFunctions:
 
