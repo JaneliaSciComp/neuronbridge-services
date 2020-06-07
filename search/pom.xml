@@ -76,13 +76,11 @@
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-xray-recorder-sdk-core</artifactId>
         </dependency>
-        <!--
+        <!-- Instruments all AWS SDK for Java clients automatically.
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-xray-recorder-sdk-aws-sdk</artifactId>
         </dependency>
-        -->
-        <!-- Instruments all AWS SDK for Java clients automatically.
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-xray-recorder-sdk-aws-sdk-instrumentor</artifactId>

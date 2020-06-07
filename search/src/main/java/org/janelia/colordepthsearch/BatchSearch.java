@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -104,7 +103,6 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
                     ImagePlus searchImage;
                     try (S3ObjectInputStream s3is = searchObject.getObjectContent()) {
                         searchImage = readImagePlus(searchKey, searchKey, s3is);
-                        s3is.abort(); // Avoid "Not all bytes were read" error
                     }
 
                     int maskIndex = 0;
@@ -196,7 +194,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         return ImageFormat.UNKNOWN;
     }
 
-    private ImagePlus readPngToImagePlus(String title, InputStream stream) throws IOException {
+    private ImagePlus readPngToImagePlus(String title, S3ObjectInputStream stream) throws IOException {
         StopWatch s = new StopWatch();
         s.start();
         ImagePlus imagePlus = new ImagePlus(title, ImageIO.read(stream));
@@ -204,7 +202,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         return imagePlus;
     }
 
-    private ImagePlus readTiffToImagePlus(String title, InputStream stream) throws IOException {
+    private ImagePlus readTiffToImagePlus(String title, S3ObjectInputStream stream) throws IOException {
         StopWatch s = new StopWatch();
         s.start();
         ImagePlus imagePlus = new Opener().openTiff(stream, title);
@@ -212,7 +210,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         return imagePlus;
     }
 
-    private ImagePlus readImagePlus(String filepath, String title, InputStream stream) throws IOException {
+    private ImagePlus readImagePlus(String filepath, String title, S3ObjectInputStream stream) throws IOException {
         try {
             switch (getImageFormat(filepath)) {
                 case PNG:
@@ -223,6 +221,9 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         }
         catch (IOException e) {
             throw new IOException("Error reading "+filepath, e);
+        }
+        finally {
+            stream.abort(); // Avoid "Not all bytes were read" error
         }
         throw new IllegalArgumentException("Image must be in PNG or TIFF format");
     }
