@@ -68,6 +68,21 @@ functions:
       SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
 
+  searchDispatch:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_dispatch.searchDispatch
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
+    environment:
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+      MASK_BUCKET: ${self:custom.maskBucket}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
+      STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
+
   search:
     package:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
@@ -76,21 +91,7 @@ functions:
     memorySize: 256
     # 5 minute timeout
     timeout: 300
-
-  searchDispatch:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_dispatch.searchDispatch
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
-    environment:
-      MASK_BUCKET: ${self:custom.maskBucket}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
-      SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
-      STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
-
+    
   monitor:
     runtime: nodejs12.x
     handler: src/main/nodejs/monitor.isSearchDone
@@ -98,6 +99,7 @@ functions:
     # 5 minute timeout because the last iteration also runs the reduce step
     timeout: 300
     environment:
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_TIMEOUT_SECS: 300
 
 stepFunctions:
