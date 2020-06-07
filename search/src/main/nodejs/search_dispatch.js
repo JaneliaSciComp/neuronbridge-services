@@ -1,6 +1,9 @@
 'use strict';
+
+const utils = require('./utils');
+const AWSXRay = require('aws-xray-sdk-core')
 const AWS = require('aws-sdk');
-const AWSXRay = require('aws-xray-sdk');
+// const AWS = AWSXRay.captureAWS(require('aws-sdk')
 const { v1: uuidv1 } = require('uuid');
 
 const s3 = new AWS.S3();
@@ -22,64 +25,16 @@ const dispatchFunction = process.env.DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
-// From https://stackoverflow.com/questions/42394429/aws-sdk-s3-best-way-to-list-all-keys-with-listobjectsv2
-async function getAllKeys(params,  allKeys = []) {
-    const response = await s3.listObjectsV2(params).promise();
-    response.Contents.forEach(obj => allKeys.push(obj.Key));
-    if (response.NextContinuationToken) {
-        params.ContinuationToken = response.NextContinuationToken;
-        await getAllKeys(params, allKeys); // recursive call
-    }
-    return allKeys;
-}
-
-// Parse a JSON file from S3
-async function getObject(bucket, key) {
-    try {
-        if (DEBUG) console.log(`Getting object from ${bucket}:${key}`);
-        const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
-        const data = response.Body.toString();
-        if (DEBUG) console.log(`Got object from ${bucket}:${key}:`, data);
-        return JSON.parse(data);
-    } 
-    catch (e) {
-        console.error(`Error getting object ${bucket}:${key}`, e);
-        throw e;
-    }
-}
-
-// Write an object into S3 as JSON
-async function putObject(bucket, key, data) {
-    try {
-        if (DEBUG) console.log(`Putting object to ${bucket}:${key}`);
-        const body = JSON.stringify(data);
-        await s3.putObject({ Bucket: bucket, Key: key, Body: body, ContentType: 'application/json'}).promise();
-        if (DEBUG) console.log(`Put object to ${bucket}:${key}:`, data);
-    } 
-    catch (e) {
-        console.error('Error putting object', data, `to ${bucket}:${key}`, e);
-        throw e;
-    }
-}
-
-// Returns consecutive sublists of a list, each of the same size (the final list may be smaller)
-function partition(list, size) {
-    const output = [];
-    for (var i = 0; i < list.length; i += size) {
-        output[output.length] = list.slice(i, i + size);
-    }
-    return output;
-}
 
 exports.searchDispatch = async (event, context) => {
     
-    const segment = AWSXRay.getSegment(); 
+    const segment = AWSXRay.getSegment();
     var subsegment = segment.addNewSubsegment('Read parameters');
 
     // Parameters
-    console.log(event);
+    if (DEBUG) console.log(event);
     const level = event.level || 0;
-    const numLevels = event.numLevels || 1;
+    const numLevels = event.numLevels || 2;
     const batchSize = event.batchSize || DEFAULT_BATCH_SIZE;
     const libraries = event.libraries;
     const maskKeys = event.maskKeys;
@@ -103,7 +58,7 @@ exports.searchDispatch = async (event, context) => {
     var keys = [];
     for(const library of libraries) {
         console.log(`Finding images in library bucket ${libraryBucket} with prefix ${library}`);
-        keys = keys.concat(await getAllKeys({ Bucket: libraryBucket, Prefix: library }));
+        keys = keys.concat(await utils.getAllKeys(s3, { Bucket: libraryBucket, Prefix: library }));
     }
     console.log("Total number of images to search: "+keys.length);
 
@@ -120,7 +75,7 @@ exports.searchDispatch = async (event, context) => {
     console.log("Batch size:", batchSize);
 
     // Create partitions
-    const partitions = partition(keys, batchSize);
+    const partitions = utils.partition(keys, batchSize);
     console.log("Num partitions:", partitions.length);
 
     const uid = uuidv1();
@@ -141,7 +96,7 @@ exports.searchDispatch = async (event, context) => {
         parameters: event,
         partitions: numPartitions
     };
-    await putObject(searchBucket, outputMetadataKey, searchMetadata);
+    await utils.putObject(s3, searchBucket, outputMetadataKey, searchMetadata);
     console.log(`Metadata written to ${outputMetadataUri}`);
 
     subsegment.close();
@@ -170,13 +125,7 @@ exports.searchDispatch = async (event, context) => {
             minMatchingPix: event.minMatchingPix || DEFAULT_MINMAXPIX
         };
 
-        const params = {
-            FunctionName: searchFunction, 
-            InvocationType: 'Event', // async invocation
-            Payload: JSON.stringify(searchParameters)
-        };
-        await lambda.invoke(params).promise();
-        
+        await utils.invokeAsync(lambda, searchFunction, searchParameters);
         console.log("Dispatched batch #", i++);
     }
 
