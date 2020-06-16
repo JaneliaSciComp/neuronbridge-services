@@ -89,7 +89,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         
         // Create a result array for each mask
         List<List<MaskSearchResult>> results = new ArrayList<>();
-        for (ImagePlus maskImage : maskImages) {
+        for (ImageArray maskImage : maskImages) {
             results.add(new ArrayList<>());
         }    
 
