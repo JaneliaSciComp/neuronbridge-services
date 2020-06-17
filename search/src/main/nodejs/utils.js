@@ -44,6 +44,7 @@ module.exports = {
             console.error('Error putting object', data, `to ${bucket}:${key}`, e);
             throw e;
         }
+        return `s3://${bucket}/${key}`
     },
 
     // Invoke another Lambda function asynchronously
