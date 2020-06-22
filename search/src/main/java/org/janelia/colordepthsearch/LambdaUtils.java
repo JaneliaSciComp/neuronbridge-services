@@ -1,5 +1,7 @@
 package org.janelia.colordepthsearch;
 
+import java.util.Collection;
+
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.AmazonS3URI;
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -8,11 +10,6 @@ import com.amazonaws.util.StringInputStream;
 import com.amazonaws.util.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import java.io.UnsupportedEncodingException;
-import java.util.Collection;
 
 /**
  * Useful utility functions for writing AWS Lambda functions in Java.
@@ -21,8 +18,10 @@ import java.util.Collection;
  */
 public class LambdaUtils {
 
-    private static final Logger log = LoggerFactory.getLogger(LambdaUtils.class);
-    private static final Gson gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'").setPrettyPrinting().create();
+    private static final Gson JSON_MAPPER = new GsonBuilder()
+            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
+            .setPrettyPrinting()
+            .create();
 
     public static String getMandatoryEnv(String name) {
         if (StringUtils.isNullOrEmpty(System.getenv(name))) {
@@ -32,7 +31,7 @@ public class LambdaUtils {
         return System.getenv(name);
     }
 
-    public static String getOptionalEnv(String name, String defaultValue){
+    public static String getOptionalEnv(String name, String defaultValue) {
         if (StringUtils.isNullOrEmpty(System.getenv(name))) {
             return defaultValue;
         }
@@ -40,7 +39,7 @@ public class LambdaUtils {
     }
 
     public static String toJson(Object object) {
-        return gson.toJson(object);
+        return JSON_MAPPER.toJson(object);
     }
 
     public static boolean isEmpty(Collection<?> collection) {

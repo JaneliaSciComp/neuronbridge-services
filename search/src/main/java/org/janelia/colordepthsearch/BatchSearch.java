@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  */
 public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolean> {
 
-    private static final Logger log = LoggerFactory.getLogger(BatchSearch.class);
+    private static final Logger LOG = LoggerFactory.getLogger(BatchSearch.class);
 
     @Override
     public Boolean handleRequest(BatchSearchParameters params, Context context) {
@@ -39,9 +39,8 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
         AWSXRay.beginSubsegment("Read parameters");
         final String region = LambdaUtils.getMandatoryEnv("AWS_REGION");
 
-        log.debug("Environment:\n  region: {}",
-                region);
-        log.debug("Received color depth search request: {}", LambdaUtils.toJson(params));
+        LOG.debug("Environment:\n  region: {}", region);
+        LOG.debug("Received color depth search request: {}", LambdaUtils.toJson(params));
 
         final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(region).build();
 
@@ -85,7 +84,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
         AWSXRay.endSubsegment();
         AWSXRay.beginSubsegment("Search");
 
-        log.debug("Searching {} images with {} masks", params.getSearchKeys().size(), maskImages.size());
+        LOG.debug("Searching {} images with {} masks", params.getSearchKeys().size(), maskImages.size());
         
         // Create a result array for each mask
         List<List<MaskSearchResult>> results = new ArrayList<>();
@@ -98,7 +97,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
             try {
                 S3Object searchObject = s3.getObject(params.getSearchPrefix(), searchKey);
                 if (searchObject == null) {
-                    log.error("Error loading search image {}", searchKey);
+                    LOG.error("Error loading search image {}", searchKey);
                 }
                 else {
                     ImageArray searchImage;
@@ -131,11 +130,11 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
                     }
                 }
             } catch (Exception e) {
-                log.error("Error searching {}", searchKey, e);
+                LOG.error("Error searching {}", searchKey, e);
             }
         }
 
-        log.info("Found {} matches.", results.size());
+        LOG.info("Found {} matches.", results.size());
 
         AWSXRay.endSubsegment();
         AWSXRay.beginSubsegment("Sort and save results");
@@ -153,10 +152,10 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
             // Print some results to the log
             int maskIndex = 0;
             for (List<MaskSearchResult> maskResults : results) {
-                log.info("Mask #{}", maskIndex);
+                LOG.info("Mask #{}", maskIndex);
                 int i = 0;
                 for (MaskSearchResult result : maskResults) {
-                    log.info("Match {} - {}", result.getScore(), result.getFilepath());
+                    LOG.info("Match {} - {}", result.getScore(), result.getFilepath());
                     if (i > 9) break;
                     i++;
                 }
@@ -167,7 +166,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
             try {
                 AmazonS3URI outputUri = new AmazonS3URI(params.getOutputFile());
                 LambdaUtils.putObject(s3, outputUri, results);
-                log.info("Results written to {}", outputUri);
+                LOG.info("Results written to {}", outputUri);
             }
             catch (Exception e) {
                 throw new RuntimeException("Error writing results", e);
