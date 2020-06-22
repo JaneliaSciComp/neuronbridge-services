@@ -29,12 +29,12 @@ import org.slf4j.LoggerFactory;
  *
  *  @author <a href="mailto:rokickik@janelia.hhmi.org">Konrad Rokicki</a>
  */
-public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> {
+public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolean> {
 
     private static final Logger log = LoggerFactory.getLogger(BatchSearch.class);
 
     @Override
-    public Void handleRequest(BatchSearchParameters params, Context context) {
+    public Boolean handleRequest(BatchSearchParameters params, Context context) {
 
         AWSXRay.beginSubsegment("Read parameters");
         final String region = LambdaUtils.getMandatoryEnv("AWS_REGION");
@@ -175,7 +175,8 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Void> 
         }
 
         AWSXRay.endSubsegment();
-        return null; // null response because this lambda runs asynchronously and updates a database
+
+        return true;
     }
 
 }

@@ -21,6 +21,9 @@ provider:
     DEVELOPER: ${env:USER}
   tracing:
     lambda: ${self:custom.tracing}
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
 
   iamRoleStatements:
     - Effect: Allow
@@ -38,6 +41,9 @@ provider:
       Action:
         - s3:PutObject
       Resource:
+        - "arn:aws:s3:::${self:custom.libraryBucket}"
+        - "arn:aws:s3:::${self:custom.libraryBucket}/*"
+        - "arn:aws:s3:::${self:custom.searchBucket}/"
         - "arn:aws:s3:::${self:custom.searchBucket}/*"
     - Effect: Allow
       Action:
@@ -52,6 +58,12 @@ package:
   individually: true
 
 functions:
+
+  denormalize:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/denormalize.denormalize
+    memorySize: 128
+    timeout: 300
 
   parallelSearch:
     package:
@@ -75,7 +87,6 @@ functions:
     # 5 minute timeout
     timeout: 300
     environment:
-      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       MASK_BUCKET: ${self:custom.maskBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
@@ -99,7 +110,6 @@ functions:
     # 5 minute timeout because the last iteration also runs the reduce step
     timeout: 300
     environment:
-      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_TIMEOUT_SECS: 300
 
   searchReduce:
@@ -131,7 +141,14 @@ stepFunctions:
                 - Lambda.TooManyRequestsException
                 IntervalSeconds: 1
                 MaxAttempts: 100
-            Next: AreWeDoneYet
+            Next: IsTimedOut
+          IsTimedOut:
+            Type: Choice
+            Choices:
+              - Variable: "$.timedOut"
+                BooleanEquals: true
+                Next: TimedOut
+            Default: AreWeDoneYet
           AreWeDoneYet:
             Type: Choice
             Choices:
@@ -143,6 +160,9 @@ stepFunctions:
             Type: Wait
             Seconds: 1
             Next: Monitor
+          TimedOut:
+            Type: Fail
+            Cause: "Search timed out"
           Reduce:
             Type: Task
             Resource:
