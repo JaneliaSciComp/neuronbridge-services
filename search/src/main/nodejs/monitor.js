@@ -44,7 +44,7 @@ exports.isSearchDone = async (event, context) => {
 
     const numRemaining = numPartitions - numComplete;
 
-    if (numRemaining > 0) {
+    if (numRemaining == 0) {
         console.log(`Search complete: ${numComplete}/${numPartitions}`);
 
         // Calculate total search time
@@ -52,22 +52,16 @@ exports.isSearchDone = async (event, context) => {
         const endTime = moment(now.toISOString());
         const elapsedSecs = endTime.diff(startTime, "s");
 
-        if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
-            throw new Error(`Search timed out after ${elapsedSecs} seconds`);
-        }
-
         console.log(`Search took ${elapsedSecs} seconds`);
         return {
             ...event,
             elapsedSecs: elapsedSecs,
             numPartitions: numPartitions,
             numRemaining: 0,
-            totalMatches: totalMatches,
             completed: true,
             timedOut: false
         };
-    }
-    else if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
+    } else if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
         console.log(`Search timed out after ${elapsedSecs} seconds`);
         return {
             ...event,
@@ -77,8 +71,7 @@ exports.isSearchDone = async (event, context) => {
             completed: false,
             timedOut: true
         };
-    }
-    else {
+    } else {
         console.log(`Search still running after ${elapsedSecs} seconds. Completed ${numComplete} of ${numPartitions} jobs.`);
         return {
             ...event,
