@@ -91,7 +91,7 @@ functions:
     memorySize: 256
     # 5 minute timeout
     timeout: 300
-    
+
   monitor:
     runtime: nodejs12.x
     handler: src/main/nodejs/monitor.isSearchDone
@@ -101,6 +101,17 @@ functions:
     environment:
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_TIMEOUT_SECS: 300
+
+  searchReduce:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_reducer.searchReducer
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
+    environment:
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+
 
 stepFunctions:
 
@@ -126,12 +137,17 @@ stepFunctions:
             Choices:
               - Variable: "$.completed"
                 BooleanEquals: true
-                Next: EndState
+                Next: Reduce
             Default: Wait
           Wait:
             Type: Wait
             Seconds: 1
             Next: Monitor
+          Reduce:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [searchReduce]
+            Next: EndState
           EndState:
             Type: Pass
             End: true

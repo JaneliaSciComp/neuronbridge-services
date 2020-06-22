@@ -26,7 +26,7 @@ const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
 
-exports.searchDispatch = async (event, context) => {
+export const searchDispatch = async (event, context) => {
     
     const segment = AWSXRay.getSegment();
     var subsegment = segment.addNewSubsegment('Read parameters');
@@ -132,25 +132,30 @@ exports.searchDispatch = async (event, context) => {
     console.log("Parallel search started with output at", outputFolderUri);
 
     subsegment.close();
-    subsegment = segment.addNewSubsegment('Start monitor');
 
-    if (stateMachineArn!=null) {
-        const monitorStateMachineInput = {
-            bucket: searchBucket,
-            prefix: outputKey
-        };
-        const stepFunction = new AWS.StepFunctions();
-        const params = {
-            stateMachineArn: stateMachineArn,
-            input: JSON.stringify(monitorStateMachineInput),
-            name: "ColorDepthSearch_"+uid
-          };
-        const result = await stepFunction.startExecution(params).promise();
-        console.log("Step function started: ", result.executionArn);
+    if (stateMachineArn != null) {
+        await startMonitor(outputKey, stateMachineArn, segment);
     }
-
-    subsegment.close();
 
     // Return the s3 bucket where the results will be saved
     return outputFolderUri;
+}
+
+const startMonitor = async (searchId, outputPrefix, stateMachineArn, segment) => {
+    let subsegment = segment.addNewSubsegment('Start monitor');
+    const monitorStateMachineInput = {
+        bucket: searchBucket,
+        prefix: outputPrefix
+    };
+    const stepFunction = new AWS.StepFunctions();
+    const params = {
+        stateMachineArn: stateMachineArn,
+        input: JSON.stringify(monitorStateMachineInput),
+        name: `ColorDepthSearch_${searchId}`
+    };
+    const result = await stepFunction.startExecution(params).promise();
+    console.log("Step function started: ", result.executionArn);
+
+    subsegment.close();
+
 }

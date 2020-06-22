@@ -75,48 +75,16 @@ exports.isSearchDone = async (event, context) => {
     let numComplete = 0;
     for(let i=0; i<numPartitions; i++) {
         const batchId = i.toString().padStart(4,"0");
-        const outputKey = prefix+"/batch_"+batchId+".json";
+        const outputKey = `${prefix}/batch_${batchId}.json`;
         if (allKeys.has(outputKey)) {
             numComplete++;
         }
     }
 
-    const completed = numPartitions === numComplete;
     const numRemaining = numPartitions - numComplete;
 
-    if (completed) {
+    if (numRemaining > 0) {
         console.log(`Search complete: ${numComplete}/${numPartitions}`);
-
-        // Combine all the results
-        const allMatches = [];
-        for(let i=0; i<numPartitions; i++) {
-            const batchId = i.toString().padStart(4,"0");
-            const outputKey = prefix+"/batch_"+batchId+".json";
-            const batchResults = await getObject(bucket, outputKey);
-            for(var j=0; j<batchResults.length; j++) {
-                var maskMatches;
-                if (i==0) {
-                    maskMatches = [];
-                    allMatches.push(maskMatches);
-                }
-                else {
-                    maskMatches = allMatches[j];
-                }
-                for(const result of batchResults[j]) {
-                    maskMatches.push(result);
-                }
-            }
-        }
-        console.log(`Found ${allMatches.length} total matches`);
-
-        // Sort the matches by descending score
-        for(let i=0; i<allMatches.length; i++) {
-            allMatches[i] = allMatches[i].sort((a, b) => b.score - a.score);
-        }
-
-        // Collate all matches to a file
-        const outputUri = await putObject(bucket, prefix+"/results.json", allMatches);
-        console.log(`Saved matches to ${outputUri}`);
 
         // Calculate total search time
         const now = new Date();
@@ -126,7 +94,6 @@ exports.isSearchDone = async (event, context) => {
         if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
             throw new Error(`Search timed out after ${elapsedSecs} seconds`);
         }
-
         console.log(`Search took ${elapsedSecs} seconds`);
 
         // Return results which Step Functions will use to determine if this monitor should run again
