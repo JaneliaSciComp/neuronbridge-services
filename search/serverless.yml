@@ -2,15 +2,15 @@ service: janelia-neuronbridge-services
 
 custom:
   libraryBucket: janelia-flylight-color-depth
-  maskBucket: janelia-neuronbridge-masks-${self:provider.stage}
-  searchBucket: janelia-neuronbridge-searches-${self:provider.stage}
-  version: 1.0.0
+  searchBucket: janelia-neuronbridge-searches-dev
+  version: 2.0.0
   tracing: true
+  debug: true
 
 provider:
   name: aws
   region: ${opt:region, 'us-east-1'}
-  stage: ${opt:stage, 'dev'}
+  stage: ${opt:stage, 'cgdev'}
   tags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
@@ -31,8 +31,6 @@ provider:
         - s3:GetObject
         - s3:ListBucket
       Resource:
-        - "arn:aws:s3:::${self:custom.maskBucket}"
-        - "arn:aws:s3:::${self:custom.maskBucket}/*"
         - "arn:aws:s3:::${self:custom.libraryBucket}"
         - "arn:aws:s3:::${self:custom.libraryBucket}/*"
         - "arn:aws:s3:::${self:custom.searchBucket}"
@@ -41,8 +39,6 @@ provider:
       Action:
         - s3:PutObject
       Resource:
-        - "arn:aws:s3:::${self:custom.libraryBucket}"
-        - "arn:aws:s3:::${self:custom.libraryBucket}/*"
         - "arn:aws:s3:::${self:custom.searchBucket}/"
         - "arn:aws:s3:::${self:custom.searchBucket}/*"
     - Effect: Allow
@@ -54,8 +50,10 @@ provider:
         - states:StartExecution
       Resource: "*"
 
+
 package:
   individually: true
+
 
 functions:
 
@@ -65,21 +63,6 @@ functions:
     memorySize: 128
     timeout: 300
 
-  parallelSearch:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.ParallelSearch
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
-    environment:
-      MASK_BUCKET: ${self:custom.maskBucket}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
-      STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
-
   searchDispatch:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_dispatch.searchDispatch
@@ -87,12 +70,12 @@ functions:
     # 5 minute timeout
     timeout: 300
     environment:
-      MASK_BUCKET: ${self:custom.maskBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
+      DEBUG: ${self:custom.debug}
 
   search:
     package:
@@ -111,6 +94,7 @@ functions:
     timeout: 300
     environment:
       SEARCH_TIMEOUT_SECS: 300
+      DEBUG: ${self:custom.debug}
 
   searchReduce:
     runtime: nodejs12.x
@@ -121,13 +105,15 @@ functions:
     environment:
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_BUCKET: ${self:custom.searchBucket}
+      DEBUG: ${self:custom.debug}
 
 
 stepFunctions:
 
   stateMachines:
     searchMonitorStateMachine:
-      name: searchMonitorStateMachine
+      id: SearchMonitorStateMachine
+      name: searchMonitorStateMachine-${self:service}-${self:provider.stage}
       definition:
         Comment: "Monitors a parallel Color Depth Search and notifies the user upon completion"
         StartAt: Monitor
@@ -166,7 +152,7 @@ stepFunctions:
           Reduce:
             Type: Task
             Resource:
-              Fn::GetAtt: [searchReduce]
+              Fn::GetAtt: [searchReduce, Arn]
             Next: EndState
           EndState:
             Type: Pass
@@ -176,17 +162,6 @@ stepFunctions:
 
 
 resources:
-
-  Resources:
-    S3BucketInputs:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.maskBucket}
-
-    S3BucketSearches:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.searchBucket}
 
   Outputs:
     SearchMonitorStateMachine:

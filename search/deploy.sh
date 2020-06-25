@@ -1,4 +1,5 @@
 #!/bin/sh
-mvn clean install \
-    && serverless deploy -s dev
+#export SLS_DEBUG=*
 
+mvn package \
+    && serverless deploy -s cgdev

@@ -1,62 +1,68 @@
 'use strict';
 
-const utils = require('./utils');
+import {getIntermediateSearchResultsKey} from "./searchutils";
+import {putText} from "./utils";
+
+const {getAllKeys, DEBUG} = require('./utils');
+const {getIntermediateSearchResultsPrefix, getSearchProgressKey} = require('./searchutils');
 const AWS = require('aws-sdk');
 const moment = require('moment');
 
-const s3 = new AWS.S3();
-const DEBUG = false;
 const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
-exports.isSearchDone = async (event, context) => {
+export const isSearchDone = async (event, context) => {
 
     // Parameters
     if (DEBUG) console.log(event);
     const bucket = event.bucket;
-    const prefix = event.prefix;
+    const searchInputKey = event.searchInputKey;
+    const numBatches = event.numBatches;
+    const startTime = moment(event.startTime);
 
-    if (bucket == null) {
+    if (!bucket) {
         throw new Error('Missing required key \'bucket\' in input to isSearchDone');
     }
 
-    if (prefix == null) {
-        throw new Error('Missing required key \'prefix\' in input to isSearchDone');
+    if (!searchInputKey) {
+        throw new Error('Missing required key \'searchInputKey\' in input to isSearchDone');
     }
 
-    // Fetch metadata
-    const metadata = await utils.getObject(s3, bucket, prefix+"/metadata.json");
-    const numPartitions = metadata['partitions'];
-    const startTime = moment(metadata['startTime']);
+    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputKey);
 
     // Fetch all keys
-    const allKeys = new Set(await utils.getAllKeys(s3, { Bucket: bucket, Prefix: prefix }));
+    const allBatchResultsKeys = new Set(await getAllKeys({
+        Bucket: bucket,
+        Prefix: intermediateSearchResultsPrefix
+    }));
+
     if (DEBUG) console.log(allKeys);
 
     // Check if all partitions have completed
     let numComplete = 0;
-    for(let i=0; i<numPartitions; i++) {
-        const batchId = i.toString().padStart(4,"0");
-        const outputKey = `${prefix}/batch_${batchId}.json`;
+    for(let batchIndex = 0; batchIndex < numBatches; i++) {
+        const batchResultsKey = getIntermediateSearchResultsKey(searchInputKey, batchIndex);
         if (allKeys.has(outputKey)) {
             numComplete++;
         }
     }
 
-    const numRemaining = numPartitions - numComplete;
+    // intermediate searches done count for 95% completion, reduce step is the remaining 5%
+    const progress = Math.floor(numComplete / numBatches * 95);
+    const numRemaining = numBatches - numComplete;
+    console.log(`Completed: ${numComplete}/${numBatches}`);
 
+    // Calculate total search time
+    const now = new Date();
+    const endTime = moment(now.toISOString());
+    const elapsedSecs = endTime.diff(startTime, "s");
+    // write down the progress
+    putText(bucket, getSearchProgressKey(searchInputKey), progress.toString());
+    // return result for next state input
     if (numRemaining == 0) {
-        console.log(`Search complete: ${numComplete}/${numPartitions}`);
-
-        // Calculate total search time
-        const now = new Date();
-        const endTime = moment(now.toISOString());
-        const elapsedSecs = endTime.diff(startTime, "s");
-
         console.log(`Search took ${elapsedSecs} seconds`);
         return {
             ...event,
             elapsedSecs: elapsedSecs,
-            numPartitions: numPartitions,
             numRemaining: 0,
             completed: true,
             timedOut: false
@@ -66,7 +72,6 @@ exports.isSearchDone = async (event, context) => {
         return {
             ...event,
             elapsedSecs: elapsedSecs,
-            numPartitions: numPartitions,
             numRemaining: numRemaining,
             completed: false,
             timedOut: true
@@ -76,7 +81,6 @@ exports.isSearchDone = async (event, context) => {
         return {
             ...event,
             elapsedSecs: elapsedSecs,
-            numPartitions: numPartitions,
             numRemaining: numRemaining,
             completed: false,
             timedOut: false
