@@ -4,10 +4,12 @@ const AWS = require('aws-sdk');
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
 
-export const DEBUG = !!process.env.DEBUG;
+const DEBUG = !!process.env.DEBUG;
+
+exports.DEBUG = DEBUG;
 
 // Retrieve all the keys in a particular bucket
-export const getAllKeys = async params => {
+exports.getAllKeys = async params => {
     const allKeys = [];
     var result;
     do {
@@ -19,13 +21,16 @@ export const getAllKeys = async params => {
 };
 
 // Retrieve a JSON file from S3
-export const getObject = async (bucket, key) => {
+exports.getObject = async (bucket, key) => {
     try {
-        if (DEBUG) console.log(`Getting object from ${bucket}:${key}`);
+        if (DEBUG)
+            console.log(`Getting object from ${bucket}:${key}`);
         const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
         const data = response.Body.toString();
-        if (DEBUG) console.log(`Got object from ${bucket}:${key}:`, data);
-        return JSON.parse(data);
+        const jsonObject = JSON.parse(data);
+        if (DEBUG)
+            console.log(`Got object from ${bucket}:${key}:`, jsonObject);
+        return jsonObject;
     } catch (e) {
         console.error(`Error getting object ${bucket}:${key}`, e);
         throw e; // rethrow it
@@ -33,9 +38,10 @@ export const getObject = async (bucket, key) => {
 };
 
 // Retrieve a text file from S3
-export const getText = async (bucket, key) => {
+exports.getText = async (bucket, key) => {
     try {
-        if (DEBUG) console.log(`Getting text from ${bucket}:${key}`);
+        if (DEBUG)
+            console.log(`Getting text from ${bucket}:${key}`);
         const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
         return response.Body.toString();
     } catch (e) {
@@ -45,16 +51,18 @@ export const getText = async (bucket, key) => {
 };
 
 // Write an object into S3 as JSON
-export const putObject = async (Bucket, Key, data) => {
+exports.putObject = async (Bucket, Key, data) => {
     try {
-        if (DEBUG) console.log(`Putting object to ${Bucket}:${Key}`);
+        if (DEBUG)
+            console.log(`Putting object to ${Bucket}:${Key}`);
         await s3.putObject({
             Bucket,
             Key,
             Body: JSON.stringify(data),
             ContentType: 'application/json'
         }).promise();
-        if (DEBUG) console.log(`Put object to ${Bucket}:${Key}:`, data);
+        if (DEBUG)
+            console.log(`Put object to ${Bucket}:${Key}:`, data);
     } catch (e) {
         console.error('Error putting object', data, `to ${Bucket}:${Key}`, e);
         throw e;
@@ -63,16 +71,18 @@ export const putObject = async (Bucket, Key, data) => {
 };
 
 // Write text to an S3 bucket
-export const putText = async (Bucket, Key, text) => {
+exports.putText = async (Bucket, Key, text) => {
     try {
-        if (DEBUG) console.log(`Putting text to ${Bucket}:${Key}`);
+        if (DEBUG)
+            console.log(`Putting text to ${Bucket}:${Key}`);
         await s3.putObject({
             Bucket,
             Key,
             Body: text,
             ContentType: 'plain/text'
         }).promise();
-        if (DEBUG) console.log(`Put text to ${Bucket}:${Key}:`, text);
+        if (DEBUG)
+            console.log(`Put text to ${Bucket}:${Key}:`, text);
     } catch (e) {
         console.error('Error putting object', text, `to ${Bucket}:${Key}`, e);
         throw e;
@@ -81,7 +91,7 @@ export const putText = async (Bucket, Key, text) => {
 };
 
 // Remove key from an S3 bucket
-export const removeKey = async (Bucket, Key) => {
+exports.removeKey = async (Bucket, Key) => {
     try {
         await s3.deleteObject({
             Bucket,
@@ -93,7 +103,7 @@ export const removeKey = async (Bucket, Key) => {
 };
 
 // Returns consecutive sublists of a list, each of the same size (the final list may be smaller)
-export const partition = (list, size) => {
+exports.partition = (list, size) => {
     const plist = [];
     for (var i = 0; i < list.length; i += size) {
         plist.push(list.slice(i, i + size));
@@ -102,7 +112,7 @@ export const partition = (list, size) => {
 };
 
 // Invoke another Lambda function asynchronously
-export const invokeAsync = async (functionName, parameters) => {
+exports.invokeAsync = async (functionName, parameters) => {
     const params = {
         FunctionName: functionName,
         InvocationType: 'Event', // async invocation

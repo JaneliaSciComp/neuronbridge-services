@@ -1,14 +1,22 @@
 'use strict'
 
-export const getSearchParamsKey = (searchInputKey) => `${searchInputKey}.search`;
+exports.getSearchParamsKey = (searchInputKey) =>  {
+    return `${searchInputKey}.search`;
+}
 
-export const getSearchMetadataKey = (searchInputKey) => `${searchInputKey}.metadata`;
+exports.getSearchMetadataKey = (searchInputKey) => {
+    return `${searchInputKey}.metadata`;
+}
 
-export const getSearchProgressKey = (searchInputKey) => `${searchInputKey}.progress`;
+exports.getSearchProgressKey = (searchInputKey) => {
+    return `${searchInputKey}.progress`;
+}
 
-export const getSearchResultsKey = (searchInputKey) => `${searchInputKey}.result`;
+exports.getSearchResultsKey = (searchInputKey) => {
+    return `${searchInputKey}.result`;
+}
 
-export const getIntermediateSearchResultsPrefix = (searchInputKey) => {
+exports.getIntermediateSearchResultsPrefix = (searchInputKey) => {
     const searchInputPathComps = searchInputKey.split('/');
     if (!searchInputPathComps.length) {
         return `results`;
@@ -17,7 +25,7 @@ export const getIntermediateSearchResultsPrefix = (searchInputKey) => {
     }
 }
 
-export const getIntermediateSearchResultsKey = (searchInputKey, batchNumber) => {
+exports.getIntermediateSearchResultsKey = (searchInputKey, batchNumber) => {
     const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputKey);
     const batchId = 'batch_' + batchNumber.toString().padStart(4,"0") + '.json';
     return `${intermediateSearchResultsPrefix}/${batchId}`;

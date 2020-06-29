@@ -1,16 +1,12 @@
 'use strict';
 
-import {getIntermediateSearchResultsKey} from "./searchutils";
-import {putText} from "./utils";
-
-const {getAllKeys, DEBUG} = require('./utils');
-const {getIntermediateSearchResultsPrefix, getSearchProgressKey} = require('./searchutils');
-const AWS = require('aws-sdk');
+const {getAllKeys, putText, DEBUG} = require('./utils');
+const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
 const moment = require('moment');
 
 const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
-export const isSearchDone = async (event, context) => {
+exports.isSearchDone = async (event, context) => {
 
     // Parameters
     if (DEBUG) console.log(event);
@@ -58,7 +54,7 @@ export const isSearchDone = async (event, context) => {
     // write down the progress
     putText(bucket, getSearchProgressKey(searchInputKey), progress.toString());
     // return result for next state input
-    if (numRemaining == 0) {
+    if (numRemaining === 0) {
         console.log(`Search took ${elapsedSecs} seconds`);
         return {
             ...event,

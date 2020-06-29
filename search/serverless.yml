@@ -53,6 +53,17 @@ provider:
 
 package:
   individually: true
+  exclude:
+    - pom.xml
+    - ./*.iml
+    - .idea/**
+    - target/**
+    - src/test/**
+    - src/main/java/**
+    - src/main/resources/**
+  include:
+    - src/main/nodejs/**
+
 
 
 functions:
@@ -61,7 +72,7 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/denormalize.denormalize
     memorySize: 128
-    timeout: 300
+    timeout: 900
 
   searchDispatch:
     runtime: nodejs12.x

@@ -1,11 +1,11 @@
 'use strict';
 
-import {getObject} from "./utils";
-
-const {putObject, putText, invokeAsync, partition, DEBUG} = require('./utils');
-const {getSearchMetadataKey, getSearchParamsKey, getSearchProgressKey} = require('./searchutils');
-const { v1: uuidv1 } = require('uuid');
+const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core')
+const { v1: uuidv1 } = require('uuid');
+
+const {getObject, putObject, putText, invokeAsync, partition, DEBUG} = require('./utils');
+const {getSearchMetadataKey, getSearchParamsKey, getSearchProgressKey, getIntermediateSearchResultsKey} = require('./searchutils');
 
 const DEFAULTS = {
     level: 0,
@@ -27,7 +27,7 @@ const dispatchFunction = process.env.DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
-export const searchDispatch = async (event, context) => {
+exports.searchDispatch = async (event) => {
 
     if (DEBUG) console.log(event);
 
@@ -52,7 +52,7 @@ export const searchDispatch = async (event, context) => {
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     const searchId = event.searchId || uuidv1();
     let libraries = event.libraries;
-    let batchSize = event.batchSize;
+    let batchSize = event.batchSize || DEFAULTS.batchSize;
     let numBatches = event.numBatches;
     let branchingFactor = event.branchingFactor;
     let startIndex = event.startIndex;
@@ -63,16 +63,32 @@ export const searchDispatch = async (event, context) => {
     if (level === 0) {
         subsegment = segment.addNewSubsegment('Create metadata');
         const searchInputParams = await getSearchInputParams(searchInputKey);
-        libraries = searchInputParams.libraries;
-        if (!libraries) {
+        if (!searchInputParams.libraries) {
             throw new Error(`Missing libraries for ${searchInputKey}`);
         }
+        console.log("Searching params", searchInputParams);
+        const librariesPromises = await searchInputParams.libraries
+            .map(lname => {
+                return {
+                    lname: lname,
+                    lkey: `JRC2018_Unisex_20x_HR/${lname}`
+                };
+            })
+            .map(async l => {
+                const lsize = await getCount(l.lkey);
+                return await {
+                    ...l,
+                    lsize: lsize
+                };
+            });
+        libraries =  await Promise.all(librariesPromises);
+        console.log(`Input MIP libraries: `, libraries);
         const totalSearches = libraries
-            .map(lname => `JRC2018_Unisex_20x_HR/${lname}`)
-            .map(lkey => getCount(lkey))
-            .reduce(async (acc, lcount) => acc + await lcount, 0);
-        console.log("Found ${totalSearches} in libraries: ", libraries);
+            .map(l => l.lsize)
+            .reduce((acc, lsize) => acc + lsize, 0);
+        console.log(`Found ${totalSearches} MIPs in libraries: `, libraries);
         numBatches = Math.ceil(totalSearches / batchSize);
+        console.log(`Partition ${totalSearches} searches into ${numBatches} of size ${batchSize}`);
         if (numBatches > MAX_PARALLELISM) {
             // adjust the batch size
             batchSize = Math.ceil(totalSearches / MAX_PARALLELISM)
@@ -114,10 +130,11 @@ export const searchDispatch = async (event, context) => {
 
     }
     const nextLevelManagerRange = Math.pow(branchingFactor, numLevels-level-1) * batchSize;
+    console.log(`Level ${level} -> next range: ${nextLevelManagerRange}`);
     const nextEvent = {
         level: level + 1,
         numLevels: numLevels,
-        library: library,
+        libraries: libraries,
         searchId: searchId,
         searchInputKey: searchInputKey,
         dataThreshold: dataThreshold,
@@ -148,7 +165,11 @@ export const searchDispatch = async (event, context) => {
     } else {
         // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
         subsegment = segment.addNewSubsegment('Get library keys');
-        const allKeys = await getKeys(library)
+        const allKeys =  libraries
+            .map(async l => {
+                return await getKeys(l.lkey);
+            })
+            .reduce((acc, lkeys) => acc.concat(lkeys), [])
         const keys = allKeys.slice(startIndex, endIndex);
         const batchPartitions = partition(keys, batchSize);
         subsegment.close();
@@ -178,7 +199,7 @@ export const searchDispatch = async (event, context) => {
 }
 
 const getSearchInputParams = async (searchInputKey)  => {
-    const searchInput = getObject(searchBucket, getSearchParamsKey(searchInputKey));
+    const searchInput = await getObject(searchBucket, getSearchParamsKey(searchInputKey));
     switch (searchInput.searchtype) {
         case "em2lm":
             return {
@@ -203,14 +224,14 @@ const getSearchInputParams = async (searchInputKey)  => {
     }
 }
 
-const getCount = async (library) => {
-    const countMetadata = await getObject(libraryBucket, `${library}/counts_denormalized.json`);
+const getCount = async (libraryKey) => {
+    const countMetadata = await getObject(libraryBucket, `${libraryKey}/counts_denormalized.json`);
     console.log("Retrieved count metadata: ", countMetadata);
     return countMetadata.objectCount;
 }
 
-const getKeys = async (library) => {
-    return await utils.getObject(libraryBucket, `${library}/keys_denormalized.json`);
+const getKeys = async (libraryKey) => {
+    return await getObject(libraryBucket, `${libraryKey}/keys_denormalized.json`);
 }
 
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {

@@ -5,7 +5,8 @@
   "dependencies": {
     "aws-sdk": "2.670.0",
     "aws-xray-sdk": "^3.0.1",
-    "moment": "^2.25.3"
+    "moment": "^2.25.3",
+    "uuid": "^8.2.0"
   },
   "devDependencies": {
     "serverless-pseudo-parameters": "^2.5.0",
