@@ -113,6 +113,8 @@ exports.partition = (list, size) => {
 
 // Invoke another Lambda function asynchronously
 exports.invokeAsync = async (functionName, parameters) => {
+    if (DEBUG)
+        console.log(`Invoke ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
         InvocationType: 'Event', // async invocation

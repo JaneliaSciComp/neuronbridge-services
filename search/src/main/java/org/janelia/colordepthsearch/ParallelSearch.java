@@ -16,7 +16,6 @@ import com.amazonaws.services.stepfunctions.AWSStepFunctionsClientBuilder;
 import com.amazonaws.services.stepfunctions.model.StartExecutionRequest;
 import com.amazonaws.services.stepfunctions.model.StartExecutionResult;
 import com.amazonaws.xray.AWSXRay;
-import com.amazonaws.xray.entities.Segment;
 import com.fasterxml.uuid.Generators;
 import com.google.common.collect.Lists;
 import org.slf4j.Logger;
@@ -166,7 +165,7 @@ public class ParallelSearch implements RequestHandler<ParallelSearchParameters, 
             searchParameters.setXyShift(params.getXyShift());
             searchParameters.setSearchPrefix(libraryBucket);
             searchParameters.setSearchKeys(batchKeys);
-            searchParameters.setOutputFile(outputFile);
+            searchParameters.setOutputURI(outputFile);
             batchSearch.search(searchParameters);
             log.info("Dispatched batch #{}", i++);
         }

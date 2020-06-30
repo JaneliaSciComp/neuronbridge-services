@@ -4,8 +4,8 @@ const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
 
-const {getObject, putObject, putText, invokeAsync, partition, DEBUG} = require('./utils');
 const {getSearchMetadataKey, getSearchParamsKey, getSearchProgressKey, getIntermediateSearchResultsKey} = require('./searchutils');
+const {getObject, putObject, putText, invokeAsync, partition, DEBUG} = require('./utils');
 
 const DEFAULTS = {
     level: 0,
@@ -16,7 +16,7 @@ const DEFAULTS = {
     pixColorFluctuation: 2.0,
     xyShift: 0,
     mirrorMask: false,
-    minMatchingPix: 5,
+    minMatchingPixRatio: 2,
 };
 
 const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 1000;
@@ -34,10 +34,10 @@ exports.searchDispatch = async (event) => {
     const segment = AWSXRay.getSegment();
     var subsegment = segment.addNewSubsegment('Read parameters');
 
-    const searchInputKey = event.searchInputKey;
+    const searchInputName = event.searchInputName;
 
-    if (!searchInputKey) {
-        throw new Error('Missing required parameter: "searchInputKey"');
+    if (!searchInputName) {
+        throw new Error('Missing required parameter: "searchInputName"');
     }
 
     // Parameters which have defaults
@@ -47,10 +47,11 @@ exports.searchDispatch = async (event) => {
     const pixColorFluctuation = event.pixColorFluctuation || DEFAULTS.pixColorFluctuation;
     const xyShift = event.xyShift || DEFAULTS.xyShift;
     const mirrorMask = event.mirrorMask || DEFAULTS.mirrorMask;
-    const minMatchingPix = event.minMatchingPix || DEFAULTS.minMatchingPix;
+    const minMatchingPixRatio = event.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     const searchId = event.searchId || uuidv1();
+    let maskThreshold = event.maskThreshold;
     let libraries = event.libraries;
     let batchSize = event.batchSize || DEFAULTS.batchSize;
     let numBatches = event.numBatches;
@@ -62,9 +63,10 @@ exports.searchDispatch = async (event) => {
 
     if (level === 0) {
         subsegment = segment.addNewSubsegment('Create metadata');
-        const searchInputParams = await getSearchInputParams(searchInputKey);
+        const searchInputParams = await getSearchInputParams(searchInputName);
+        maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold
         if (!searchInputParams.libraries) {
-            throw new Error(`Missing libraries for ${searchInputKey}`);
+            throw new Error(`Missing libraries for ${searchInputName}`);
         }
         console.log("Searching params", searchInputParams);
         const librariesPromises = await searchInputParams.libraries
@@ -111,8 +113,8 @@ exports.searchDispatch = async (event) => {
         };
 
         // persist the search metadata and the progress file
-        await putObject(searchBucket, getSearchMetadataKey(searchInputKey), searchMetadata);
-        await putText(searchBucket, getSearchProgressKey(searchInputKey), "0");
+        await putObject(searchBucket, getSearchMetadataKey(searchInputName), searchMetadata);
+        await putText(searchBucket, getSearchProgressKey(searchInputName), "0");
 
         subsegment.close();
 
@@ -121,7 +123,7 @@ exports.searchDispatch = async (event) => {
             const monitorParams = {
                 searchId,
                 bucket: searchBucket,
-                searchInputKey,
+                searchInputName,
                 startTime: now.toISOString(),
                 numBatches,
             }
@@ -136,12 +138,13 @@ exports.searchDispatch = async (event) => {
         numLevels: numLevels,
         libraries: libraries,
         searchId: searchId,
-        searchInputKey: searchInputKey,
+        searchInputName: searchInputName,
         dataThreshold: dataThreshold,
+        maskThreshold: maskThreshold,
         pixColorFluctuation: pixColorFluctuation,
         xyShift: xyShift,
         mirrorMask: mirrorMask,
-        minMatchingPix: minMatchingPix,
+        minMatchingPixRatio: minMatchingPixRatio,
         batchSize: batchSize,
         numBatches: numBatches,
         branchingFactor: branchingFactor
@@ -165,48 +168,57 @@ exports.searchDispatch = async (event) => {
     } else {
         // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
         subsegment = segment.addNewSubsegment('Get library keys');
-        const allKeys =  libraries
+        const librariesWithKeysPromise =  await libraries
             .map(async l => {
-                return await getKeys(l.lkey);
-            })
-            .reduce((acc, lkeys) => acc.concat(lkeys), [])
+                return await {
+                    ...l,
+                    lkeys: await getKeys(l.lkey)
+                };
+            });
+        const librariesWithKeys = await Promise.all(librariesWithKeysPromise);
+        const allKeys = librariesWithKeys
+            .map(l => l.lkeys)
+            .reduce((acc, lkeys) => acc.concat(lkeys), []);
         const keys = allKeys.slice(startIndex, endIndex);
+        console.log(`Selected keys from ${startIndex} to ${endIndex} out of ${allKeys.length} keys from`, libraries);
         const batchPartitions = partition(keys, batchSize);
         subsegment.close();
 
         subsegment = segment.addNewSubsegment("Get search params");
-        const searchInput = getObject(searchBucket, searchInputKey);
         subsegment.close();
 
         subsegment = segment.addNewSubsegment('Invoke batches');
         let batchIndex = Math.ceil(startIndex, batchSize);
         for (const searchKeys of batchPartitions) {
-            const batchResultsKey = getIntermediateSearchResultsKey(searchInputKey, batchIndex);
+            const batchResultsKey = getIntermediateSearchResultsKey(searchInputName, batchIndex);
+            const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
-                batchResultsKey,
+                outputURI: batchResultsURI,
+                maskPrefix: searchBucket,
+                maskKeys: [searchInputName],
+                maskThresholds: [maskThreshold],
+                searchPrefix: libraryBucket,
                 searchKeys,
-                ...searchInput,
                 ...nextEvent
-            }
+            };
             await invokeAsync(searchFunction, searchParams);
-            console.log(`Dispatched batch #${batchIndex} (${searchKeys.length} items)`);
+            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchKeys.length} items)`);
             batchIndex++;
         }
         subsegment.close();
     }
 
-    return searchInputKey;
+    return searchInputName;
 }
 
-const getSearchInputParams = async (searchInputKey)  => {
-    const searchInput = await getObject(searchBucket, getSearchParamsKey(searchInputKey));
+const getSearchInputParams = async (searchInputName)  => {
+    const searchInput = await getObject(searchBucket, getSearchParamsKey(searchInputName));
     switch (searchInput.searchtype) {
         case "em2lm":
             return {
                 ...searchInput,
                 libraries: [
-                    "FlyLight_Split-GAL4_Drivers",
-                    "FlyLight_Gen1_MCFO"
+                    "FlyLight_Split-GAL4_Drivers"
                 ]
             };
         case "lm2em":

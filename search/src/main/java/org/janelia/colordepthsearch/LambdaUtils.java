@@ -25,7 +25,6 @@ public class LambdaUtils {
 
     public static String getMandatoryEnv(String name) {
         if (StringUtils.isNullOrEmpty(System.getenv(name))) {
-
             throw new IllegalStateException(String.format("Missing environment variable: %s", name));
         }
         return System.getenv(name);

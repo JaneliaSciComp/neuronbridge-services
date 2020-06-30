@@ -1,22 +1,32 @@
 'use strict'
 
-exports.getSearchParamsKey = (searchInputKey) =>  {
+const getKeyWithNoExt = (searchInputKey) => {
+    const extSeparatorIndex = searchInputKey.lastIndexOf('.');
+    return extSeparatorIndex > 0 ? searchInputKey.substring(0, extSeparatorIndex) : searchInputKey;
+}
+
+exports.getSearchParamsKey = (searchInputName) =>  {
+    const searchInputKey = getKeyWithNoExt(searchInputName);
     return `${searchInputKey}.search`;
 }
 
-exports.getSearchMetadataKey = (searchInputKey) => {
+exports.getSearchMetadataKey = (searchInputName) => {
+    const searchInputKey = getKeyWithNoExt(searchInputName);
     return `${searchInputKey}.metadata`;
 }
 
-exports.getSearchProgressKey = (searchInputKey) => {
+exports.getSearchProgressKey = (searchInputName) => {
+    const searchInputKey = getKeyWithNoExt(searchInputName);
     return `${searchInputKey}.progress`;
 }
 
-exports.getSearchResultsKey = (searchInputKey) => {
+exports.getSearchResultsKey = (searchInputName) => {
+    const searchInputKey = getKeyWithNoExt(searchInputName);
     return `${searchInputKey}.result`;
 }
 
-exports.getIntermediateSearchResultsPrefix = (searchInputKey) => {
+const getIntermediateSearchResultsPrefix = (searchInputName) => {
+    const searchInputKey = getKeyWithNoExt(searchInputName);
     const searchInputPathComps = searchInputKey.split('/');
     if (!searchInputPathComps.length) {
         return `results`;
@@ -25,8 +35,11 @@ exports.getIntermediateSearchResultsPrefix = (searchInputKey) => {
     }
 }
 
-exports.getIntermediateSearchResultsKey = (searchInputKey, batchNumber) => {
-    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputKey);
+const getIntermediateSearchResultsKey = (searchInputName, batchNumber) => {
+    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);
     const batchId = 'batch_' + batchNumber.toString().padStart(4,"0") + '.json';
     return `${intermediateSearchResultsPrefix}/${batchId}`;
 }
+
+exports.getIntermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix;
+exports.getIntermediateSearchResultsKey = getIntermediateSearchResultsKey;

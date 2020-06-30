@@ -18,8 +18,8 @@ public class BatchSearchParameters {
     private Double pixColorFluctuation = 2.0;
     private Integer xyShift = 0;
     private boolean mirrorMask = false;
-    private String outputFile;
-    private Integer minMatchingPix = 5;
+    private String outputURI;
+    private Double minMatchingPixRatio = 2.;
 
     public String getSearchPrefix() {
         return searchPrefix;
@@ -129,23 +129,23 @@ public class BatchSearchParameters {
         this.mirrorMask = mirrorMask;
     }
 
-    public String getOutputFile() {
-        return outputFile;
+    public String getOutputURI() {
+        return outputURI;
     }
 
     /**
      * Set the path to the output file on S3.
-     * @param outputFile
+     * @param outputURI
      */
-    public void setOutputFile(String outputFile) {
-        this.outputFile = outputFile;
+    public void setOutputURI(String outputURI) {
+        this.outputURI = outputURI;
     }
 
-    public Integer getMinMatchingPix() {
-        return minMatchingPix;
+    public Double getMinMatchingPixRatio() {
+        return minMatchingPixRatio;
     }
 
-    public void setMinMatchingPix(Integer minMatchingPix) {
-        this.minMatchingPix = minMatchingPix;
+    public void setMinMatchingPixRatio(Double minMatchingPixRatio) {
+        this.minMatchingPixRatio = minMatchingPixRatio;
     }
 }
