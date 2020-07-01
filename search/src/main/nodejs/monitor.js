@@ -32,7 +32,6 @@ exports.isSearchDone = async (event, context) => {
         Prefix: intermediateSearchResultsPrefix
     });
     const allBatchResultsKeys = new Set(allKeys);
-    if (DEBUG) console.log(allBatchResultsKeys);
 
     // Check if all partitions have completed
     let numComplete = 0;
