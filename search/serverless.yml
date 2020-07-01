@@ -104,7 +104,7 @@ functions:
     # 5 minute timeout because the last iteration also runs the reduce step
     timeout: 300
     environment:
-      SEARCH_TIMEOUT_SECS: 300
+      SEARCH_TIMEOUT_SECS: 1200
       DEBUG: ${self:custom.debug}
 
   searchReduce:

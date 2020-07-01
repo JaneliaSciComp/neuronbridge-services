@@ -27,11 +27,11 @@ exports.isSearchDone = async (event, context) => {
     const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);
 
     // Fetch all keys
-    const allBatchResultsKeys = new Set(await getAllKeys({
+    const allKeys  = await getAllKeys({
         Bucket: bucket,
         Prefix: intermediateSearchResultsPrefix
-    }));
-
+    });
+    const allBatchResultsKeys = new Set(allKeys);
     if (DEBUG) console.log(allBatchResultsKeys);
 
     // Check if all partitions have completed
@@ -53,6 +53,7 @@ exports.isSearchDone = async (event, context) => {
     const endTime = moment(now.toISOString());
     const elapsedSecs = endTime.diff(startTime, "s");
     // write down the progress
+    console.log(`Log progress ${progress}`);
     putText(bucket, getSearchProgressKey(searchInputName), progress.toString());
     // return result for next state input
     if (numRemaining === 0) {

@@ -158,8 +158,8 @@ exports.searchDispatch = async (event) => {
             const workerEnd = i+nextLevelManagerRange > endIndex ? endIndex : i+nextLevelManagerRange;
             await invokeAsync(
                 dispatchFunction, {
-                    startIndex:workerStart,
-                    endIndex:workerEnd,
+                    startIndex: workerStart,
+                    endIndex: workerEnd,
                     ...nextEvent
                 });
             console.log(`Dispatched sub-manager ${workerStart} - ${workerEnd}`);
@@ -180,15 +180,13 @@ exports.searchDispatch = async (event) => {
             .map(l => l.lkeys)
             .reduce((acc, lkeys) => acc.concat(lkeys), []);
         const keys = allKeys.slice(startIndex, endIndex);
-        console.log(`Selected keys from ${startIndex} to ${endIndex} out of ${allKeys.length} keys from`, libraries);
         const batchPartitions = partition(keys, batchSize);
-        subsegment.close();
-
-        subsegment = segment.addNewSubsegment("Get search params");
+        let batchIndex = Math.ceil(startIndex / batchSize);
+        console.log(`Selected keys from ${startIndex} to ${endIndex} out of ${allKeys.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
+            libraries);
         subsegment.close();
 
         subsegment = segment.addNewSubsegment('Invoke batches');
-        let batchIndex = Math.ceil(startIndex, batchSize);
         for (const searchKeys of batchPartitions) {
             const batchResultsKey = getIntermediateSearchResultsKey(searchInputName, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
