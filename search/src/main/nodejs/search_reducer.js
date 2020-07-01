@@ -4,13 +4,11 @@ const {getIntermediateSearchResultsKey, getSearchResultsKey, getSearchProgressKe
 const {getObject, putText, putObject, removeKey, DEBUG} = require('./utils');
 
 const mergeResults = (rs1, rs2) => {
-    console.log(`!!!!!MERGE RESULTS`, rs1, "!!!!!!!!!!!@@@@!!!!!!!@@@@@@@", rs2);
     if (rs1.maskId === rs2.maskId) {
-        const mergedResult = {
+        return {
             maskId: rs1.maskId,
-            results: [].concat(rs1.results, rs2.results)
+            results: [...rs1.results, ...rs2.results]
         };
-        console.log(`!!!!!NEW MERGED RESULTS`, mergedResult);
     } else {
         console.log(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
         throw new Error(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
@@ -31,7 +29,7 @@ exports.searchReducer = async (event, context) => {
         if (DEBUG) console.log(batchResults);
         batchResults.forEach(batchResult => {
             if (allBatchResults[batchResult.maskId]) {
-                allBatchResults[batchResult.maskId] = mergeResults(allBatchResults.get(batchResult.maskId), batchResult);
+                allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
             } else {
                 allBatchResults[batchResult.maskId] = batchResult;
             }
@@ -40,8 +38,7 @@ exports.searchReducer = async (event, context) => {
 
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
         console.log(`Sort ${rsByMask.results.length} for ${rsByMask.maskId}`);
-        rsByMask.results.sort((r1, r2) => r1.matchingPixels - r2.matchingPixels);
-        console.log(`!!!!Sorted ${rsByMask.results.length} for ${rsByMask.maskId}`);
+        rsByMask.results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
         return rsByMask;
     });
 
