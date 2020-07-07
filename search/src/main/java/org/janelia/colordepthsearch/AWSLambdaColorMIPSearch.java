@@ -90,7 +90,6 @@ class AWSLambdaColorMIPSearch {
         Path mipPath = Paths.get(mipKey);
         String mipNameComponent = mipPath.getFileName().toString();
         String mipName = RegExUtils.replacePattern(mipNameComponent, "\\..*$", "");
-        LOG.info("!!!!!!!!!!!!!!! MASK MIP NAME {} -> {}", mipNameComponent, mipName);
         MIPMetadata mip = new MIPMetadata();
         mip.setId(mipName);
         mip.setCdmPath(mipKey);

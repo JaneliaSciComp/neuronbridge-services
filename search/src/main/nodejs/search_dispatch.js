@@ -216,7 +216,8 @@ const getSearchInputParams = async (searchInputName)  => {
             return {
                 ...searchInput,
                 libraries: [
-                    "FlyLight_Split-GAL4_Drivers"
+                    "FlyLight_Split-GAL4_Drivers",
+                    "FlyLight_Gen1_MCFO"
                 ]
             };
         case "lm2em":
