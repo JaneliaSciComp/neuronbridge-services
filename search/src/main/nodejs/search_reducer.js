@@ -1,7 +1,7 @@
 'use strict';
 
 const {getIntermediateSearchResultsKey, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getObject, putText, putObject, removeKey, DEBUG} = require('./utils');
+const {getObjectWithRetry, putText, putObject, removeKey, DEBUG} = require('./utils');
 
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
@@ -25,7 +25,7 @@ exports.searchReducer = async (event, context) => {
     let allBatchResults = {};
     for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
         const batchResultsKey = getIntermediateSearchResultsKey(searchInputName, batchIndex);
-        const batchResults = await getObject(bucket, batchResultsKey);
+        const batchResults = await getObjectWithRetry(bucket, batchResultsKey, 3);
         if (DEBUG) console.log(batchResults);
         batchResults.forEach(batchResult => {
             if (allBatchResults[batchResult.maskId]) {

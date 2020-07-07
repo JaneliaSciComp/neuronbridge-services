@@ -8,8 +8,12 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.util.StringInputStream;
 import com.amazonaws.util.StringUtils;
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Useful utility functions for writing AWS Lambda functions in Java.
@@ -18,10 +22,12 @@ import com.google.gson.GsonBuilder;
  */
 public class LambdaUtils {
 
-    private static final Gson JSON_MAPPER = new GsonBuilder()
-            .setDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'")
-            .setPrettyPrinting()
-            .create();
+    private static final Logger LOG = LoggerFactory.getLogger(LambdaUtils.class);
+
+    private static final ObjectMapper JSON_MAPPER = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .configure(SerializationFeature.WRITE_DATE_KEYS_AS_TIMESTAMPS, false)
+                ;
 
     public static String getMandatoryEnv(String name) {
         if (StringUtils.isNullOrEmpty(System.getenv(name))) {
@@ -38,7 +44,12 @@ public class LambdaUtils {
     }
 
     public static String toJson(Object object) {
-        return JSON_MAPPER.toJson(object);
+        try {
+            return JSON_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(object);
+        } catch (Exception e) {
+            LOG.error("Serialization error", e);
+            return "{\"error\":\"Could not serialize object\"}";
+        }
     }
 
     public static boolean isEmpty(Collection<?> collection) {

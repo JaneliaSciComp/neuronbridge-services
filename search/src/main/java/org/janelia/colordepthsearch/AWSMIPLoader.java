@@ -7,8 +7,8 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.S3Object;
 
 import org.janelia.colormipsearch.api.imageprocessing.ImageArrayUtils;
-import org.janelia.colormipsearch.tools.MIPImage;
-import org.janelia.colormipsearch.tools.MIPMetadata;
+import org.janelia.colormipsearch.api.cdmips.MIPImage;
+import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,6 +51,5 @@ class AWSMIPLoader {
             LOG.trace("Loaded MIP {} in {}ms", mip, System.currentTimeMillis() - startTime);
         }
     }
-
 
 }

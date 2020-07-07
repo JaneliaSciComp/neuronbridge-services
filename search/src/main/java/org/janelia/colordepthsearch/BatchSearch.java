@@ -9,9 +9,9 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.AmazonS3URI;
 import com.amazonaws.xray.AWSXRay;
 
-import org.janelia.colormipsearch.tools.ColorMIPSearch;
-import org.janelia.colormipsearch.tools.ColorMIPSearchResult;
-import org.janelia.colormipsearch.tools.ColorMIPSearchResultUtils;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +69,8 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
                 mipLoader,
                 colorMIPSearch,
                 params.getMaskPrefix(),
-                params.getSearchPrefix()
+                params.getSearchPrefix(),
+                LambdaUtils.getOptionalEnv("SEARCHED_THUMBNAILS_BUCKET", params.getSearchPrefix())
         );
 
         LOG.debug("Comparing {} masks with {} library mips", params.getMaskKeys().size(), params.getSearchKeys().size());

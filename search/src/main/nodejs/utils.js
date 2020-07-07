@@ -21,7 +21,7 @@ exports.getAllKeys = async params => {
 };
 
 // Retrieve a JSON file from S3
-exports.getObject = async (bucket, key) => {
+const getObject = async (bucket, key) => {
     try {
         if (DEBUG)
             console.log(`Getting object from ${bucket}:${key}`);
@@ -36,6 +36,26 @@ exports.getObject = async (bucket, key) => {
         throw e; // rethrow it
     }
 };
+
+exports.getObject = getObject;
+
+const sleep = async (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+exports.getObjectWithRetry = async (bucket, key, retries) => {
+    for(let retry = 0; retry < retries; retry++) {
+        try {
+            return await getObject(bucket, key);
+            await sleep(500);
+        } catch (e) {
+            if (retry + 1 >= retries) {
+                console.error(`Error getting object ${bucket}:${key} after ${retries} retries`, e);
+                throw e;
+            }
+        }
+    }
+}
 
 // Retrieve a text file from S3
 exports.getText = async (bucket, key) => {

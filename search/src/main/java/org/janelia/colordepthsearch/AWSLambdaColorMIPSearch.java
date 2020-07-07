@@ -11,13 +11,13 @@ import com.google.common.collect.Streams;
 
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.janelia.colormipsearch.api.ColorMIPCompareOutput;
-import org.janelia.colormipsearch.api.ColorMIPMaskCompare;
-import org.janelia.colormipsearch.tools.ColorMIPSearch;
-import org.janelia.colormipsearch.tools.ColorMIPSearchResult;
-import org.janelia.colormipsearch.tools.MIPImage;
-import org.janelia.colormipsearch.tools.MIPMetadata;
-import org.janelia.colormipsearch.tools.MIPsUtils;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPCompareOutput;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPMaskCompare;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
+import org.janelia.colormipsearch.api.cdmips.MIPImage;
+import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
+import org.janelia.colormipsearch.api.cdmips.MIPsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,15 +29,18 @@ class AWSLambdaColorMIPSearch {
     private final ColorMIPSearch colorMIPSearch;
     private final String awsMasksBucket;
     private final String awsLibrariesBucket;
+    private final String awsLibrariesThumbnailsBucket;
 
     AWSLambdaColorMIPSearch(AWSMIPLoader mipLoader,
                             ColorMIPSearch colorMIPSearch,
                             String awsMasksBucket,
-                            String awsLibrariesBucket) {
+                            String awsLibrariesBucket,
+                            String awsLibrariesThumbnailsBucket) {
         this.mipLoader = mipLoader;
         this.colorMIPSearch = colorMIPSearch;
         this.awsMasksBucket = awsMasksBucket;
         this.awsLibrariesBucket = awsLibrariesBucket;
+        this.awsLibrariesThumbnailsBucket = awsLibrariesThumbnailsBucket;
     }
 
     List<ColorMIPSearchResult> findAllColorDepthMatches(List<String> maskKeys,
@@ -86,7 +89,8 @@ class AWSLambdaColorMIPSearch {
     private MIPMetadata createMaskMIP(String mipKey) {
         Path mipPath = Paths.get(mipKey);
         String mipNameComponent = mipPath.getFileName().toString();
-        String mipName = RegExUtils.replacePattern(mipNameComponent, "\\.*$", "");
+        String mipName = RegExUtils.replacePattern(mipNameComponent, "\\..*$", "");
+        LOG.info("!!!!!!!!!!!!!!! MASK MIP NAME {} -> {}", mipNameComponent, mipName);
         MIPMetadata mip = new MIPMetadata();
         mip.setId(mipName);
         mip.setCdmPath(mipKey);
@@ -97,12 +101,15 @@ class AWSLambdaColorMIPSearch {
     private MIPMetadata createLibraryMIP(String mipKey) {
         Path mipPath = Paths.get(mipKey);
         String mipNameComponent = mipPath.getFileName().toString();
-        String mipName = RegExUtils.replacePattern(mipNameComponent, "\\.*$", "");
+        String mipName = RegExUtils.replacePattern(mipNameComponent, "\\..*$", "");
+        String mipThumbnailKey = RegExUtils.replacePattern(mipKey, "\\..*$", ".jpg");
         int nPathComponents = mipPath.getNameCount();
         MIPMetadata mip = new MIPMetadata();
         mip.setId(mipName);
         mip.setCdmPath(mipKey);
         mip.setImageName(mipKey);
+        mip.setImageURL(String.format("https://s3.amazonaws.com/%s/%s", awsLibrariesBucket, mipKey));
+        mip.setThumbnailURL(String.format("https://s3.amazonaws.com/%s/%s", awsLibrariesThumbnailsBucket, mipThumbnailKey));
         if (nPathComponents > 2) {
             mip.setLibraryName(mipPath.getName(nPathComponents - 2).toString());
         }

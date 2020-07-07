@@ -2,6 +2,7 @@ service: janelia-neuronbridge-services
 
 custom:
   libraryBucket: janelia-flylight-color-depth
+  libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails
   searchBucket: janelia-neuronbridge-searches-dev
   version: 2.0.0
   tracing: true
@@ -96,6 +97,9 @@ functions:
     memorySize: 256
     # 5 minute timeout
     timeout: 300
+    environment:
+      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
+      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
   monitor:
     runtime: nodejs12.x
