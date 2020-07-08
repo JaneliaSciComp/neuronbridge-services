@@ -71,9 +71,10 @@ exports.searchDispatch = async (event) => {
         console.log("Searching params", searchInputParams);
         const librariesPromises = await searchInputParams.libraries
             .map(lname => {
+                // for searching use MIPs from the searchableMIPs folder
                 return {
                     lname: lname,
-                    lkey: `JRC2018_Unisex_20x_HR/${lname}`
+                    lkey: `JRC2018_Unisex_20x_HR/${lname}/${searchInputParams.searchableMIPSFolder}`
                 };
             })
             .map(async l => {
@@ -215,6 +216,7 @@ const getSearchInputParams = async (searchInputName)  => {
         case "em2lm":
             return {
                 ...searchInput,
+                searchableMIPSFolder: "searchable_neurons",
                 libraries: [
                     "FlyLight_Split-GAL4_Drivers",
                     "FlyLight_Gen1_MCFO"
@@ -223,6 +225,7 @@ const getSearchInputParams = async (searchInputName)  => {
         case "lm2em":
             return {
                 ...searchInput,
+                searchableMIPSFolder: "searchable_neurons",
                 libraries: [
                     "FlyEM_Hemibrain_v1.0"
                 ]
@@ -236,13 +239,19 @@ const getSearchInputParams = async (searchInputName)  => {
 }
 
 const getCount = async (libraryKey) => {
-    const countMetadata = await getObject(libraryBucket, `${libraryKey}/counts_denormalized.json`);
-    console.log("Retrieved count metadata: ", countMetadata);
+    const countMetadata = await getObject(
+        libraryBucket,
+        `${libraryKey}/counts_denormalized.json`,
+        {objectCount: 0}
+    );
     return countMetadata.objectCount;
 }
 
 const getKeys = async (libraryKey) => {
-    return await getObject(libraryBucket, `${libraryKey}/keys_denormalized.json`);
+    return await getObject(
+        libraryBucket,
+        `${libraryKey}/keys_denormalized.json`,
+        []);
 }
 
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
@@ -254,7 +263,6 @@ const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) =
         name: `ColorDepthSearch_${searchId}`
     };
     const result = await stepFunction.startExecution(params).promise();
-
     console.log("Step function started: ", result.executionArn);
     subsegment.close();
 }

@@ -21,7 +21,7 @@ exports.getAllKeys = async params => {
 };
 
 // Retrieve a JSON file from S3
-const getObject = async (bucket, key) => {
+const getObject = async (bucket, key, defaultValue) => {
     try {
         if (DEBUG)
             console.log(`Getting object from ${bucket}:${key}`);
@@ -33,7 +33,12 @@ const getObject = async (bucket, key) => {
         return jsonObject;
     } catch (e) {
         console.error(`Error getting object ${bucket}:${key}`, e);
-        throw e; // rethrow it
+        if (defaultValue === undefined) {
+            throw e; // rethrow it
+        } else {
+            return defaultValue;
+        }
+
     }
 };
 

@@ -5,6 +5,16 @@ const getKeyWithNoExt = (searchInputKey) => {
     return extSeparatorIndex > 0 ? searchInputKey.substring(0, extSeparatorIndex) : searchInputKey;
 }
 
+exports.getSearchMaskId = (searchInputName) => {
+    const searchInputKey = getKeyWithNoExt(searchInputName);
+    const searchInputPathComps = searchInputKey.split('/');
+    if (!searchInputPathComps.length) {
+        return null;
+    } else {
+        return searchInputPathComps[searchInputPathComps.length-1];
+    }
+}
+
 exports.getSearchParamsKey = (searchInputName) =>  {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     return `${searchInputKey}.search`;
@@ -35,11 +45,10 @@ const getIntermediateSearchResultsPrefix = (searchInputName) => {
     }
 }
 
-const getIntermediateSearchResultsKey = (searchInputName, batchNumber) => {
+exports.getIntermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix;
+
+exports.getIntermediateSearchResultsKey = (searchInputName, batchNumber) => {
     const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);
     const batchId = 'batch_' + batchNumber.toString().padStart(4,"0") + '.json';
     return `${intermediateSearchResultsPrefix}/${batchId}`;
 }
-
-exports.getIntermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix;
-exports.getIntermediateSearchResultsKey = getIntermediateSearchResultsKey;

@@ -79,11 +79,6 @@
         </dependency>
         <dependency>
             <groupId>com.amazonaws</groupId>
-            <artifactId>aws-java-sdk-stepfunctions</artifactId>
-            <version>1.11.86</version>
-        </dependency>
-        <dependency>
-            <groupId>com.amazonaws</groupId>
             <artifactId>aws-xray-recorder-sdk-core</artifactId>
         </dependency>
 

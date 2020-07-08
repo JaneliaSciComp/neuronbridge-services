@@ -1,6 +1,6 @@
 'use strict';
 
-const {getIntermediateSearchResultsKey, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
+const {getIntermediateSearchResultsKey, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
 const {getObjectWithRetry, putText, putObject, removeKey, DEBUG} = require('./utils');
 
 const mergeResults = (rs1, rs2) => {
@@ -46,7 +46,14 @@ exports.searchReducer = async (event, context) => {
     const outputUri = await putObject(
         bucket,
         getSearchResultsKey(searchInputName),
-        allMatches.length > 1 ? allMatches : allMatches[0]
+        allMatches.length > 1
+            ? allMatches
+            : (allMatches[0]
+                ? allMatches[0]
+                : {
+                    maskId: getSearchMaskId(searchInputName),
+                    results: []
+                  })
     );
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
@@ -57,4 +64,5 @@ exports.searchReducer = async (event, context) => {
         const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);
         await removeKey(bucket, intermediateSearchResultsPrefix);
     }
+    return event;
 }
