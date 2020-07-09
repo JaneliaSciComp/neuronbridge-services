@@ -1,9 +1,0 @@
-{
-  "libraries": ["JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0"],
-  "maskKeys": ["mask7436521362754304774.png"],
-  "dataThreshold" : 100,
-  "maskThresholds": [100],
-  "pixColorFluctuation": 2.0,
-  "xyShift": 2,
-  "mirrorMask": true
-}

@@ -2,8 +2,11 @@ package org.janelia.colordepthsearch;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.google.common.base.Splitter;
@@ -11,13 +14,13 @@ import com.google.common.collect.Streams;
 
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.janelia.colormipsearch.api.cdmips.MIPImage;
+import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
+import org.janelia.colormipsearch.api.cdmips.MIPsUtils;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPCompareOutput;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPMaskCompare;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
-import org.janelia.colormipsearch.api.cdmips.MIPImage;
-import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
-import org.janelia.colormipsearch.api.cdmips.MIPsUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +51,7 @@ class AWSLambdaColorMIPSearch {
                                                         List<String> libraryKeys) {
         return Streams.zip(maskKeys.stream(), maskThresholds.stream(),
                 (maskKey, maskThreshold) -> runMaskSearches(maskKey, maskThreshold, libraryKeys))
-                .flatMap(cdsResults -> cdsResults.stream())
+                .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
@@ -101,13 +104,14 @@ class AWSLambdaColorMIPSearch {
         Path mipPath = Paths.get(mipKey);
         String mipNameComponent = mipPath.getFileName().toString();
         String mipName = RegExUtils.replacePattern(mipNameComponent, "\\..*$", "");
-        String mipThumbnailKey = RegExUtils.replacePattern(mipKey, "\\..*$", ".jpg");
+        String mipImageKey = getDisplayableMIPKey(mipKey);
+        String mipThumbnailKey = RegExUtils.replacePattern(mipImageKey, "\\..*$", ".jpg");
         int nPathComponents = mipPath.getNameCount();
         MIPMetadata mip = new MIPMetadata();
         mip.setId(mipName);
         mip.setCdmPath(mipKey);
         mip.setImageName(mipKey);
-        mip.setImageURL(String.format("https://s3.amazonaws.com/%s/%s", awsLibrariesBucket, mipKey));
+        mip.setImageURL(String.format("https://s3.amazonaws.com/%s/%s", awsLibrariesBucket, mipImageKey));
         mip.setThumbnailURL(String.format("https://s3.amazonaws.com/%s/%s", awsLibrariesThumbnailsBucket, mipThumbnailKey));
         if (nPathComponents > 2) {
             mip.setLibraryName(mipPath.getName(nPathComponents - 2).toString());
@@ -121,6 +125,26 @@ class AWSLambdaColorMIPSearch {
             populateLMMetadataFromName(mipName, mip);
         }
         return mip;
+    }
+
+    private String getDisplayableMIPKey(String mipKey) {
+        Pattern mipNamePattern = Pattern.compile(".+(?<mipName>/[^/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\\..*$)");
+        Matcher mipNameMatcher = mipNamePattern.matcher(mipKey);
+        if (mipNameMatcher.find()) {
+            StringBuilder displayableKeyNameBuilder = new StringBuilder();
+            int namePos = 0;
+            for (String removableGroup : new String[]{"cdmSuffix"}) {
+                int removableGroupStart = mipNameMatcher.start(removableGroup);
+                if (removableGroupStart > 0) {
+                    displayableKeyNameBuilder.append(mipKey.substring(namePos, removableGroupStart).replace("searchable_neurons/",  ""));
+                    namePos = mipNameMatcher.end(removableGroup);
+                }
+            }
+            displayableKeyNameBuilder.append(mipKey.substring(namePos));
+            return displayableKeyNameBuilder.toString();
+        } else {
+            return mipKey.replace("searchable_neurons/", "");
+        }
     }
 
     private boolean isEmLibrary(String lname) {
