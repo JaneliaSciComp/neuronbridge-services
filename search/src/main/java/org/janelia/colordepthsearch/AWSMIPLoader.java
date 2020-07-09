@@ -3,21 +3,19 @@ package org.janelia.colordepthsearch;
 import java.io.IOException;
 import java.io.InputStream;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.S3Object;
-
-import org.janelia.colormipsearch.api.imageprocessing.ImageArrayUtils;
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
+import org.janelia.colormipsearch.api.imageprocessing.ImageArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.services.s3.S3Client;
 
 class AWSMIPLoader {
     private static final Logger LOG = LoggerFactory.getLogger(AWSMIPLoader.class);
 
-    private final AmazonS3 s3;
+    private final S3Client s3;
 
-    AWSMIPLoader(AmazonS3 s3) {
+    AWSMIPLoader(S3Client s3) {
         this.s3 = s3;
     }
 
@@ -26,12 +24,7 @@ class AWSMIPLoader {
         LOG.trace("Load MIP {}", mip);
         InputStream inputStream;
         try {
-            S3Object mipObject = s3.getObject(bucketName, mip.getImageName());
-            if (mipObject == null) {
-                return null;
-            } else {
-                inputStream = mipObject.getObjectContent();
-            }
+            inputStream = LambdaUtils.getObject(s3, bucketName, mip.getImageName());
             if (inputStream == null) {
                 return null;
             }

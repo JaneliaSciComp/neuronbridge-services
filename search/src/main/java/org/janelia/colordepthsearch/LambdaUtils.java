@@ -1,19 +1,21 @@
 package org.janelia.colordepthsearch;
 
+import java.io.InputStream;
+import java.net.URI;
 import java.util.Collection;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3URI;
-import com.amazonaws.services.s3.model.ObjectMetadata;
-import com.amazonaws.services.s3.model.PutObjectRequest;
-import com.amazonaws.util.StringInputStream;
-import com.amazonaws.util.StringUtils;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import software.amazon.awssdk.core.sync.RequestBody;
+import software.amazon.awssdk.core.sync.ResponseTransformer;
+import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 
 /**
  * Useful utility functions for writing AWS Lambda functions in Java.
@@ -30,14 +32,14 @@ public class LambdaUtils {
                 ;
 
     public static String getMandatoryEnv(String name) {
-        if (StringUtils.isNullOrEmpty(System.getenv(name))) {
+        if (StringUtils.isBlank(System.getenv(name))) {
             throw new IllegalStateException(String.format("Missing environment variable: %s", name));
         }
         return System.getenv(name);
     }
 
     public static String getOptionalEnv(String name, String defaultValue) {
-        if (StringUtils.isNullOrEmpty(System.getenv(name))) {
+        if (StringUtils.isBlank(System.getenv(name))) {
             return defaultValue;
         }
         return System.getenv(name);
@@ -56,19 +58,26 @@ public class LambdaUtils {
         return collection == null || collection.isEmpty();
     }
 
-    public static void putObject(AmazonS3 s3, AmazonS3URI uri, Object object) throws Exception {
-        putObject(s3, uri.getBucket(), uri.getKey(), object);
+    public static InputStream getObject(S3Client s3, String bucket, String key) {
+        return s3.getObject(GetObjectRequest.builder()
+                        .bucket(bucket)
+                        .key(key)
+                        .build(),
+                ResponseTransformer.toInputStream());
     }
 
-    public static void putObject(AmazonS3 s3, String bucket, String key, Object object) throws Exception {
+    public static void putObject(S3Client s3, URI s3URI, Object object) {
+        putObject(s3, s3URI.getHost(), s3URI.getPath(), object);
+    }
+
+    public static void putObject(S3Client s3, String bucket, String key, Object object) {
         String s = LambdaUtils.toJson(object);
-        ObjectMetadata objectMetadata = new ObjectMetadata();
-        objectMetadata.setContentType("application/json");
-        objectMetadata.setContentLength(s.length());
-        s3.putObject(new PutObjectRequest(
-                bucket,
-                key,
-                new StringInputStream(s),
-                objectMetadata));
+        s3.putObject(PutObjectRequest.builder()
+                .bucket(bucket)
+                .key(key)
+                .contentType("application/json")
+                .contentLength((long) StringUtils.length(s))
+                .build(),
+                RequestBody.fromString(s));
     }
 }

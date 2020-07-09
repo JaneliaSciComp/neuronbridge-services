@@ -1,13 +1,10 @@
 package org.janelia.colordepthsearch;
 
+import java.net.URI;
 import java.util.List;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3ClientBuilder;
-import com.amazonaws.services.s3.AmazonS3URI;
-import com.amazonaws.xray.AWSXRay;
 
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
@@ -15,12 +12,15 @@ import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import software.amazon.awssdk.regions.Region;
+import com.amazonaws.xray.AWSXRay;
+
+import software.amazon.awssdk.services.s3.S3Client;
+
 /**
  *  Search a list of color depth images using a list of masks.
  *
- *  Implements the BatchSearchService API.
- *
- *  @see org.janelia.colordepthsearch.BatchSearchService
+ *  Implements the BatchSearch AWS Lambda Handler
  *
  *  @author <a href="mailto:rokickik@janelia.hhmi.org">Konrad Rokicki</a>
  */
@@ -30,13 +30,14 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
 
     @Override
     public Boolean handleRequest(BatchSearchParameters params, Context context) {
+        final Region region = Region.of(LambdaUtils.getMandatoryEnv("AWS_REGION"));
+
         AWSXRay.beginSubsegment("Read parameters");
-        final String region = LambdaUtils.getMandatoryEnv("AWS_REGION");
 
         LOG.debug("Environment:\n  region: {}", region);
         LOG.debug("Received color depth search request: {}", LambdaUtils.toJson(params));
 
-        final AmazonS3 s3 = AmazonS3ClientBuilder.standard().withRegion(region).build();
+        S3Client s3 = S3Client.builder().region(region).build();
 
         if (LambdaUtils.isEmpty(params.getSearchKeys())) {
             throw new IllegalArgumentException("No images to search");
@@ -85,12 +86,13 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Boolea
         AWSXRay.beginSubsegment("Sort and save results");
         if (params.getOutputURI() != null) {
             try {
-                AmazonS3URI outputUri = new AmazonS3URI(params.getOutputURI());
+                URI outputURI = URI.create(params.getOutputURI());
                 LambdaUtils.putObject(
                         s3,
-                        outputUri,
+                        outputURI.getHost(),
+                        outputURI.getPath(),
                         ColorMIPSearchResultUtils.groupResults(cdsResults, ColorMIPSearchResult::perMaskMetadata));
-                LOG.info("Results written to {}", outputUri);
+                LOG.info("Results written to {}", outputURI);
             } catch (Exception e) {
                 throw new RuntimeException("Error writing results", e);
             }
