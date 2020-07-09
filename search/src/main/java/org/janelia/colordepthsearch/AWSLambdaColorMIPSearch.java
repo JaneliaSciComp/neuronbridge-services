@@ -104,7 +104,8 @@ class AWSLambdaColorMIPSearch {
         Path mipPath = Paths.get(mipKey);
         String mipNameComponent = mipPath.getFileName().toString();
         String mipName = RegExUtils.replacePattern(mipNameComponent, "\\..*$", "");
-        String mipImageKey = getDisplayableMIPKey(mipKey);
+        // displayable mips are always png and the thumbnails jpg
+        String mipImageKey = RegExUtils.replacePattern(getDisplayableMIPKey(mipKey), "\\..*$", ".png");
         String mipThumbnailKey = RegExUtils.replacePattern(mipImageKey, "\\..*$", ".jpg");
         int nPathComponents = mipPath.getNameCount();
         MIPMetadata mip = new MIPMetadata();
