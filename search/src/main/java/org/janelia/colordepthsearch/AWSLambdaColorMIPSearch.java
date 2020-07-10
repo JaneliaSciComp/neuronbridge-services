@@ -97,6 +97,7 @@ class AWSLambdaColorMIPSearch {
         mip.setId(mipName);
         mip.setCdmPath(mipKey);
         mip.setImageName(mipKey);
+        mip.setImageURL(String.format("https://s3.amazonaws.com/%s/%s", awsMasksBucket, mipKey));
         return mip;
     }
 

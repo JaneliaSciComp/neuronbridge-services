@@ -7,10 +7,12 @@ import java.util.List;
 
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
+import org.janelia.colormipsearch.api.cdsearch.CDSMatches;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPCompareOutput;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPMaskCompare;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.janelia.colormipsearch.api.imageprocessing.ImageArray;
 import org.janelia.colormipsearch.api.imageprocessing.ImageArrayUtils;
 import org.junit.Before;

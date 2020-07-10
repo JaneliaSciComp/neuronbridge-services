@@ -7,6 +7,9 @@ const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
         return {
             maskId: rs1.maskId,
+            maskPublishedName: rs1.maskPublishedName,
+            maskLibraryName: rs1.maskLibraryName,
+            maskImageURL: rs1.maskImageURL,
             results: [...rs1.results, ...rs2.results]
         };
     } else {

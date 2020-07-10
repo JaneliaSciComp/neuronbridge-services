@@ -1,5 +1,6 @@
 package org.janelia.colordepthsearch;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
@@ -13,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
+import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
@@ -22,7 +24,7 @@ import software.amazon.awssdk.services.s3.model.PutObjectRequest;
  *
  * @author <a href="mailto:rokickik@janelia.hhmi.org">Konrad Rokicki</a>
  */
-public class LambdaUtils {
+class LambdaUtils {
 
     private static final Logger LOG = LoggerFactory.getLogger(LambdaUtils.class);
 
@@ -31,21 +33,27 @@ public class LambdaUtils {
                 .configure(SerializationFeature.WRITE_DATE_KEYS_AS_TIMESTAMPS, false)
                 ;
 
-    public static String getMandatoryEnv(String name) {
+    static S3Client createS3() {
+        final Region region = Region.of(LambdaUtils.getMandatoryEnv("AWS_REGION"));
+        LOG.debug("Environment:\n  region: {}", region);
+        return S3Client.builder().region(region).build();
+    }
+
+    static String getMandatoryEnv(String name) {
         if (StringUtils.isBlank(System.getenv(name))) {
             throw new IllegalStateException(String.format("Missing environment variable: %s", name));
         }
         return System.getenv(name);
     }
 
-    public static String getOptionalEnv(String name, String defaultValue) {
+    static String getOptionalEnv(String name, String defaultValue) {
         if (StringUtils.isBlank(System.getenv(name))) {
             return defaultValue;
         }
         return System.getenv(name);
     }
 
-    public static String toJson(Object object) {
+    static String toJson(Object object) {
         try {
             return JSON_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(object);
         } catch (Exception e) {
@@ -54,11 +62,19 @@ public class LambdaUtils {
         }
     }
 
-    public static boolean isEmpty(Collection<?> collection) {
+    static <T> T fromJson(InputStream objectStream, Class<T> objectType) {
+        try {
+            return JSON_MAPPER.readValue(objectStream, objectType);
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Error trying to read on object of type " + objectType, e);
+        }
+    }
+
+    static boolean isEmpty(Collection<?> collection) {
         return collection == null || collection.isEmpty();
     }
 
-    public static InputStream getObject(S3Client s3, String bucket, String key) {
+    static InputStream getObject(S3Client s3, String bucket, String key) {
         return s3.getObject(GetObjectRequest.builder()
                         .bucket(bucket)
                         .key(key)
@@ -66,11 +82,11 @@ public class LambdaUtils {
                 ResponseTransformer.toInputStream());
     }
 
-    public static void putObject(S3Client s3, URI s3URI, Object object) {
-        putObject(s3, s3URI.getHost(), s3URI.getPath(), object);
+    static void putObject(S3Client s3, URI s3URI, Object object) {
+        putObject(s3, s3URI.getHost(), StringUtils.removeStart(s3URI.getPath(), "/"), object);
     }
 
-    public static void putObject(S3Client s3, String bucket, String key, Object object) {
+    static void putObject(S3Client s3, String bucket, String key, Object object) {
         String s = LambdaUtils.toJson(object);
         s3.putObject(PutObjectRequest.builder()
                 .bucket(bucket)

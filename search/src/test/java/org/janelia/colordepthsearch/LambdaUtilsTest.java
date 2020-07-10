@@ -45,7 +45,7 @@ public class LambdaUtilsTest {
                     @Override
                     public boolean matches(PutObjectRequest argument) {
                         return "testBucket".equals(argument.bucket()) &&
-                                "/private/us-east-1:853b7e81-c739-4434-99dd-aafeed3265e3/rc-upload-1594225719194-2/rc-upload-1594225719194-2.result".equals(argument.key()) &&
+                                "private/us-east-1:853b7e81-c739-4434-99dd-aafeed3265e3/rc-upload-1594225719194-2/rc-upload-1594225719194-2.result".equals(argument.key()) &&
                                 "application/json".equals(argument.contentType());
                     }
                 }),
