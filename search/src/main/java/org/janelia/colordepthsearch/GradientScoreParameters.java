@@ -111,7 +111,7 @@ public class GradientScoreParameters {
     }
 
     public Integer getNumberOfPublishedNamesToRank() {
-        return numberOfPublishedNamesToRank != null ? 0 : numberOfPublishedNamesToRank;
+        return numberOfPublishedNamesToRank == null ? 0 : numberOfPublishedNamesToRank;
     }
 
     public void setNumberOfPublishedNamesToRank(Integer numberOfPublishedNamesToRank) {

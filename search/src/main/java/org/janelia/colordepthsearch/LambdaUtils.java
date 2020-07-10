@@ -75,11 +75,16 @@ class LambdaUtils {
     }
 
     static InputStream getObject(S3Client s3, String bucket, String key) {
-        return s3.getObject(GetObjectRequest.builder()
-                        .bucket(bucket)
-                        .key(key)
-                        .build(),
-                ResponseTransformer.toInputStream());
+        try {
+            return s3.getObject(GetObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .build(),
+                    ResponseTransformer.toInputStream());
+        } catch (Exception e) {
+            LOG.error("Error reading object from {}:{}", bucket, key, e);
+            throw new IllegalArgumentException(e);
+        }
     }
 
     static void putObject(S3Client s3, URI s3URI, Object object) {
@@ -88,12 +93,17 @@ class LambdaUtils {
 
     static void putObject(S3Client s3, String bucket, String key, Object object) {
         String s = LambdaUtils.toJson(object);
-        s3.putObject(PutObjectRequest.builder()
-                .bucket(bucket)
-                .key(key)
-                .contentType("application/json")
-                .contentLength((long) StringUtils.length(s))
-                .build(),
-                RequestBody.fromString(s));
+        try {
+            s3.putObject(PutObjectRequest.builder()
+                            .bucket(bucket)
+                            .key(key)
+                            .contentType("application/json")
+                            .contentLength((long) StringUtils.length(s))
+                            .build(),
+                    RequestBody.fromString(s));
+        } catch (Exception e) {
+            LOG.error("Error writing object {} to {}:{}", s, bucket, key, e);
+            throw new IllegalStateException(e);
+        }
     }
 }

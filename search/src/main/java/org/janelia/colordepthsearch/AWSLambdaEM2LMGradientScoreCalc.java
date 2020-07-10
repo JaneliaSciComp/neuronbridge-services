@@ -18,6 +18,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.xray.AWSXRay;
 import com.google.common.collect.Streams;
 
+import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
@@ -34,9 +35,9 @@ import software.amazon.awssdk.services.s3.S3Client;
 /**
  *  AWS Lambda handler that calculates gradient scores for the specifed results
  */
-public class EM2LMGradientScoreCalc implements RequestHandler<GradientScoreParameters, Void> {
+public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientScoreParameters, Void> {
 
-    private static final Logger LOG = LoggerFactory.getLogger(EM2LMGradientScoreCalc.class);
+    private static final Logger LOG = LoggerFactory.getLogger(AWSLambdaEM2LMGradientScoreCalc.class);
 
     @Override
     public Void handleRequest(GradientScoreParameters params, Context context) {
@@ -156,10 +157,12 @@ public class EM2LMGradientScoreCalc implements RequestHandler<GradientScoreParam
                     long areaGap;
                     if (matchedImage != null && matchedGradientImage != null) {
                         // only calculate the area gap if the gradient exist
+                        LOG.info("Calculate area gap for {}", indexedCsr);
                         areaGap = gradientGapCalculator.calculateMaskAreaGap(
                                 matchedImage.getImageArray(),
                                 matchedGradientImage.getImageArray(),
                                 matchedZGapImage != null ? matchedZGapImage.getImageArray() : null);
+                        LOG.info("Area gap for {} -> {}", indexedCsr, areaGap);
                     } else {
                         areaGap = -1;
                     }
@@ -205,7 +208,10 @@ public class EM2LMGradientScoreCalc implements RequestHandler<GradientScoreParam
         MIPMetadata ancilaryMIP = new MIPMetadata();
         mip.copyTo(ancilaryMIP);
         ancilaryMIP.setImageArchivePath(null);
-        ancilaryMIP.setImageName(mip.getImagePath().replace("searchable_neurons", suffix));
+        ancilaryMIP.setImageName(RegExUtils.replacePattern(
+                mip.getImagePath().replace("searchable_neurons", suffix),
+                "\\..*$",
+                ".png")); // ancillary images use png
         ancilaryMIP.setImageURL(null);
         ancilaryMIP.setThumbnailURL(null);
         return ancilaryMIP;
