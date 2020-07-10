@@ -227,7 +227,7 @@ const getSearchInputParams = async (searchInputName)  => {
                 ...searchInput,
                 searchableMIPSFolder: "searchable_neurons",
                 libraries: [
-                    "FlyEM_Hemibrain_v1.0"
+                    "FlyEM_Hemibrain_v1.1"
                 ]
             };
         default:
