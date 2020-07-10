@@ -24,7 +24,7 @@ class AWSMIPLoader {
         LOG.trace("Load MIP {}", mip);
         InputStream inputStream;
         try {
-            inputStream = LambdaUtils.getObject(s3, bucketName, mip.getImageName());
+            inputStream = LambdaUtils.getObject(s3, bucketName, mip.getImagePath());
             if (inputStream == null) {
                 return null;
             }

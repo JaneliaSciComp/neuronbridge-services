@@ -115,11 +115,13 @@ class AWSLambdaColorMIPSearch {
         mip.setImageName(mipKey);
         mip.setImageURL(String.format("https://s3.amazonaws.com/%s/%s", awsLibrariesBucket, mipImageKey));
         mip.setThumbnailURL(String.format("https://s3.amazonaws.com/%s/%s", awsLibrariesThumbnailsBucket, mipThumbnailKey));
-        if (nPathComponents > 2) {
-            mip.setLibraryName(mipPath.getName(nPathComponents - 2).toString());
-        }
         if (nPathComponents > 3) {
-            mip.setAlignmentSpace(mipPath.getName(nPathComponents - 3).toString());
+            // the folder structure is <alignmentSpace>/<libraryName>/...images
+            mip.setAlignmentSpace(mipPath.getName(0).toString());
+            mip.setLibraryName(mipPath.getName(1).toString());
+        } else if (nPathComponents > 2) {
+            // the folder structure is <libraryName>/...images
+            mip.setLibraryName(mipPath.getName(0).toString());
         }
         if (isEmLibrary(mip.getLibraryName())) {
             populateEMMetadataFromName(mipName, mip);

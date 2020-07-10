@@ -2,6 +2,9 @@ package org.janelia.colordepthsearch;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -147,9 +150,9 @@ public class EM2LMGradientScoreCalc implements RequestHandler<GradientScoreParam
                     matchedMIP.setImageArchivePath(indexedCsr.getRight().getImageArchivePath());
                     matchedMIP.setImageName(indexedCsr.getRight().getImageName());
                     matchedMIP.setImageType(indexedCsr.getRight().getImageType());
-                    MIPImage matchedImage = loadMIPImage(matchedMIP);
-                    MIPImage matchedGradientImage = loadMIPImage(getAncillaryMIP(matchedMIP, gradientsBucket, gradientSuffix));
-                    MIPImage matchedZGapImage = loadMIPImage(getAncillaryMIP(matchedMIP, zgapsBucket, zgapsSuffix));
+                    MIPImage matchedImage = mipLoader.loadMIP(extractBucketName(indexedCsr.getRight().getImageURL()), matchedMIP);
+                    MIPImage matchedGradientImage = mipLoader.loadMIP(gradientsBucket, getAncillaryMIP(matchedMIP, gradientSuffix));
+                    MIPImage matchedZGapImage = mipLoader.loadMIP(zgapsBucket, getAncillaryMIP(matchedMIP, zgapsSuffix));
                     long areaGap;
                     if (matchedImage != null && matchedGradientImage != null) {
                         // only calculate the area gap if the gradient exist
@@ -193,11 +196,18 @@ public class EM2LMGradientScoreCalc implements RequestHandler<GradientScoreParam
                 });
     }
 
-    private MIPImage loadMIPImage(MIPMetadata mip) {
-        return null; // !!!!!! FIXME
+    private String extractBucketName(String imageURL) {
+        Path fullImagePath = Paths.get(URI.create(imageURL).getPath());
+        return fullImagePath.getName(0).toString();
     }
 
-    private MIPMetadata getAncillaryMIP(MIPMetadata mip, String bucket, String suffix) {
-        return null; // !!!!!! FIXME
+    private MIPMetadata getAncillaryMIP(MIPMetadata mip, String suffix) {
+        MIPMetadata ancilaryMIP = new MIPMetadata();
+        mip.copyTo(ancilaryMIP);
+        ancilaryMIP.setImageArchivePath(null);
+        ancilaryMIP.setImageName(mip.getImagePath().replace("searchable_neurons", suffix));
+        ancilaryMIP.setImageURL(null);
+        ancilaryMIP.setThumbnailURL(null);
+        return ancilaryMIP;
     }
 }

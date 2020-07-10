@@ -122,6 +122,15 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DEBUG: ${self:custom.debug}
 
+  em2lmGradScorer:
+    package:
+      artifact: target/neuronbridge-search-${self:custom.version}.jar
+    runtime: java8
+    handler: org.janelia.colordepthsearch.EM2LMGradientScoreCalc
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
+
 
 stepFunctions:
 
