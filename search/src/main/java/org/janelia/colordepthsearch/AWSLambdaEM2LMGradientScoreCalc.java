@@ -146,18 +146,18 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                 IntStream.range(0, Integer.MAX_VALUE).boxed(),
                 selectedCDSResultsForInputMIP.stream(),
                 (i, csr) -> ImmutablePair.of(i + 1, csr))
-                .map(indexedCsr -> gradientGapCalculatorPromise.thenApplyAsync(gradientGapCalculator -> {
+                .map(indexedCsr -> gradientGapCalculatorPromise.thenApply(gradientGapCalculator -> {
                     MIPMetadata matchedMIP = new MIPMetadata();
                     matchedMIP.setImageArchivePath(indexedCsr.getRight().getImageArchivePath());
                     matchedMIP.setImageName(indexedCsr.getRight().getImageName());
                     matchedMIP.setImageType(indexedCsr.getRight().getImageType());
                     MIPImage matchedImage = mipLoader.loadMIP(extractBucketName(indexedCsr.getRight().getImageURL()), matchedMIP);
                     MIPImage matchedGradientImage = mipLoader.loadMIP(gradientsBucket, getAncillaryMIP(matchedMIP, gradientSuffix));
-                    MIPImage matchedZGapImage = mipLoader.loadMIP(zgapsBucket, getAncillaryMIP(matchedMIP, zgapsSuffix));
+                    MIPImage matchedZGapImage = mipLoader.loadFirstMatchingMIP(zgapsBucket, getAncillaryMIP(matchedMIP, zgapsSuffix), "png", "tif");
                     long areaGap;
                     if (matchedImage != null && matchedGradientImage != null) {
                         // only calculate the area gap if the gradient exist
-                        LOG.info("Calculate area gap for {}", indexedCsr);
+                        LOG.info("Calculate area gap for {}. {}", indexedCsr.getLeft(), indexedCsr.getRight());
                         areaGap = gradientGapCalculator.calculateMaskAreaGap(
                                 matchedImage.getImageArray(),
                                 matchedGradientImage.getImageArray(),
@@ -168,7 +168,7 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                     }
                     indexedCsr.getRight().setGradientAreaGap(areaGap);
                     return areaGap;
-                }, executor))
+                }))
                 .collect(Collectors.toList());
         return CompletableFuture.allOf(areaGapComputations.toArray(new CompletableFuture<?>[0]))
                 .thenApply(vr -> {

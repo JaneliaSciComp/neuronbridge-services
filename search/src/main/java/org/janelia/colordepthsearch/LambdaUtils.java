@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,7 +19,10 @@ import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsResponse;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Object;
 
 /**
  * Useful utility functions for writing AWS Lambda functions in Java.
@@ -106,4 +111,18 @@ class LambdaUtils {
             throw new IllegalStateException(e);
         }
     }
+
+    static List<S3Object> listObjects(S3Client s3, String bucket, String prefix) {
+        ListObjectsResponse res = s3.listObjects(ListObjectsRequest
+                .builder()
+                .bucket(bucket)
+                .prefix(prefix)
+                .build());
+        if (res.hasContents()) {
+            return res.contents();
+        } else {
+            return Collections.emptyList();
+        }
+    }
+
 }
