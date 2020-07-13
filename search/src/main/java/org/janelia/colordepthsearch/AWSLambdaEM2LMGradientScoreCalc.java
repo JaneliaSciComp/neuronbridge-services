@@ -11,15 +11,11 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.xray.AWSXRay;
-import com.google.common.collect.Streams;
 
 import org.apache.commons.lang3.RegExUtils;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
 import org.janelia.colormipsearch.api.cdsearch.CDSMatches;
@@ -56,28 +52,34 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                         params.getMaskThreshold(), params.getNegativeRadius(), params.isMirrorMask()
                 );
         Executor gradientScoreExecutor = createGradientScoreCalcExecutor();
+        LOG.info("Begin gradient area calculations");
         List<CompletableFuture<List<ColorMIPSearchMatchMetadata>>> gradientAreaGapComputations =
-                Streams.zip(
-                        IntStream.range(0, Integer.MAX_VALUE).boxed(),
-                        resultsGroupedById.entrySet().stream(),
-                        (i, resultsEntry) -> calculateGradientAreaScoreForCDSResults(
-                                resultsEntry.getKey(),
-                                resultsEntry.getValue(),
-                                params.getMasksBucket(),
-                                params.getGradientsBucket(),
-                                params.getGradientsSuffix(),
-                                params.getZgapsBucket(),
-                                params.getZgapsSuffix(),
-                                new AWSMIPLoader(s3),
-                                maskAreaGapCalculatorProvider,
-                                gradientScoreExecutor))
+                resultsGroupedById.entrySet().stream()
+                        .map(resultsEntry -> {
+                            LOG.info("Begin gradient area calculation for mask {}", resultsEntry.getKey());
+                            return asyncCalculateGradientAreaScoreForCDSResults(
+                                    resultsEntry.getKey(),
+                                    resultsEntry.getValue(),
+                                    params.getMasksBucket(),
+                                    params.getGradientsBucket(),
+                                    params.getGradientsSuffix(),
+                                    params.getZgapsBucket(),
+                                    params.getZgapsSuffix(),
+                                    new AWSMIPLoader(s3),
+                                    maskAreaGapCalculatorProvider,
+                                    gradientScoreExecutor);
+                        })
                         .collect(Collectors.toList());
         // wait for all results to complete
         CompletableFuture.allOf(gradientAreaGapComputations.toArray(new CompletableFuture<?>[0])).join();
+        LOG.info("Gather gradient area gap results");
         List<ColorMIPSearchMatchMetadata> srWithGradScores = gradientAreaGapComputations.stream()
                 .flatMap(gac -> gac.join().stream())
                 .collect(Collectors.toList());
+        LOG.info("Sort results using gradient scores");
         ColorMIPSearchResultUtils.sortCDSResults(srWithGradScores);
+        LOG.info("Write {} results with gradient scores to {}:{}",
+                srWithGradScores.size(), params.getResultsBucket(), params.getResultsKeyWithGradScore());
         writeCDSResults(
                 CDSMatches.singletonfromResultsOfColorMIPSearchMatches(srWithGradScores),
                 s3,
@@ -104,8 +106,8 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
 
     private void writeCDSResults(CDSMatches cdsMatches, S3Client s3, String outputBucket, String outputLocation) {
         if (outputBucket != null && outputLocation != null) {
-            AWSXRay.beginSubsegment("Save results");
             try {
+                LOG.info("Write matches for {} to {}:{}", cdsMatches.getMaskId(), outputBucket, outputLocation);
                 LambdaUtils.putObject(
                         s3,
                         outputBucket,
@@ -115,7 +117,6 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
             } catch (Exception e) {
                 throw new IllegalStateException("Error writing results", e);
             }
-            AWSXRay.endSubsegment();
         }
     }
 
@@ -124,51 +125,48 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
     }
 
     private Executor createGradientScoreCalcExecutor() {
-        return Executors.newWorkStealingPool();
+        return Executors.newFixedThreadPool(4);
     }
 
-    private CompletableFuture<List<ColorMIPSearchMatchMetadata>> calculateGradientAreaScoreForCDSResults(MIPMetadata inputMaskMIP,
-                                                                                                         List<ColorMIPSearchMatchMetadata> selectedCDSResultsForInputMIP,
-                                                                                                         String maskBucket,
-                                                                                                         String gradientsBucket,
-                                                                                                         String gradientSuffix,
-                                                                                                         String zgapsBucket,
-                                                                                                         String zgapsSuffix,
-                                                                                                         AWSMIPLoader mipLoader,
-                                                                                                         MaskGradientAreaGapCalculatorProvider maskAreaGapCalculatorProvider,
-                                                                                                         Executor executor) {
+    private CompletableFuture<List<ColorMIPSearchMatchMetadata>> asyncCalculateGradientAreaScoreForCDSResults(MIPMetadata inputMaskMIP,
+                                                                                                              List<ColorMIPSearchMatchMetadata> selectedCDSResultsForInputMIP,
+                                                                                                              String maskBucket,
+                                                                                                              String gradientsBucket,
+                                                                                                              String gradientSuffix,
+                                                                                                              String zgapsBucket,
+                                                                                                              String zgapsSuffix,
+                                                                                                              AWSMIPLoader mipLoader,
+                                                                                                              MaskGradientAreaGapCalculatorProvider maskAreaGapCalculatorProvider,
+                                                                                                              Executor executor) {
         CompletableFuture<MaskGradientAreaGapCalculator> gradientGapCalculatorPromise = CompletableFuture.supplyAsync(() -> {
             LOG.info("Load input mask {}", inputMaskMIP);
             MIPImage inputMaskImage = mipLoader.loadMIP(maskBucket, inputMaskMIP); // no caching for the mask
             return maskAreaGapCalculatorProvider.createMaskGradientAreaGapCalculator(inputMaskImage.getImageArray());
         }, executor);
-        List<CompletableFuture<Long>> areaGapComputations = Streams.zip(
-                IntStream.range(0, Integer.MAX_VALUE).boxed(),
-                selectedCDSResultsForInputMIP.stream(),
-                (i, csr) -> ImmutablePair.of(i + 1, csr))
-                .map(indexedCsr -> gradientGapCalculatorPromise.thenApply(gradientGapCalculator -> {
+        List<CompletableFuture<Long>> areaGapComputations = selectedCDSResultsForInputMIP.stream()
+                .map(csr -> gradientGapCalculatorPromise.thenApplyAsync(gradientGapCalculator -> {
                     MIPMetadata matchedMIP = new MIPMetadata();
-                    matchedMIP.setImageArchivePath(indexedCsr.getRight().getImageArchivePath());
-                    matchedMIP.setImageName(indexedCsr.getRight().getImageName());
-                    matchedMIP.setImageType(indexedCsr.getRight().getImageType());
-                    MIPImage matchedImage = mipLoader.loadMIP(extractBucketName(indexedCsr.getRight().getImageURL()), matchedMIP);
+                    matchedMIP.setImageArchivePath(csr.getImageArchivePath());
+                    matchedMIP.setImageName(csr.getImageName());
+                    matchedMIP.setImageType(csr.getImageType());
+                    MIPImage matchedImage = mipLoader.loadMIP(extractBucketName(csr.getImageURL()), matchedMIP);
                     MIPImage matchedGradientImage = mipLoader.loadMIP(gradientsBucket, getAncillaryMIP(matchedMIP, gradientSuffix));
                     MIPImage matchedZGapImage = mipLoader.loadFirstMatchingMIP(zgapsBucket, getAncillaryMIP(matchedMIP, zgapsSuffix), "png", "tif");
                     long areaGap;
                     if (matchedImage != null && matchedGradientImage != null) {
                         // only calculate the area gap if the gradient exist
-                        LOG.info("Calculate area gap for {}. {}", indexedCsr.getLeft(), indexedCsr.getRight());
+                        LOG.info("Calculate area gap for {}", csr);
                         areaGap = gradientGapCalculator.calculateMaskAreaGap(
                                 matchedImage.getImageArray(),
                                 matchedGradientImage.getImageArray(),
                                 matchedZGapImage != null ? matchedZGapImage.getImageArray() : null);
-                        LOG.info("Area gap for {} -> {}", indexedCsr, areaGap);
+                        LOG.info("Area gap for {} -> {}", csr, areaGap);
                     } else {
                         areaGap = -1;
                     }
-                    indexedCsr.getRight().setGradientAreaGap(areaGap);
+                    csr.setGradientAreaGap(areaGap);
                     return areaGap;
-                }))
+                }, executor))
                 .collect(Collectors.toList());
         return CompletableFuture.allOf(areaGapComputations.toArray(new CompletableFuture<?>[0]))
                 .thenApply(vr -> {

@@ -5,23 +5,20 @@ import java.util.List;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+import com.amazonaws.xray.AWSXRay;
 
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import software.amazon.awssdk.regions.Region;
-import com.amazonaws.xray.AWSXRay;
-
 import software.amazon.awssdk.services.s3.S3Client;
 
 /**
- *  AWS Lambda Handler that performs a pairwise color depth search between all provided MIPs to be searched and all provided masks.
- *  The handler writes down the result to s specified location and returns the number of found matches.
+ * AWS Lambda Handler that performs a pairwise color depth search between all provided MIPs to be searched and all provided masks.
+ * The handler writes down the result to s specified location and returns the number of found matches.
  *
- *  @author <a href="mailto:rokickik@janelia.hhmi.org">Konrad Rokicki</a>
+ * @author <a href="mailto:rokickik@janelia.hhmi.org">Konrad Rokicki</a>
  */
 public class BatchSearch implements RequestHandler<BatchSearchParameters, Integer> {
 
@@ -48,7 +45,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         if (LambdaUtils.isEmpty(params.getMaskThresholds())) {
             throw new IllegalArgumentException("No mask thresholds specified");
         }
-        if (params.getMaskThresholds().size()!=params.getMaskKeys().size()) {
+        if (params.getMaskThresholds().size() != params.getMaskKeys().size()) {
             throw new IllegalArgumentException("Number of mask thresholds does not match number of masks");
         }
         AWSXRay.endSubsegment();
