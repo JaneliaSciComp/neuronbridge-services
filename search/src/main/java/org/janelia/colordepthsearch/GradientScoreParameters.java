@@ -21,6 +21,7 @@ public class GradientScoreParameters {
     private Integer numberOfPublishedNamesToRank;
     private Integer numberOfSamplesPerPublishedNameToRank;
     private Integer numberOfMatchesPerSampleToRank;
+    private Integer workerThreads = 4;
 
     public String getMasksBucket() {
         return masksBucket;
@@ -132,5 +133,13 @@ public class GradientScoreParameters {
 
     public void setNumberOfMatchesPerSampleToRank(Integer numberOfMatchesPerSampleToRank) {
         this.numberOfMatchesPerSampleToRank = numberOfMatchesPerSampleToRank;
+    }
+
+    public Integer getWorkerThreads() {
+        return workerThreads == null || workerThreads <= 0 ? 1 : workerThreads;
+    }
+
+    public void setWorkerThreads(Integer workerThreads) {
+        this.workerThreads = workerThreads;
     }
 }

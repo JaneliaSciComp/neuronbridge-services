@@ -51,7 +51,7 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                 MaskGradientAreaGapCalculator.createMaskGradientAreaGapCalculatorProvider(
                         params.getMaskThreshold(), params.getNegativeRadius(), params.isMirrorMask()
                 );
-        Executor gradientScoreExecutor = createGradientScoreCalcExecutor();
+        Executor gradientScoreExecutor = createGradientScoreCalcExecutor(params.getWorkerThreads());
         LOG.info("Begin gradient area calculations");
         List<CompletableFuture<List<ColorMIPSearchMatchMetadata>>> gradientAreaGapComputations =
                 resultsGroupedById.entrySet().stream()
@@ -124,8 +124,8 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
         return cdsMatches == null || cdsMatches.results == null || cdsMatches.results.isEmpty();
     }
 
-    private Executor createGradientScoreCalcExecutor() {
-        return Executors.newFixedThreadPool(4);
+    private Executor createGradientScoreCalcExecutor(int nThreads) {
+        return Executors.newFixedThreadPool(nThreads);
     }
 
     private CompletableFuture<List<ColorMIPSearchMatchMetadata>> asyncCalculateGradientAreaScoreForCDSResults(MIPMetadata inputMaskMIP,

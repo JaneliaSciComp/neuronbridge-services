@@ -127,7 +127,7 @@ functions:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.AWSLambdaEM2LMGradientScoreCalc
-    memorySize: 1024
+    memorySize: 256
     # 5 minute timeout
     timeout: 300
 
