@@ -61,7 +61,7 @@ class AWSMIPLoader {
                 return null;
             } else {
                 mipImageName = matchingMIPs.get(0).key();
-                LOG.info("Actually loading MIP {} from {}", mipImageName, matchingMIPs);
+                LOG.info("Loading MIP {} using first match from {}", mipImageName, matchingMIPs);
                 inputStream = LambdaUtils.getObject(s3, bucketName, matchingMIPs.get(0).key());
                 if (inputStream == null) {
                     return null;
