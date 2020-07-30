@@ -11,14 +11,22 @@ AWS.config.update({
 });
 
 const dynamoDB = new AWS.DynamoDB();
+const dynamoDocClient = new AWS.DynamoDB.DocumentClient();
 
 const getArgs = (e) => { return e.source === 'graphql' ? e.arguments : e; }
 
-const getSearch = (id) => {
-    return {
-        id: id,
-        algorithm: "max"
-    }
+const getSearch = async (id) => {
+    console.log('Get Search', id);
+    const params = {
+        TableName: `${SEARCH_TABLE}`,
+        Key: {
+            'id': id
+        }
+    };
+    console.log("GetItem", params);
+    const searchData = await dynamoDocClient.get(params).promise();
+    console.log("Found search", searchData);
+    return searchData ? searchData.Item : null;
 }
 
 const listSearches = (filter, limit, nextToken) => {
@@ -33,37 +41,47 @@ const listSearches = (filter, limit, nextToken) => {
 }
 
 const createSearch = async (searchParams) => {
-    console.log("!!!! CREATE SEARCH ", searchParams);
+    console.log('Create Search', searchParams);
     const searchId = uuidv1();
     const now = new Date();
+    const inputTypeName = 'Search';
     const searchTimestamp = now.toISOString();
+    const searchDir = `/private/${searchParams.identityId}/${searchParams.searchDir}`;
+    const step = 0;
     const searchItem = {
+        __typename: {S: inputTypeName},
         id: {S: searchId},
-        __typename: {S: 'Search'},
-        step: {N: "0"},
+        step: {N: ''+step},
         createdOn: {S: searchTimestamp},
         updatedOn: {S: searchTimestamp},
         owner: {S: searchParams.owner},
         identityId: {S: searchParams.identityId},
         searchType: {S: searchParams.searchType},
-        searchDir: {S: searchParams.searchDir},
+        searchDir: searchDir,
         upload: {S: searchParams.upload},
         algorithm: {S: searchParams.algorithm},
         mimeType: {S: searchParams.mimeType},
     };
     const params = {
-        Item: searchItem,
-        TableName: `${SEARCH_TABLE}`
+        TableName: `${SEARCH_TABLE}`,
+        Item: searchItem
     };
     console.log("PutItem", params);
     const newSearch = await dynamoDB.putItem(params).promise();
     console.log("Created search", newSearch);
     return {
+        __typename: inputTypeName,
         id: searchId,
-        step: 0,
+        step: step,
         createdOn: searchTimestamp,
         updatedOn: searchTimestamp,
-        ...searchParams
+        owner: searchParams.owner,
+        identityId: searchParams.identityId,
+        searchType: searchParams.searchType,
+        searchDir: searchDir,
+        upload: searchParams.upload,
+        algorithm: searchParams.algorithm,
+        mimeType: searchParams.mimeType
     };
 }
 
@@ -82,27 +100,21 @@ exports.searchManager = async (event) => {
     const args = getArgs(event);
     switch (action) {
         case 'getSearch': {
-            console.log("!!!!! GET SEARCH ACTION");
-            return getSearch(args.id);
+            return await getSearch(args.id);
         }
         case 'listSearches': {
-            console.log("!!!!! LIST SEARCHES ACTION");
             const {filter, limit, nextToken} = args;
-            console.log("!!!!! LIST SEARCHES ACTION 2", filter, limit, nextToken);
             return listSearches(filter, limit, nextToken);
         }
         case 'createSearch': {
-            console.log("!!!!! CREATE SEARCH ACTION");
             const searchParams = args.input;
             return await createSearch(searchParams);
         }
         case 'deleteSearch': {
-            console.log("!!!!! DELETE SEARCH ACTION");
             const searchParams = args.input;
             return deleteSearch(searchParams);
         }
         case 'updateSearch': {
-            console.log("!!!!! UPDATE SEARCH ACTION");
             const searchParams = args.input;
             return updateSearch(searchParams);
         }
