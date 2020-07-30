@@ -10,7 +10,6 @@ AWS.config.update({
     apiVersion: '2012-08-10'
 });
 
-const dynamoDB = new AWS.DynamoDB();
 const dynamoDocClient = new AWS.DynamoDB.DocumentClient();
 
 const getArgs = (e) => { return e.source === 'graphql' ? e.arguments : e; }
@@ -49,27 +48,6 @@ const createSearch = async (searchParams) => {
     const searchDir = `/private/${searchParams.identityId}/${searchParams.searchDir}`;
     const step = 0;
     const searchItem = {
-        __typename: {S: inputTypeName},
-        id: {S: searchId},
-        step: {N: ''+step},
-        createdOn: {S: searchTimestamp},
-        updatedOn: {S: searchTimestamp},
-        owner: {S: searchParams.owner},
-        identityId: {S: searchParams.identityId},
-        searchType: {S: searchParams.searchType},
-        searchDir: {S: searchDir},
-        upload: {S: searchParams.upload},
-        algorithm: {S: searchParams.algorithm},
-        mimeType: {S: searchParams.mimeType},
-    };
-    const params = {
-        TableName: `${SEARCH_TABLE}`,
-        Item: searchItem
-    };
-    console.log('PutItem', params);
-    const newSearch = await dynamoDB.putItem(params).promise();
-    console.log('Created search', newSearch);
-    return {
         __typename: inputTypeName,
         id: searchId,
         step: step,
@@ -83,6 +61,14 @@ const createSearch = async (searchParams) => {
         algorithm: searchParams.algorithm,
         mimeType: searchParams.mimeType
     };
+    const params = {
+        TableName: `${SEARCH_TABLE}`,
+        Item: searchItem
+    };
+    console.log('PutItem', params);
+    const newSearch = await dynamoDocClient.put(params).promise();
+    console.log('Created search', newSearch);
+    return params.Item;
 }
 
 const deleteSearch = (searchParams) => {
@@ -123,7 +109,8 @@ const updateSearch = async (searchParams) => {
             'id': searchParams.id
         },
         UpdateExpression: 'set ' + expression.join(','),
-        ExpressionAttributeValues: values
+        ExpressionAttributeValues: values,
+        ReturnValues: 'ALL_NEW'
     };
     console.log('UpdateItem', params);
     const searchData = await dynamoDocClient.update(params).promise();
