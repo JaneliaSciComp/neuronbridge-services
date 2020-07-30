@@ -23,9 +23,9 @@ const getSearch = async (id) => {
             'id': id
         }
     };
-    console.log("GetItem", params);
+    console.log('GetItem', params);
     const searchData = await dynamoDocClient.get(params).promise();
-    console.log("Found search", searchData);
+    console.log('Found search', searchData);
     return searchData ? searchData.Item : null;
 }
 
@@ -57,7 +57,7 @@ const createSearch = async (searchParams) => {
         owner: {S: searchParams.owner},
         identityId: {S: searchParams.identityId},
         searchType: {S: searchParams.searchType},
-        searchDir: searchDir,
+        searchDir: {S: searchDir},
         upload: {S: searchParams.upload},
         algorithm: {S: searchParams.algorithm},
         mimeType: {S: searchParams.mimeType},
@@ -66,9 +66,9 @@ const createSearch = async (searchParams) => {
         TableName: `${SEARCH_TABLE}`,
         Item: searchItem
     };
-    console.log("PutItem", params);
+    console.log('PutItem', params);
     const newSearch = await dynamoDB.putItem(params).promise();
-    console.log("Created search", newSearch);
+    console.log('Created search', newSearch);
     return {
         __typename: inputTypeName,
         id: searchId,
@@ -89,8 +89,46 @@ const deleteSearch = (searchParams) => {
     console.log("!!!! DELETE SEARCH ", searchParams);
 }
 
-const updateSearch = (searchParams) => {
-    console.log("!!!! UPDATE SEARCH ", searchParams);
+const updateSearch = async (searchParams) => {
+    console.log('Update Search', searchParams);
+    const expression = [];
+    const values = {};
+    if (searchParams.hasOwnProperty('step')) {
+        expression.push('step=:step');
+        values[':step'] = searchParams.step;
+    }
+    if (searchParams.hasOwnProperty('nBatches')) {
+        expression.push('nBatches=:nBatches');
+        values[':nBatches'] = searchParams.nBatches;
+    }
+    if (searchParams.hasOwnProperty('completedBatches')) {
+        expression.push('completedBatches=:completedBatches');
+        values[':completedBatches'] = searchParams.completedBatches;
+    }
+    if (searchParams.hasOwnProperty('cdsStarted')) {
+        expression.push('cdsStarted=:cdsStarted');
+        values[':cdsStarted'] = searchParams.cdsStarted;
+    }
+    if (searchParams.hasOwnProperty('cdsFinished')) {
+        expression.push('cdsFinished=:cdsFinished');
+        values[':cdsFinished'] = searchParams.cdsFinished;
+    }
+    if (expression.length === 0) {
+        console.log(`No update parameters provided for search ${searchParams.id}`);
+        return null;
+    }
+    const params = {
+        TableName: `${SEARCH_TABLE}`,
+        Key: {
+            'id': id
+        },
+        UpdateExpression: 'set ' + expression.join(','),
+        ExpressionAttributeValues: values
+    };
+    console.log('UpdateItem', params);
+    const searchData = await dynamoDocClient.update(params).promise();
+    console.log('Updated search', searchData);
+    return searchData ? searchData.Item : null;
 }
 
 exports.searchManager = async (event) => {

@@ -27,6 +27,10 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchType: SearchType
     algorithm: Algorithm
     mimeType: String
+    nBatches: Int
+    completedBatches: Int
+    cdsStarted: AWSDateTime
+    cdsFinished: AWSDateTime
 }
 
 type SearchConnection @aws_cognito_user_pools @aws_iam {
@@ -127,4 +131,8 @@ input TableStringFilterInput {
 input UpdateSearchInput {
     id: ID!
     step: Int
+    nBatches: Int
+    completedBatches: Int
+    cdsStarted: AWSDateTime
+    cdsFinished: AWSDateTime
 }
