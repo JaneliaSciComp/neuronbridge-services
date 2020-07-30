@@ -1,12 +1,58 @@
 service: janelia-neuronbridge-services
 
+
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
+  - serverless-appsync-plugin
+
+
 custom:
   libraryBucket: janelia-flylight-color-depth-dev
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
   searchBucket: janelia-neuronbridge-searches-dev
+  appSyncApiID: a6hxq3bfzzayjpaog5tnug3rdm
   version: 2.0.0
   tracing: true
   debug: true
+  appSync:
+    name: janelia-neuronbridge-appsync-${self:provider.stage}
+    authenticationType: AMAZON_COGNITO_USER_POOLS
+    userPoolConfig:
+      awsRegion: ${self:provider.region}
+      defaultAction: ALLOW
+      userPoolId: us-east-1_owgI6RY6Y
+    additionalAuthenticationProviders:
+      - authenticationType: AWS_IAM
+    schema: graphql/schema.graphql
+    mappingTemplatesLocation: graphql/mapping-templates
+    mappingTemplates:
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: getSearch
+        request: "getSearch-request-mapping-template.vtl"
+        response: "getSearch-response-mapping-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: listSearches
+        request: "listSearches-request-mapping-template.vtl"
+        response: "listSearches-response-mapping-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: createSearch
+        request: "createSearch-request-mapping-template.vtl"
+        response: "createSearch-response-mapping-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: updateSearch
+        request: "updateSearch-request-mapping-template.vtl"
+        response: "updateSearch-response-mapping-template.vtl"
+    dataSources:
+      - type: AWS_LAMBDA
+        name: NeuronBridge_GraphQLDS_${self:provider.stage}
+        config:
+          functionName: searchManager
+
 
 provider:
   name: aws
@@ -50,6 +96,11 @@ provider:
       Action:
         - states:StartExecution
       Resource: "*"
+    - Effect: Allow
+      Action:
+        - appsync:GraphQL
+      Resource:
+        - "arn:aws:appsync:${self:provider.region}:#{AWS::AccountId}:apis/${self:custom.appSyncApiID}/*"
 
 
 package:
@@ -100,12 +151,14 @@ functions:
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
-  searchUpdate:
+  searchManager:
     runtime: nodejs12.x
-    handler: src/main/nodejs/search_update.searchUpdate
+    handler: src/main/nodejs/search_manager.searchManager
     memorySize: 256
     # 5 minute timeout
     timeout: 300
+    environment:
+        APPSYNC_ENDPOINT: https://uvuxjxhcb5g5bjap3paqfhquny.appsync-api.us-east-1.amazonaws.com/graphql
 
   monitor:
     runtime: nodejs12.x
@@ -198,8 +251,3 @@ resources:
       Description: The ARN of the state machine
       Value:
         Ref: SearchMonitorStateMachine
-
-
-plugins:
-  - serverless-step-functions
-  - serverless-pseudo-parameters
