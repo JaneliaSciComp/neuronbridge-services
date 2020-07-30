@@ -28,15 +28,17 @@ const getSearch = async (id) => {
     return searchData ? searchData.Item : null;
 }
 
-const listSearches = (filter, limit, nextToken) => {
-    return {
-        items: [
-            {
-                id: "IO"
-            }
-        ],
-        nextToken: "keepGoing"
-    }
+const listSearches = async (filter, limit, nextToken) => {
+    console.log('List Searches', filter, limit, nextToken);
+    const filterValues = {};
+    const params = {
+        TableName: `${SEARCH_TABLE}`,
+        ExpressionAttributeValues: filterValues
+    };
+    console.log('QueryItems', params);
+    const searchData = await dynamoDocClient.query(params).promise();
+    console.log('Found searches', searchData);
+    return searchData;
 }
 
 const createSearch = async (searchParams) => {
@@ -78,26 +80,26 @@ const deleteSearch = (searchParams) => {
 const updateSearch = async (searchParams) => {
     console.log('Update Search', searchParams);
     const expression = [];
-    const values = {};
+    const updatedValues = {};
     if (searchParams.hasOwnProperty('step')) {
         expression.push('step=:step');
-        values[':step'] = searchParams.step;
+        updatedValues[':step'] = searchParams.step;
     }
     if (searchParams.hasOwnProperty('nBatches')) {
         expression.push('nBatches=:nBatches');
-        values[':nBatches'] = searchParams.nBatches;
+        updatedValues[':nBatches'] = searchParams.nBatches;
     }
     if (searchParams.hasOwnProperty('completedBatches')) {
         expression.push('completedBatches=:completedBatches');
-        values[':completedBatches'] = searchParams.completedBatches;
+        updatedValues[':completedBatches'] = searchParams.completedBatches;
     }
     if (searchParams.hasOwnProperty('cdsStarted')) {
         expression.push('cdsStarted=:cdsStarted');
-        values[':cdsStarted'] = searchParams.cdsStarted;
+        updatedValues[':cdsStarted'] = searchParams.cdsStarted;
     }
     if (searchParams.hasOwnProperty('cdsFinished')) {
         expression.push('cdsFinished=:cdsFinished');
-        values[':cdsFinished'] = searchParams.cdsFinished;
+        updatedValues[':cdsFinished'] = searchParams.cdsFinished;
     }
     if (expression.length === 0) {
         console.log(`No update parameters provided for search ${searchParams.id}`);
@@ -109,7 +111,7 @@ const updateSearch = async (searchParams) => {
             'id': searchParams.id
         },
         UpdateExpression: 'set ' + expression.join(','),
-        ExpressionAttributeValues: values,
+        ExpressionAttributeValues: updatedValues,
         ReturnValues: 'ALL_NEW'
     };
     console.log('UpdateItem', params);
