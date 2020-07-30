@@ -1,4 +1,4 @@
-schema {
+﻿schema {
     query: Query
     mutation: Mutation
     subscription: Subscription
@@ -6,26 +6,27 @@ schema {
 
 type Query {
     getSearch(id: ID!): Search @aws_cognito_user_pools @aws_iam
-    listSearches(filter: TableSearchFilterInput!, limit: Int!, nextToken: String!): SearchConnection @aws_cognito_user_pools @aws_iam
+    listSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam
 }
 
 type Mutation {
-    createSearch(searchParams: CreateSearchInput!): Search @aws_cognito_user_pools @aws_iam
-    deleteSearch(searchParams: DeleteSearchInput!): Search @aws_cognito_user_pools @aws_iam
-    updateSearch(searchParams: UpdateSearchInput!): Search @aws_cognito_user_pools @aws_iam
+    createSearch(input: CreateSearchInput!): Search @aws_cognito_user_pools @aws_iam
+    deleteSearch(input: DeleteSearchInput!): Search @aws_cognito_user_pools @aws_iam
+    updateSearch(input: UpdateSearchInput!): Search @aws_cognito_user_pools @aws_iam
 }
 
 type Search @aws_cognito_user_pools @aws_iam {
-    algorithm: Algorithm
-    createdOn: AWSDateTime
     id: ID!
-    identityId: String!
-    mimeType: String
-    owner: String
-    searchType: SearchType
     step: Int
+    owner: String
+    identityId: String!
+    createdOn: AWSDateTime
     updatedOn: AWSDateTime
-    upload: String
+    upload: String!
+    searchDir: String!
+    searchType: SearchType
+    algorithm: Algorithm
+    mimeType: String
 }
 
 type SearchConnection @aws_cognito_user_pools @aws_iam {
@@ -50,12 +51,13 @@ enum SearchType {
 }
 
 input CreateSearchInput {
-    algorithm: Algorithm!
+    owner: String
     identityId: String!
-    mimeType: String
     searchType: SearchType!
-    step: Int!
+    searchDir: String!
     upload: String!
+    algorithm: Algorithm!
+    mimeType: String
 }
 
 input DeleteSearchInput {

@@ -11,12 +11,12 @@ custom:
   libraryBucket: janelia-flylight-color-depth-dev
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
   searchBucket: janelia-neuronbridge-searches-dev
-  appSyncApiID: a6hxq3bfzzayjpaog5tnug3rdm
+  searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
   version: 2.0.0
   tracing: true
   debug: true
   appSync:
-    name: janelia-neuronbridge-appsync-${self:provider.stage}
+    name: neuronbridge-appsync-${self:provider.stage}
     authenticationType: AMAZON_COGNITO_USER_POOLS
     userPoolConfig:
       awsRegion: ${self:provider.region}
@@ -42,6 +42,11 @@ custom:
         field: createSearch
         request: "createSearch-request-mapping-template.vtl"
         response: "createSearch-response-mapping-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: deleteSearch
+        request: "deleteSearch-request-mapping-template.vtl"
+        response: "deleteSearch-response-mapping-template.vtl"
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Mutation
         field: updateSearch
@@ -88,6 +93,12 @@ provider:
       Resource:
         - "arn:aws:s3:::${self:custom.searchBucket}/"
         - "arn:aws:s3:::${self:custom.searchBucket}/*"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
@@ -96,11 +107,6 @@ provider:
       Action:
         - states:StartExecution
       Resource: "*"
-    - Effect: Allow
-      Action:
-        - appsync:GraphQL
-      Resource:
-        - "arn:aws:appsync:${self:provider.region}:#{AWS::AccountId}:apis/${self:custom.appSyncApiID}/*"
 
 
 package:
@@ -158,7 +164,8 @@ functions:
     # 5 minute timeout
     timeout: 300
     environment:
-        APPSYNC_ENDPOINT: https://uvuxjxhcb5g5bjap3paqfhquny.appsync-api.us-east-1.amazonaws.com/graphql
+      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      SEARCH_TABLE: ${self:custom.searchTable}
 
   monitor:
     runtime: nodejs12.x
@@ -251,3 +258,16 @@ resources:
       Description: The ARN of the state machine
       Value:
         Ref: SearchMonitorStateMachine
+
+  Resources:
+    SearchTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.searchTable}

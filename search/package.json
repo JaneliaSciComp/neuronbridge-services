@@ -9,6 +9,7 @@
     "graphql-tag": "^2.10.4",
     "isomorphic-fetch": "^2.2.1",
     "moment": "^2.25.3",
+    "serverless": "^1.77.1",
     "uuid": "^8.2.0"
   },
   "devDependencies": {
