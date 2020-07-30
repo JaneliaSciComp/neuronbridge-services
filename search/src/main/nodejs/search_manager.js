@@ -120,7 +120,7 @@ const updateSearch = async (searchParams) => {
     const params = {
         TableName: `${SEARCH_TABLE}`,
         Key: {
-            'id': id
+            'id': searchParams.id
         },
         UpdateExpression: 'set ' + expression.join(','),
         ExpressionAttributeValues: values
