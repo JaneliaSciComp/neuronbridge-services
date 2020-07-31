@@ -4,7 +4,7 @@
     "payload": {
         "source": "graphql",
         "action": "createSearch",
-        "identity": $context.identity,
+        "identity": $utils.toJson($context.identity),
         "arguments":  $utils.toJson($context.arguments)
     }
 }
