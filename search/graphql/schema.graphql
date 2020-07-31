@@ -55,7 +55,7 @@ enum SearchType {
 }
 
 input CreateSearchInput {
-    owner: String
+    step: Int!
     identityId: String!
     searchType: SearchType!
     searchDir: String!

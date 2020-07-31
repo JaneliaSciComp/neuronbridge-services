@@ -30,33 +30,34 @@ custom:
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Query
         field: getSearch
-        request: "getSearch-request-mapping-template.vtl"
-        response: "getSearch-response-mapping-template.vtl"
+        request: "dynamodb-getSearch-request-template.vtl"
+        response: "dynamodb-getSearch-response-template.vtl"
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Query
         field: listSearches
-        request: "listSearches-request-mapping-template.vtl"
-        response: "listSearches-response-mapping-template.vtl"
+        request: "dynamodb-listSearches-request-template.vtl"
+        response: "dynamodb-listSearches-response-template.vtl"
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Mutation
         field: createSearch
-        request: "createSearch-request-mapping-template.vtl"
-        response: "createSearch-response-mapping-template.vtl"
+        request: "dynamodb-createSearch-request-template.vtl"
+        response: "dynamodb-createSearch-response-template.vtl"
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Mutation
         field: deleteSearch
-        request: "deleteSearch-request-mapping-template.vtl"
-        response: "deleteSearch-response-mapping-template.vtl"
+        request: "dynamodb-deleteSearch-request-template.vtl"
+        response: "dynamodb-deleteSearch-response-template.vtl"
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Mutation
         field: updateSearch
-        request: "updateSearch-request-mapping-template.vtl"
-        response: "updateSearch-response-mapping-template.vtl"
+        request: "dynamodb-updateSearch-request-template.vtl"
+        response: "dynamodb-updateSearch-response-template.vtl"
     dataSources:
-      - type: AWS_LAMBDA
+      - type: AMAZON_DYNAMODB
         name: NeuronBridge_GraphQLDS_${self:provider.stage}
+        description: Table containing neuron searches
         config:
-          functionName: searchManager
+          tableName: ${self:custom.searchTable}
 
 
 provider:
@@ -156,16 +157,6 @@ functions:
     environment:
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
-
-  searchManager:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_manager.searchManager
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
-    environment:
-      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
-      SEARCH_TABLE: ${self:custom.searchTable}
 
   monitor:
     runtime: nodejs12.x
