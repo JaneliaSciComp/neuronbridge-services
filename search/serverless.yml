@@ -103,7 +103,7 @@ provider:
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
-      Resource: "arn:aws:dynamodb:${self:provider.region}::table/${self:custom.searchTable}"
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
@@ -142,8 +142,9 @@ functions:
     memorySize: 256
     timeout: 300
     environment:
-      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       DEBUG: ${self:custom.debug}
+      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      SEARCH_TABLE: ${self:custom.searchTable}
     events:
       - stream:
           type: dynamodb
@@ -283,6 +284,6 @@ resources:
             AttributeType: S
         BillingMode: PAY_PER_REQUEST
         StreamSpecification:
-          StreamViewType: NEW_IMAGE
+          StreamViewType: KEYS_ONLY
         TableName: ${self:custom.searchTable}
 
