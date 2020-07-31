@@ -120,8 +120,8 @@ const updateSearch = async (searchParams) => {
     return searchData ? searchData.Item : null;
 }
 
-exports.searchManager = async (event) => {
-    console.log(event);
+exports.searchManager = async (event, context) => {
+    console.log(event, context);
 
     const action = event.action;
     const args = getArgs(event);
