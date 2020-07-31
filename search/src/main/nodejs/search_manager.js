@@ -28,9 +28,16 @@ const getSearch = async (id) => {
     return searchData ? searchData.Item : null;
 }
 
+
+
+
 const listSearches = async (filter, limit, nextToken) => {
     console.log('List Searches', filter, limit, nextToken);
     const filterValues = {};
+
+    if (filter && filter.conditions) {
+        filter.conditions.red
+    }
     const params = {
         TableName: `${SEARCH_TABLE}`,
         ExpressionAttributeValues: filterValues
@@ -120,8 +127,8 @@ const updateSearch = async (searchParams) => {
     return searchData ? searchData.Item : null;
 }
 
-exports.searchManager = async (event, context) => {
-    console.log(event, context);
+exports.searchManager = async (event) => {
+    console.log(event);
 
     const action = event.action;
     const args = getArgs(event);

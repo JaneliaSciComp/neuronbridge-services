@@ -6,7 +6,7 @@
 
 type Query {
     getSearch(id: ID!): Search @aws_cognito_user_pools @aws_iam
-    listSearches(filter: SearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam
+    listSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam
 }
 
 type Mutation {
@@ -68,69 +68,80 @@ input DeleteSearchInput {
     id: ID!
 }
 
-input SearchFilterInput {
-    conditions: [ConditionInput!]
+input TableSearchFilterInput {
+    id: TableIDFilterInput
+    step: TableStringFilterInput
+    createdOn: TableDateFilterInput
+    updatedOn: TableDateFilterInput
+    searchType: TableStringFilterInput
+    algorithm: TableStringFilterInput
+    cdsStarted: TableDateFilterInput
+    cdsFinished: TableDateFilterInput
 }
 
-input ConditionInput {
-    kind: TypeCondition!
-    andConditions: [AndConditionInput!]
-    orConditions: [OrConditionInput!]
+input TableBooleanFilterInput {
+    eq: Boolean
+    ne: Boolean
 }
 
-enum TypeCondition {
-    andOp
-    orOp
+input TableDateFilterInput {
+    between: [AWSDateTime]
+    eq: AWSDateTime
+    ge: AWSDateTime
+    gt: AWSDateTime
+    le: AWSDateTime
+    lt: AWSDateTime
+    ne: AWSDateTime
 }
 
-input AndConditionInput {
-    conditions: [ComparisonInput!]
+input TableFloatFilterInput {
+    between: [Float]
+    contains: Float
+    eq: Float
+    ge: Float
+    gt: Float
+    le: Float
+    lt: Float
+    ne: Float
+    notContains: Float
 }
 
-input OrConditionInput {
-    conditions: [ComparisonInput!]
+input TableIDFilterInput {
+    beginsWith: ID
+    between: [ID]
+    contains: ID
+    eq: ID
+    ge: ID
+    gt: ID
+    le: ID
+    lt: ID
+    ne: ID
+    notContains: ID
 }
 
-input ComparisonInput {
-    kind: TypeOperator!
-    intComparison: IntComparisonInput
-    stringComparison: StringComparisonInput
-    idComparison: IDComparisonInput
+input TableIntFilterInput {
+    between: [Int]
+    contains: Int
+    eq: Int
+    ge: Int
+    gt: Int
+    le: Int
+    lt: Int
+    ne: Int
+    notContains: Int
 }
 
-enum TypeOperator {
-    intOp
-    stringOp
-    idOp
-}
-
-enum ComparisonOperator {
-    contains
-    eq
-    ge
-    gt
-    le
-    lt
-    ne
-    notContains
-}
-
-input IntComparisonInput {
-    name: String!
-    op: ComparisonOperator!
-    value: Int!
-}
-
-input StringComparisonInput {
-    name: String!
-    op: ComparisonOperator!
-    value: String!
-}
-
-input IDComparisonInput {
-    name: String!
-    op: ComparisonOperator!
-    value: ID!
+input TableStringFilterInput {
+    beginsWith: String
+    between: [String]
+    contains: String
+    eq: String
+    ge: String
+    gt: String
+    le: String
+    lt: String
+    ne: String
+    notContains: String
 }
 
 input UpdateSearchInput {
