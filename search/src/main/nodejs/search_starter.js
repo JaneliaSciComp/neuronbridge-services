@@ -11,14 +11,16 @@ const startColorDepthSearch = async (searchParams) => {
 }
 
 const getNewRecords = (e) => {
-    return e.Records.filter(r => r.eventName === 'INSERT').map(r => r.dynamodb);
+    return e.Records
+        .filter(r => r.eventName === 'INSERT')
+        .map(r => r.dynamodb);
 }
 
 exports.searchStarter = async (event) => {
     console.log(event);
     getNewRecords(event)
         .forEach(r => {
-            startColorDepthSearch(r.dynamodb);
+            startColorDepthSearch(r);
         });
 };
 
