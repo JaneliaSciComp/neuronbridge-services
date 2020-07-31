@@ -96,10 +96,14 @@ provider:
         - "arn:aws:s3:::${self:custom.searchBucket}/*"
     - Effect: "Allow"
       Action:
+        - dynamodb:DescribeStream
+        - dynamodb:GetRecords
+        - dynamodb:GetShardIterator
+        - dynamodb:ListStreams
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
+      Resource: "arn:aws:dynamodb:${self:provider.region}::table/${self:custom.searchTable}"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
@@ -131,6 +135,23 @@ functions:
     handler: src/main/nodejs/denormalize.denormalize
     memorySize: 128
     timeout: 900
+
+  searchStarter:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_starter.searchStarter
+    memorySize: 256
+    timeout: 300
+    environment:
+      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      DEBUG: ${self:custom.debug}
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt:
+              - SearchTable
+              - StreamArn
+          batchSize: 1
 
   searchDispatch:
     runtime: nodejs12.x
@@ -261,4 +282,7 @@ resources:
           - AttributeName: id
             AttributeType: S
         BillingMode: PAY_PER_REQUEST
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
         TableName: ${self:custom.searchTable}
+
