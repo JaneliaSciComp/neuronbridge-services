@@ -1,10 +1,26 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const AWSAppSyncClient = require("aws-appsync").default;
+const AUTH_TYPE = require('aws-appsync').AUTH_TYPE;
+const gql = require("graphql-tag");
+require("isomorphic-fetch");
+
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
 
 const DEBUG = !!process.env.DEBUG;
+
+const appSyncClient = new AWSAppSyncClient({
+    url: process.env.APPSYNC_API_URL,
+    region: process.env.AWS_REGION,
+    auth: {
+        type: AUTH_TYPE.AWS_IAM,
+        credentials: AWS.config.credentials
+    },
+    disableOffline: true
+});
+
 
 exports.DEBUG = DEBUG;
 
@@ -147,3 +163,46 @@ exports.invokeAsync = async (functionName, parameters) => {
     };
     return lambda.invoke(params).promise();
 };
+
+const getSearch = async (searchId) => {
+    const result = await appSyncClient.query({
+        query: gql(`query getSearch($searchId: ID!) {
+            getSearch(id: $searchId) {
+                id
+                step
+                owner
+                identityId
+                searchDir
+                upload
+                searchType
+                algorithm
+                nBatches
+                completedBatches
+                cdsStarted
+                cdsFinished
+            }
+        }`),
+        variables: { searchId: searchId}
+    });
+    const resultData = result.data.getSearch;
+    const searchResult = {
+        searchId: resultData.id,
+        searchInputName: `/private/${resultData.identityId}/${resultData.searchDir}/${resultData.upload}`,
+        ...resultData
+    }
+    console.log("Found search", result, searchResult);
+    return searchResult;
+}
+
+exports.getSearch = getSearch;
+
+const updateSearchMutation = `mutation updateSearch($input: UpdateSearchInput!) {
+    updateSearch(input: $input) {
+        id
+        step
+        nBatches
+        completedBatches
+        cdsStarted
+        cdsFinished
+    }
+}`;

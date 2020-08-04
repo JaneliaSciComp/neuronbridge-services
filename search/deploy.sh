@@ -1,5 +1,11 @@
 #!/bin/sh
 #export SLS_DEBUG=*
 
-mvn clean package \
-    && serverless deploy -s cgdev
+deployEnv=$1
+
+if [[ ${deployEnv} == "" ]] ; then
+    deployEnv=dev
+fi
+
+mvn  -DskipTests=true clean package \
+    && serverless deploy -s ${deployEnv}

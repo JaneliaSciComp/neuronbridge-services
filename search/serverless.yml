@@ -112,6 +112,10 @@ provider:
       Action:
         - states:StartExecution
       Resource: "*"
+    - Effect: Allow
+      Action:
+        - appsync:GraphQL
+      Resource: "*"
 
 
 package:
@@ -145,6 +149,8 @@ functions:
       DEBUG: ${self:custom.debug}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       SEARCH_TABLE: ${self:custom.searchTable}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+
     events:
       - stream:
           type: dynamodb

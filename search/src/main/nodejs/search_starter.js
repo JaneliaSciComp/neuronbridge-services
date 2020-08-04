@@ -1,6 +1,7 @@
 'use strict';
 
 const AWS = require("aws-sdk");
+const {getSearch} = require('./utils');
 
 const SEARCH_TABLE = process.env.SEARCH_TABLE;
 
@@ -14,7 +15,7 @@ const startColorDepthSearch = async (searchParams) => {
     console.log('Start ColorDepthSearch', searchParams);
 }
 
-const getSearch = async (id) => {
+const retrieveSearchFromDB = async (id) => {
     console.log('Get Search', id);
     const params = {
         TableName: `${SEARCH_TABLE}`,
@@ -29,12 +30,22 @@ const getSearch = async (id) => {
 }
 
 const getNewRecords = async (e) => {
-    const newRecordsPromises = await e.Records
-        .filter(r => r.eventName === 'INSERT')
-        .map(r => r.dynamodb)
-        .map(r => r.Keys.id.S)
-        .map(async searchId => await getSearch(searchId));
-    return await Promise.all(newRecordsPromises);
+    if (e.Records) {
+        const newRecordsPromises = await e.Records
+            .filter(r => r.eventName === 'INSERT')
+            .map(r => r.dynamodb)
+            .map(r => r.Keys.id.S)
+            .map(async searchId => await getSearch(searchId));
+        return await Promise.all(newRecordsPromises);
+    } else if (e.searchIds) {
+        const newSearchesPromises = await e.searchIds
+            .map(async searchId => await getSearch(searchId));
+        return await Promise.all(newSearchesPromises);
+    } else if (e.searches) {
+        return e.searches;
+    } else {
+        return [];
+    }
 }
 
 exports.searchStarter = async (event) => {
