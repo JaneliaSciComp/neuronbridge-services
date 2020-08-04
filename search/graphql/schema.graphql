@@ -26,6 +26,12 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchDir: String!
     searchType: SearchType
     algorithm: Algorithm
+    maskThreshold: Int
+    dataThreshold: Int
+    pixColorFluctuation: Float
+    xyShift: Int
+    mirrorMask: Boolean
+    minMatchingPixRatio: Int
     mimeType: String
     nBatches: Int
     completedBatches: Int
@@ -61,6 +67,12 @@ input CreateSearchInput {
     searchDir: String!
     upload: String!
     algorithm: Algorithm!
+    maskThreshold: Int
+    dataThreshold: Int
+    pixColorFluctuation: Float
+    xyShift: Int
+    mirrorMask: Boolean
+    minMatchingPixRatio: Int
     mimeType: String
 }
 

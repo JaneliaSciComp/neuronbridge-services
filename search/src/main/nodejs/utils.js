@@ -164,7 +164,7 @@ exports.invokeAsync = async (functionName, parameters) => {
     return lambda.invoke(params).promise();
 };
 
-const getSearch = async (searchId) => {
+const getSearchMetadata = async (searchId) => {
     const result = await appSyncClient.query({
         query: gql(`query getSearch($searchId: ID!) {
             getSearch(id: $searchId) {
@@ -194,15 +194,38 @@ const getSearch = async (searchId) => {
     return searchResult;
 }
 
-exports.getSearch = getSearch;
+exports.getSearchMetadata = getSearchMetadata;
 
-const updateSearchMutation = `mutation updateSearch($input: UpdateSearchInput!) {
-    updateSearch(input: $input) {
-        id
-        step
-        nBatches
-        completedBatches
-        cdsStarted
-        cdsFinished
+const updateSearchMetadata = async (searchInput) => {
+    const result = await appSyncClient.mutate({
+        query: gql(`mutation updateSearch($searchInput: UpdateSearchInput!) {
+            updateSearch(input: $searchInput) {
+                id
+                step
+                owner
+                identityId
+                searchDir
+                upload
+                searchType
+                algorithm
+                nBatches
+                completedBatches
+                cdsStarted
+                cdsFinished
+            }
+        }`),
+        variables: {
+            searchInput: searchInput
+        }
+    });
+    const resultData = result.data.updateSearch;
+    const updatedSearch = {
+        searchId: resultData.id,
+        searchInputName: `/private/${resultData.identityId}/${resultData.searchDir}/${resultData.upload}`,
+        ...resultData
     }
-}`;
+    console.log("Updated search", result, updatedSearch);
+    return updatedSearch;
+}
+
+exports.updateSearchMetadata = updateSearchMetadata;

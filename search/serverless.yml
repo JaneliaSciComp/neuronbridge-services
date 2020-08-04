@@ -165,7 +165,6 @@ functions:
     environment:
       DEBUG: ${self:custom.debug}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
-      SEARCH_TABLE: ${self:custom.searchTable}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
     events:
