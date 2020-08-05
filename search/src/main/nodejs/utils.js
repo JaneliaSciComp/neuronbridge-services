@@ -1,10 +1,6 @@
 'use strict';
 
 const AWS = require('aws-sdk');
-const AWSAppSyncClient = require("aws-appsync").default;
-const AUTH_TYPE = require('aws-appsync').AUTH_TYPE;
-const gql = require("graphql-tag");
-require("isomorphic-fetch");
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
@@ -14,17 +10,6 @@ const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
 
 const DEBUG = !!process.env.DEBUG;
-
-const appSyncClient = new AWSAppSyncClient({
-    url: process.env.APPSYNC_API_URL,
-    region: process.env.AWS_REGION,
-    auth: {
-        type: AUTH_TYPE.AWS_IAM,
-        credentials: AWS.config.credentials
-    },
-    disableOffline: true
-});
-
 
 exports.DEBUG = DEBUG;
 
@@ -154,7 +139,7 @@ exports.partition = (list, size) => {
         plist.push(list.slice(i, i + size));
     }
     return plist;
-};
+}
 
 // Invoke another Lambda function
 exports.invokeFunction = async (functionName, parameters) => {
@@ -165,8 +150,13 @@ exports.invokeFunction = async (functionName, parameters) => {
         InvocationType: 'Event',
         Payload: JSON.stringify(parameters),
     };
-    return await lambda.invoke(params).promise();
-};
+    try {
+        return await lambda.invoke(params).promise();
+    } catch (e) {
+        console.error('Error invoking', params, e);
+        throw e;
+    }
+}
 
 // Invoke another Lambda function asynchronously
 exports.invokeAsync = async (functionName, parameters) => {
@@ -182,70 +172,4 @@ exports.invokeAsync = async (functionName, parameters) => {
         console.error('Error invoking', params, e);
         throw e;
     }
-};
-
-const getSearchMetadata = async (searchId) => {
-    const result = await appSyncClient.query({
-        query: gql(`query getSearch($searchId: ID!) {
-            getSearch(id: $searchId) {
-                id
-                step
-                owner
-                identityId
-                searchDir
-                upload
-                searchType
-                algorithm
-                nBatches
-                completedBatches
-                cdsStarted
-                cdsFinished
-            }
-        }`),
-        variables: { searchId: searchId}
-    });
-    const resultData = result.data.getSearch;
-    const searchResult = {
-        searchId: resultData.id,
-        searchInputName: `/private/${resultData.identityId}/${resultData.searchDir}/${resultData.upload}`,
-        ...resultData
-    }
-    console.log("Found search", result, searchResult);
-    return searchResult;
 }
-
-exports.getSearchMetadata = getSearchMetadata;
-
-const updateSearchMetadata = async (searchInput) => {
-    const result = await appSyncClient.mutate({
-        query: gql(`mutation updateSearch($searchInput: UpdateSearchInput!) {
-            updateSearch(input: $searchInput) {
-                id
-                step
-                owner
-                identityId
-                searchDir
-                upload
-                searchType
-                algorithm
-                nBatches
-                completedBatches
-                cdsStarted
-                cdsFinished
-            }
-        }`),
-        variables: {
-            searchInput: searchInput
-        }
-    });
-    const resultData = result.data.updateSearch;
-    const updatedSearch = {
-        searchId: resultData.id,
-        searchInputName: `/private/${resultData.identityId}/${resultData.searchDir}/${resultData.upload}`,
-        ...resultData
-    }
-    console.log("Updated search", result, updatedSearch);
-    return updatedSearch;
-}
-
-exports.updateSearchMetadata = updateSearchMetadata;

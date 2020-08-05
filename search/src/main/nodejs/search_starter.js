@@ -1,6 +1,8 @@
 'use strict';
 
-const {getSearchMetadata, invokeAsync} = require('./utils');
+const {invokeAsync} = require('./utils');
+const {getSearchMetadata} = require('./awsappsyncutils');
+
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 
 const startColorDepthSearch = async (searchParams) => {
@@ -39,8 +41,7 @@ const getNewRecords = async (e) => {
 exports.searchStarter = async (event) => {
     console.log(event);
     const newRecords = await getNewRecords(event);
-    newRecords.forEach(r => {
-        startColorDepthSearch(r);
-    });
+    const searchPromises = await newRecords.map(async r => await startColorDepthSearch(r));
+    return await Promise.all(searchPromises);
 };
 

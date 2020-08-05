@@ -26,6 +26,11 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchDir: String!
     searchType: SearchType
     algorithm: Algorithm
+    anatomicalRegion: String
+    channel: Int
+    voxelX: Int
+    voxelY: Int
+    voxelZ: Int
     maskThreshold: Int
     dataThreshold: Int
     pixColorFluctuation: Float
@@ -67,6 +72,11 @@ input CreateSearchInput {
     searchDir: String!
     upload: String!
     algorithm: Algorithm!
+    anatomicalRegion: String
+    channel: Int
+    voxelX: Int
+    voxelY: Int
+    voxelZ: Int
     maskThreshold: Int
     dataThreshold: Int
     pixColorFluctuation: Float

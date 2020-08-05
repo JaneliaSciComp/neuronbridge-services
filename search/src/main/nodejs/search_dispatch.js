@@ -23,7 +23,7 @@ const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 1000;
 const region = process.env.AWS_REGION;
 const libraryBucket = process.env.LIBRARY_BUCKET;
 const searchBucket = process.env.SEARCH_BUCKET;
-const dispatchFunction = process.env.DISPATCH_FUNCTION;
+const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
