@@ -4,6 +4,7 @@ const moment = require('moment');
 
 const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
 const {getAllKeys, putText, DEBUG} = require('./utils');
+const {updateSearchMetadata} = require('./awsappsyncutils');
 
 const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
@@ -12,6 +13,8 @@ exports.isSearchDone = async (event, context) => {
     // Parameters
     if (DEBUG) console.log(event);
     const bucket = event.bucket;
+    const searchId = event.searchId;
+    const searchInputFolder = event.searchInputFolder;
     const searchInputName = event.searchInputName;
     const numBatches = event.numBatches;
     const startTime = moment(event.startTime);
@@ -24,7 +27,8 @@ exports.isSearchDone = async (event, context) => {
         throw new Error('Missing required key \'searchInputName\' in input to isSearchDone');
     }
 
-    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);
+    const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
+    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
 
     // Fetch all keys
     const allKeys  = await getAllKeys({
@@ -36,24 +40,25 @@ exports.isSearchDone = async (event, context) => {
     // Check if all partitions have completed
     let numComplete = 0;
     for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
-        const batchResultsKey = getIntermediateSearchResultsKey(searchInputName, batchIndex);
+        const batchResultsKey = getIntermediateSearchResultsKey(fullSearchInputName, batchIndex);
         if (allBatchResultsKeys.has(batchResultsKey)) {
             numComplete++;
         }
     }
 
-    // intermediate searches done count for 95% completion, reduce step is the remaining 5%
-    const progress = Math.floor(numComplete / numBatches * 95);
-    const numRemaining = numBatches - numComplete;
     console.log(`Completed: ${numComplete}/${numBatches}`);
 
     // Calculate total search time
     const now = new Date();
     const endTime = moment(now.toISOString());
     const elapsedSecs = endTime.diff(startTime, "s");
+    const numRemaining = numBatches - numComplete;
     // write down the progress
-    console.log(`Log progress ${progress}`);
-    putText(bucket, getSearchProgressKey(searchInputName), progress.toString());
+    await updateSearchMetadata({
+        id: searchId,
+        step: 3,
+        completedBatches: numComplete
+    });
     // return result for next state input
     if (numRemaining === 0) {
         console.log(`Search took ${elapsedSecs} seconds`);

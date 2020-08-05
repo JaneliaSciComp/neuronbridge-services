@@ -211,6 +211,7 @@ functions:
     timeout: 300
     environment:
       SEARCH_TIMEOUT_SECS: 1200
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
 
   searchReduce:
@@ -222,6 +223,7 @@ functions:
     environment:
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
 
   em2lmGradScorer:

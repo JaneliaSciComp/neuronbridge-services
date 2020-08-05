@@ -53,7 +53,7 @@ exports.getSearchMetadata = async (searchId) => {
 
 exports.updateSearchMetadata = async (searchInput) => {
     const result = await appSyncClient.mutate({
-        query: gql(`mutation updateSearch($searchInput: UpdateSearchInput!) {
+        mutation: gql(`mutation updateSearch($searchInput: UpdateSearchInput!) {
             updateSearch(input: $searchInput) {
                 id
                 step

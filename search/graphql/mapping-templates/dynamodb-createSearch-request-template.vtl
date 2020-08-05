@@ -44,6 +44,13 @@
 ## [End] Check authMode and execute owner/group checks **
 
 ## [Start] Prepare DynamoDB PutItem Request. **
+## Set default color depth search parameters
+$util.qr($context.args.input.put("maskThreshold", $util.defaultIfNull($ctx.args.input.maskThreshold, 100)))
+$util.qr($context.args.input.put("dataThreshold", $util.defaultIfNull($ctx.args.input.dataThreshold, 100)))
+$util.qr($context.args.input.put("pixColorFluctuation", $util.defaultIfNull($ctx.args.input.pixColorFluctuation, 2.0)))
+$util.qr($context.args.input.put("xyShift", $util.defaultIfNull($ctx.args.input.xyShift, 2)))
+$util.qr($context.args.input.put("mirrorMask", $util.defaultIfNull($ctx.args.input.mirrorMask, true)))
+$util.qr($context.args.input.put("minMatchingPixRatio", $util.defaultIfNull($ctx.args.input.minMatchingPixRatio, 2)))
 $util.qr($context.args.input.put("createdOn", $util.defaultIfNull($ctx.args.input.createdOn, $util.time.nowISO8601())))
 $util.qr($context.args.input.put("updatedOn", $util.defaultIfNull($ctx.args.input.updatedOn, $util.time.nowISO8601())))
 $util.qr($context.args.input.put("__typename", "Search"))

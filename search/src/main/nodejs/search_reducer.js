@@ -2,6 +2,7 @@
 
 const {getIntermediateSearchResultsKey, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
 const {getObjectWithRetry, putText, putObject, removeKey, DEBUG} = require('./utils');
+const {updateSearchMetadata} = require('./awsappsyncutils');
 
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
@@ -22,12 +23,15 @@ exports.searchReducer = async (event, context) => {
     // Parameters
     if (DEBUG) console.log(event);
     const bucket = event.bucket;
+    const searchId = event.searchId;
+    const searchInputFolder = event.searchInputFolder;
     const searchInputName = event.searchInputName;
     const numBatches = event.numBatches;
 
+    const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
     let allBatchResults = {};
     for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
-        const batchResultsKey = getIntermediateSearchResultsKey(searchInputName, batchIndex);
+        const batchResultsKey = getIntermediateSearchResultsKey(fullSearchInputName, batchIndex);
         const batchResults = await getObjectWithRetry(bucket, batchResultsKey, 3);
         if (DEBUG) console.log(batchResults);
         batchResults.forEach(batchResult => {
@@ -48,7 +52,7 @@ exports.searchReducer = async (event, context) => {
     // write down the results
     const outputUri = await putObject(
         bucket,
-        getSearchResultsKey(searchInputName),
+        getSearchResultsKey(fullSearchInputName),
         allMatches.length > 1
             ? allMatches
             : (allMatches[0]
@@ -61,10 +65,17 @@ exports.searchReducer = async (event, context) => {
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
     // write down the progress - done
+    const now = new Date()
+    await updateSearchMetadata({
+        id: searchId,
+        step: 4,
+        cdsFinished: now.toISOString()
+    });
+
     putText(bucket, getSearchProgressKey(searchInputName), "100");
 
     if (!DEBUG) {
-        const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);
+        const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
         await removeKey(bucket, intermediateSearchResultsPrefix);
     }
     return event;

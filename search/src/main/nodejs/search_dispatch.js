@@ -16,8 +16,8 @@ const DEFAULTS = {
     maskThreshold: 100,
     dataThreshold: 100,
     pixColorFluctuation: 2.0,
-    xyShift: 0,
-    mirrorMask: false,
+    xyShift: 2,
+    mirrorMask: true,
     minMatchingPixRatio: 2,
 };
 
@@ -129,8 +129,9 @@ exports.searchDispatch = async (event) => {
         if (stateMachineArn != null) {
             // if monitoring then start it right away
             const monitorParams = {
-                searchId,
                 bucket: searchBucket,
+                searchId,
+                searchInputFolder,
                 searchInputName,
                 startTime: now.toISOString(),
                 numBatches,
@@ -203,7 +204,7 @@ exports.searchDispatch = async (event) => {
             const searchParams = {
                 outputURI: batchResultsURI,
                 maskPrefix: searchBucket,
-                maskKeys: [searchInputName],
+                maskKeys: [`${searchInputFolder}/${searchInputName}`],
                 maskThresholds: [maskThreshold],
                 searchPrefix: libraryBucket,
                 searchKeys,
