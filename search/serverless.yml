@@ -107,6 +107,7 @@ provider:
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
+        - lambda:InvokeAsync
       Resource: "*"
     - Effect: Allow
       Action:
@@ -115,16 +116,16 @@ provider:
     - Effect: Allow
       Action:
         - appsync:GraphQL
-      Resource: { "Fn::Join": [
+      Resource: { Fn::Join: [
         "",
         [
           "arn:aws:appsync:",
           {
-            "Ref": "AWS::Region"
+            Ref: "AWS::Region"
           },
           ":",
           {
-            "Ref": "AWS::AccountId"
+            Ref: "AWS::AccountId"
           },
           ":apis/",
           {
@@ -164,9 +165,21 @@ functions:
     timeout: 300
     environment:
       DEBUG: ${self:custom.debug}
-      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      SEARCH_DISPATCH_FUNCTION: { Fn::Join: [
+        ":",
+        [
+          "arn:aws:lambda",
+          {
+            Ref: "AWS::Region"
+          },
+          {
+            Ref: "AWS::AccountId"
+          },
+          "function",
+          #{searchDispatch}
+        ]
+      ]}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-
     events:
       - stream:
           type: dynamodb

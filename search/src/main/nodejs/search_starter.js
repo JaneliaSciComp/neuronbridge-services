@@ -13,7 +13,7 @@ const startColorDepthSearch = async (searchParams) => {
         ...searchParams
     };
     const cdsInvocationResult = await invokeAsync(dispatchFunction, dispatchSearchParams);
-    console.log('Started ColorDepthSearch', cdsInvocationResult)
+    console.log('Started ColorDepthSearch', cdsInvocationResult);
     return cdsInvocationResult;
 }
 
