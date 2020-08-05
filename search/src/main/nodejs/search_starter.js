@@ -7,14 +7,7 @@ const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 
 const startColorDepthSearch = async (searchParams) => {
     console.log('Start ColorDepthSearch', searchParams);
-    // update the step
-    const now = new Date();
-    const dispatchSearchParams = {
-        level: 0,
-        numLevels: 2,
-        ...searchParams
-    };
-    const cdsInvocationResult = await invokeAsync(dispatchFunction, dispatchSearchParams);
+    const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
     console.log('Started ColorDepthSearch', cdsInvocationResult);
     return cdsInvocationResult;
 }

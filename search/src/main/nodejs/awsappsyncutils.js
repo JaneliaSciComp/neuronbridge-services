@@ -39,9 +39,12 @@ exports.getSearchMetadata = async (searchId) => {
         variables: { searchId: searchId}
     });
     const resultData = result.data.getSearch;
+    const searchInputFolder = `private/${resultData.identityId}/${resultData.searchDir}`;
     const searchResult = {
         searchId: resultData.id,
-        searchInputName: `/private/${resultData.identityId}/${resultData.searchDir}/${resultData.upload}`,
+        searchInputFolder: searchInputFolder,
+        searchInputName: `${resultData.upload}`,
+        searchInput: `${searchInputFolder}/${resultData.upload}`,
         ...resultData
     }
     console.log("Found search", result, searchResult);
@@ -71,9 +74,11 @@ exports.updateSearchMetadata = async (searchInput) => {
         }
     });
     const resultData = result.data.updateSearch;
+    const searchInputFolder = `private/${resultData.identityId}/${resultData.searchDir}`;
     const updatedSearch = {
         searchId: resultData.id,
-        searchInputName: `/private/${resultData.identityId}/${resultData.searchDir}/${resultData.upload}`,
+        searchInputFolder: searchInputFolder,
+        searchInputName: `${resultData.upload}`,
         ...resultData
     }
     console.log("Updated search", result, updatedSearch);
