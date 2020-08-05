@@ -12,8 +12,9 @@ const startColorDepthSearch = async (searchParams) => {
         numLevels: 2,
         ...searchParams
     };
-    await invokeAsync(dispatchFunction, dispatchSearchParams);
-
+    const cdsInvocationResult = await invokeAsync(dispatchFunction, dispatchSearchParams);
+    console.log('Started ColorDepthSearch', cdsInvocationResult)
+    return cdsInvocationResult;
 }
 
 const getNewRecords = async (e) => {
