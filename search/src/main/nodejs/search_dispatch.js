@@ -281,10 +281,11 @@ const getKeys = async (libraryKey) => {
 
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
     let subsegment = segment.addNewSubsegment('Start monitor');
+    const now = new Date().toISOString();
     const params = {
         stateMachineArn: stateMachineArn,
         input: JSON.stringify(monitorParams),
-        name: `ColorDepthSearch_${searchId}`
+        name: `ColorDepthSearch_${searchId}_${now}`
     };
     const result = await stepFunction.startExecution(params).promise();
     console.log("Step function started: ", result.executionArn);
