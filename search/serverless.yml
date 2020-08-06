@@ -12,6 +12,8 @@ custom:
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
   searchBucket: janelia-neuronbridge-searches-dev
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+  cognitoUserPoolId: us-east-1_owgI6RY6Y
+  neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
   cdsTimeoutInSeconds: 300
   version: 2.0.0
   tracing: true
@@ -22,7 +24,7 @@ custom:
     userPoolConfig:
       awsRegion: ${self:provider.region}
       defaultAction: ALLOW
-      userPoolId: us-east-1_owgI6RY6Y
+      userPoolId: ${self:custom.cognitoUserPoolId}
     additionalAuthenticationProviders:
       - authenticationType: AWS_IAM
     schema: graphql/schema.graphql
@@ -78,7 +80,6 @@ provider:
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
-
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -135,6 +136,14 @@ provider:
           "/*"
         ]
       ]}
+  httpApi:
+    cors: true
+    authorizers:
+      neuronBridgeJwtAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.${self:provider.region}.amazonaws.com/${self:custom.cognitoUserPoolId}
+        audience:
+          - ${self:custom.neuronbridgeAppId}
 
 
 package:
@@ -169,6 +178,12 @@ functions:
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
     events:
+      - httpApi:
+          method: POST
+          path: /searches
+          cors: true
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
       - stream:
           type: dynamodb
           arn:
@@ -273,7 +288,7 @@ stepFunctions:
             Default: Wait
           Wait:
             Type: Wait
-            Seconds: 1
+            Seconds: 30
             Next: Monitor
           TimedOut:
             Type: Fail

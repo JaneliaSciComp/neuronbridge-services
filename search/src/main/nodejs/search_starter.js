@@ -33,8 +33,18 @@ const getNewRecords = async (e) => {
 
 exports.searchStarter = async (event) => {
     console.log(event);
-    const newRecords = await getNewRecords(event);
+    let sourceIsHttpApi;
+    let eventBody;
+    if (event.body) {
+        eventBody = JSON.parse(event.body);
+        console.log("Parsed body", eventBody)
+        sourceIsHttpApi = true;
+    } else {
+        eventBody = event;
+        sourceIsHttpApi = false;
+    }
+    const newRecords = await getNewRecords(eventBody);
     const searchPromises = await newRecords.map(async r => await startColorDepthSearch(r));
-    return await Promise.all(searchPromises);
+    const results = await Promise.all(searchPromises);
+    return results;
 };
-
