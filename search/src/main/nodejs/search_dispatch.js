@@ -281,7 +281,7 @@ const getKeys = async (libraryKey) => {
 
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
     let subsegment = segment.addNewSubsegment('Start monitor');
-    const now = new Date().toISOString();
+    const now = new Date().getTime();
     const params = {
         stateMachineArn: stateMachineArn,
         input: JSON.stringify(monitorParams),
