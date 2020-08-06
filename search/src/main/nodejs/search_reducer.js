@@ -72,8 +72,6 @@ exports.searchReducer = async (event, context) => {
         cdsFinished: now.toISOString()
     });
 
-    putText(bucket, getSearchProgressKey(searchInputName), "100");
-
     if (!DEBUG) {
         const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
         await removeKey(bucket, intermediateSearchResultsPrefix);

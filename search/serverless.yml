@@ -12,6 +12,7 @@ custom:
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
   searchBucket: janelia-neuronbridge-searches-dev
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+  cdsTimeoutInSeconds: 300
   version: 2.0.0
   tracing: true
   debug: true
@@ -210,7 +211,7 @@ functions:
     # 5 minute timeout because the last iteration also runs the reduce step
     timeout: 300
     environment:
-      SEARCH_TIMEOUT_SECS: 1200
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
 
