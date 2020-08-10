@@ -172,7 +172,7 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_starter.searchStarter
     memorySize: 256
-    timeout: 300
+    timeout: 25
     environment:
       DEBUG: ${self:custom.debug}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch

@@ -158,15 +158,7 @@ class AWSLambdaColorMIPSearch {
     private void populateLMMetadataFromName(String mipName, MIPMetadata mipMetadata) {
         List<String> mipNameComponents = Splitter.on('-').splitToList(mipName);
         String line = mipNameComponents.size() > 0 ? mipNameComponents.get(0) : mipName;
-        // attempt to remove the PI initials
-        int piSeparator = StringUtils.indexOf(line, '_');
-        String lineID;
-        if (piSeparator == -1) {
-            lineID = line;
-        } else {
-            lineID = line.substring(piSeparator + 1);
-        }
-        mipMetadata.setPublishedName(lineID);
+        mipMetadata.setPublishedName(line);
         if (mipNameComponents.size() >= 2) {
             mipMetadata.setSlideCode(mipNameComponents.get(1));
         }
@@ -179,12 +171,28 @@ class AWSLambdaColorMIPSearch {
         if (mipNameComponents.size() >= 6) {
             mipMetadata.setAnatomicalArea(mipNameComponents.get(5));
         }
+        if (mipNameComponents.size() >= 6) {
+            mipMetadata.setAnatomicalArea(mipNameComponents.get(5));
+        }
+        if (mipNameComponents.size() >= 7) {
+            mipMetadata.setAlignmentSpace(mipNameComponents.get(6));
+        }
+        if (mipNameComponents.size() >= 8) {
+            String cdmWithChannel = mipNameComponents.get(7);
+            Pattern regExPattern = Pattern.compile("CDM_(\\d+)", Pattern.CASE_INSENSITIVE);
+            Matcher chMatcher = regExPattern.matcher(cdmWithChannel);
+            if (chMatcher.find()) {
+                String channel = chMatcher.group(1);
+                mipMetadata.setChannel(channel);
+            }
+        }
     }
 
     private void populateEMMetadataFromName(String mipName, MIPMetadata mipMetadata) {
         List<String> mipNameComponents = Splitter.on('-').splitToList(mipName);
         String bodyID = mipNameComponents.size() > 0 ? mipNameComponents.get(0) : mipName;
         mipMetadata.setPublishedName(bodyID);
+        mipMetadata.setGender("f"); // default to female for now
     }
 
 }
