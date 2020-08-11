@@ -17,11 +17,22 @@ type Mutation {
 
 type Search @aws_cognito_user_pools @aws_iam {
     id: ID!
+    """
+    step specifies the search phase:
+        0 image uploaded
+        1 alignment in progress
+        2 alignment complete
+        3 search in progress
+        4 search complete
+    """
     step: Int
     owner: String
     identityId: String!
     createdOn: AWSDateTime
     updatedOn: AWSDateTime
+    """
+    upload is the filename or key of the uploaded image
+    """
     upload: String!
     searchDir: String!
     searchType: SearchType

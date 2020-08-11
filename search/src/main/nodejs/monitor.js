@@ -56,7 +56,6 @@ exports.isSearchDone = async (event, context) => {
     // write down the progress
     await updateSearchMetadata({
         id: searchId,
-        step: 3,
         completedBatches: numComplete
     });
     // return result for next state input

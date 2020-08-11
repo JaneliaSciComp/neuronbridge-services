@@ -8,6 +8,9 @@ require("isomorphic-fetch");
 
 const DEBUG = !!process.env.DEBUG;
 
+exports.SEARCH_IN_PROGRESS = 3
+exports.SEARCH_COMPLETED = 4
+
 const appSyncClient = new AWSAppSyncClient({
     url: process.env.APPSYNC_API_URL,
     region: process.env.AWS_REGION,

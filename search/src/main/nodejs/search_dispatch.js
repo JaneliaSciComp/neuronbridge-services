@@ -5,7 +5,7 @@ const AWSXRay = require('aws-xray-sdk-core')
 
 const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
 const {getObject, putObject, invokeAsync, partition, DEBUG} = require('./utils');
-const {getSearchMetadata, updateSearchMetadata} = require('./awsappsyncutils');
+const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
 
 const stepFunction = new AWS.StepFunctions();
 
@@ -120,7 +120,7 @@ exports.searchDispatch = async (event) => {
         // appsync search metadata
         await updateSearchMetadata({
             id: searchId,
-            step: 3,
+            step: SEARCH_IN_PROGRESS,
             nBatches: numBatches,
             completedBatches: 0,
             cdsStarted: now.toISOString()

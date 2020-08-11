@@ -2,7 +2,7 @@
 
 const {getIntermediateSearchResultsKey, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
 const {getObjectWithRetry, putText, putObject, removeKey, DEBUG} = require('./utils');
-const {updateSearchMetadata} = require('./awsappsyncutils');
+const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
@@ -68,7 +68,7 @@ exports.searchReducer = async (event, context) => {
     const now = new Date()
     await updateSearchMetadata({
         id: searchId,
-        step: 4,
+        step: SEARCH_COMPLETED,
         cdsFinished: now.toISOString()
     });
 
