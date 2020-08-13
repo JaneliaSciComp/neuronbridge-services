@@ -4,6 +4,7 @@ const {invokeAsync} = require('./utils');
 const {getSearchMetadata} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
+const jobQueue = process.env.JOB_QUEUE;
 
 exports.searchStarter = async (event) => {
     console.log(event);
@@ -68,4 +69,23 @@ const startAlignment = async (searchParams) => {
         'vcpus': 16,
         'memory': 8192
     };
+    const jobName = `align-${searchParams.owner}-${searchParams.id}`;
+    const jobParameters = {
+        nchannels: searchParams.channel,
+        input_filename: searchParams.searchInput,
+        output_folder: searchParams.searchInputFolder
+    };
+    const params = {
+        jobDefinition: jobDefinition,
+        jobQueue: jobQueue,
+        jobName: jobName,
+        containerOverrides: jobResources,
+        parameters: jobParameters
+    };
+    // submit batch job
+    console.log('Job parameters', params);
+    const job = await bc.submitJob(params).promise();
+    console.log('Submitted', job);
+    console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
+    return job;
 }
