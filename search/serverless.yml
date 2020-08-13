@@ -10,6 +10,8 @@ plugins:
 custom:
   libraryBucket: janelia-flylight-color-depth-dev
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
+  alignmentTemplatesBucket: janelia-flylight-color-depth-dev
+  alignmentTemplatesFolder: alignment_templates
   searchBucket: janelia-neuronbridge-searches-dev
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
   cognitoUserPoolId: us-east-1_owgI6RY6Y
@@ -18,6 +20,11 @@ custom:
   version: 2.0.0
   tracing: true
   debug: true
+  securityGroupId: sg-963ee8df
+  subnetId: subnet-5e11c814
+  ec2AlignmentImageId: ami-0b99f97b0f8e3252b
+  alignmentContainerImage: cgoina/aligner_with_color_depth:1.0
+  sshKeyPairName: ec2_batch
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
     authenticationType: AMAZON_COGNITO_USER_POOLS
@@ -65,8 +72,8 @@ custom:
 
 provider:
   name: aws
-  region: ${opt:region, 'us-east-1'}
-  stage: ${opt:stage, 'cgdev'}
+  region: ${opt:region, "us-east-1"}
+  stage: ${opt:stage, "cgdev"}
   tags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
@@ -136,7 +143,12 @@ provider:
           "/*"
         ]
       ]}
+    - Effect: Allow
+      Action:
+        - batch:SubmitJob
+      Resource: "arn:aws:batch:${self:provider.region}:#{AWS::AccountId}:*"
   httpApi:
+    payload: "2.0"
     cors: true
     authorizers:
       neuronBridgeJwtAuthorizer:
@@ -327,4 +339,112 @@ resources:
         StreamSpecification:
           StreamViewType: KEYS_ONLY
         TableName: ${self:custom.searchTable}
-
+    ComputeAlignmentSpotEnv:
+      Type: AWS::Batch::ComputeEnvironment
+      Properties:
+        Type: MANAGED
+        State: ENABLED
+        ServiceRole: "arn:aws:iam::#{AWS::AccountId}:role/service-role/AWSBatchServiceRole"
+        ComputeEnvironmentName: "#{AWS::StackName}-compute-alignment"
+        ComputeResources:
+          Type: SPOT
+          BidPercentage: 50
+          AllocationStrategy: BEST_FIT_PROGRESSIVE
+          MinvCpus: 0
+          DesiredvCpus: 0
+          MaxvCpus: 64
+          InstanceTypes:
+            - optimal
+          ImageId: ${self:custom.ec2AlignmentImageId}
+          Subnets:
+            - ${self:custom.subnetId}
+          SecurityGroupIds:
+            - ${self:custom.securityGroupId}
+          Ec2KeyPair: ${self:custom.sshKeyPairName}
+          SpotIamFleetRole: "arn:aws:iam::#{AWS::AccountId}:role/AmazonEC2SpotFleetRole"
+          InstanceRole: ecsInstanceRole
+          Tags: ${self:provider.tags}
+    JobQueue:
+      Type: AWS::Batch::JobQueue
+      Properties:
+        ComputeEnvironmentOrder:
+          - Order: 0
+            ComputeEnvironment: !Ref ComputeAlignmentSpotEnv
+        State: ENABLED
+        Priority: 100
+        JobQueueName: "#{AWS::StackName}-align-spot"
+    JobDefinition:
+      Type: "AWS::Batch::JobDefinition"
+      Properties:
+        JobDefinitionName: "#{AWS::StackName}-alignment-job"
+        Type: Container
+        RetryStrategy:
+          Attempts: 1
+        Timeout:
+          AttemptDurationSeconds: 7200
+        Parameters:
+          iam_role: auto
+          debug_flag: ${self:custom.debug}
+          templates_bucket: ${self:custom.alignmentTemplatesBucket}
+          inputs_bucket: ${self:custom.searchBucket}
+          outputs_bucket: ${self:custom.searchBucket}
+          templates_dir: ${self:custom.alignmentTemplatesFolder}
+          xy_resolution: ""
+          z_resolution: ""
+          nchannels: 2
+          force_voxel_size: false
+        ContainerProperties:
+          Image: ${self:custom.alignmentContainerImage}
+          Vcpus: 8
+          Memory: 8192
+          JobRoleArn: "arn:aws:iam::#{AWS::AccountId}:role/service-role/AWSBatchServiceRole"
+          Command:
+            - /opt/aligner-scripts/run_aligner_using_s3.sh
+            - "-debug"
+            - "Ref::debug_flag"
+            - "--use-iam-role"
+            - "Ref::iam_role"
+            - "--templates-s3bucket-name"
+            - "Ref::templates_bucket"
+            - "--inputs-s3bucket-name"
+            - "Ref::inputs_bucket"
+            - "--outputs-s3bucket-name"
+            - "Ref::outputs_bucket"
+            - "--templatedir"
+            - "Ref::templates_dir"
+            - "--xyres"
+            - "Ref::xy_resolution"
+            - "--zres"
+            - "Ref::z_resolution"
+            - "--nchannels"
+            - "Ref::nchannels"
+            - "--forceVxSize"
+            - "Ref::force_voxel_size"
+            - "-i"
+            - "Ref::input_filename"
+            - "-o"
+            - "Ref::output_folder"
+          Volumes:
+            - Name: scratch_data_volume
+              Host:
+                SourcePath: /scratch_volume/data
+            - Name: scratch_tmp_volume
+              Host:
+                SourcePath: /scratch_volume/tmp
+          MountPoints:
+            - ContainerPath: /scratch
+              ReadOnly: false
+              SourceVolume: scratch_data_volume
+          Environment:
+            - Name: FB_MODE
+              Value: xvfb
+          ReadonlyRootFilesystem: true
+          Privileged: true
+          LinuxParameters:
+            Devices:
+              - HostPath: /dev/fuse
+                ContainerPath: ""
+                Permissions:
+                  - READ
+                  - WRITE
+                  - MKNOD

@@ -5,11 +5,36 @@ const {getSearchMetadata} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 
-const startColorDepthSearch = async (searchParams) => {
-    console.log('Start ColorDepthSearch', searchParams);
-    const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
-    console.log('Started ColorDepthSearch', cdsInvocationResult);
-    return cdsInvocationResult;
+exports.searchStarter = async (event) => {
+    console.log(event);
+    let sourceIsHttpApiGateway;
+    let eventBody;
+    if (event.body) {
+        eventBody = JSON.parse(event.body);
+        console.log("Parsed body", eventBody)
+        sourceIsHttpApiGateway = true;
+    } else {
+        eventBody = event;
+        sourceIsHttpApiGateway = false;
+    }
+    const newRecords = await getNewRecords(eventBody);
+    const searchPromises = await newRecords.map(async r => {
+        if (r.step === 0) {
+            return await startAlignment(r);
+        } else {
+            return await startColorDepthSearch(r);
+        }
+    });
+    const results = await Promise.all(searchPromises);
+    if (sourceIsHttpApiGateway) {
+        return {
+            isBase64Encoded: false,
+            statusCode: 200,
+            body: JSON.stringify(results)
+        }
+    } else {
+        return results;
+    }
 }
 
 const getNewRecords = async (e) => {
@@ -31,28 +56,16 @@ const getNewRecords = async (e) => {
     }
 }
 
-exports.searchStarter = async (event) => {
-    console.log(event);
-    let sourceIsHttpApiGateway;
-    let eventBody;
-    if (event.body) {
-        eventBody = JSON.parse(event.body);
-        console.log("Parsed body", eventBody)
-        sourceIsHttpApiGateway = true;
-    } else {
-        eventBody = event;
-        sourceIsHttpApiGateway = false;
-    }
-    const newRecords = await getNewRecords(eventBody);
-    const searchPromises = await newRecords.map(async r => await startColorDepthSearch(r));
-    const results = await Promise.all(searchPromises);
-    if (sourceIsHttpApiGateway) {
-        return {
-            isBase64Encoded: false,
-            statusCode: 200,
-            body: JSON.stringify(results)
-        }
-    } else {
-        return results;
-    }
-};
+const startColorDepthSearch = async (searchParams) => {
+    console.log('Start ColorDepthSearch', searchParams);
+    const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
+    console.log('Started ColorDepthSearch', cdsInvocationResult);
+    return cdsInvocationResult;
+}
+
+const startAlignment = async (searchParams) => {
+    const jobResources = {
+        'vcpus': 16,
+        'memory': 8192
+    };
+}

@@ -1,5 +1,4 @@
 #!/bin/sh
-#export SLS_DEBUG=*
 
 deployEnv=$1
 
@@ -8,4 +7,4 @@ if [[ ${deployEnv} == "" ]] ; then
 fi
 
 mvn  -DskipTests=true clean package \
-    && serverless deploy -s ${deployEnv}
+    && npm run deployStage -- ${deployEnv}
