@@ -448,6 +448,9 @@ resources:
             - ContainerPath: /scratch
               ReadOnly: false
               SourceVolume: scratch_data_volume
+            - ContainerPath: /tmp
+              ReadOnly: false
+              SourceVolume: scratch_tmp_volume
           Environment:
             - Name: FB_MODE
               Value: xvfb

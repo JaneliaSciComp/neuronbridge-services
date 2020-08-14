@@ -3,6 +3,7 @@
   "description": "Backend services for NeuronBridge",
   "version": "0.1.0",
   "scripts": {
+      "sls": "sls",
     "deployStage": "sls deploy -s"
   },
   "dependencies": {
