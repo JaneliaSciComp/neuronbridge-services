@@ -22,7 +22,7 @@ custom:
   debug: true
   securityGroupId: sg-963ee8df
   subnetId: subnet-5e11c814
-  ec2AlignmentImageId: ami-0b99f97b0f8e3252b
+  ec2AlignmentImageId: ami-0d3f5e4624981ef1b
   alignmentContainerImage: cgoina/neuronbridge-aligner:1.0
   defaultAlignmentThreads: 8
   sshKeyPairName: ec2_batch
@@ -98,11 +98,18 @@ provider:
         - "arn:aws:s3:::${self:custom.libraryBucket}/*"
         - "arn:aws:s3:::${self:custom.searchBucket}"
         - "arn:aws:s3:::${self:custom.searchBucket}/*"
+        - "arn:aws:s3:::${self:custom.alignmentTemplatesBucket}"
+        - "arn:aws:s3:::${self:custom.alignmentTemplatesBucket}/*"
     - Effect: Allow
       Action:
         - s3:PutObject
       Resource:
         - "arn:aws:s3:::${self:custom.searchBucket}/"
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
+    - Effect: Allow
+      Action:
+        - s3:DeleteObject
+      Resource:
         - "arn:aws:s3:::${self:custom.searchBucket}/*"
     - Effect: "Allow"
       Action:
