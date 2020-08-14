@@ -33,6 +33,10 @@ exports.getSearchMetadata = async (searchId) => {
                 upload
                 searchType
                 algorithm
+                channel
+                voxelX
+                voxelY
+                voxelZ
                 nBatches
                 completedBatches
                 cdsStarted

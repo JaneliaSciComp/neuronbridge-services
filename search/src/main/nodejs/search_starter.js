@@ -1,10 +1,14 @@
 'use strict';
 
+const AWS = require('aws-sdk');
 const {invokeAsync} = require('./utils');
 const {getSearchMetadata} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
+const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
+
+const bc = new AWS.Batch();
 
 exports.searchStarter = async (event) => {
     console.log(event);
@@ -71,7 +75,9 @@ const startAlignment = async (searchParams) => {
     };
     const jobName = `align-${searchParams.owner}-${searchParams.id}`;
     const jobParameters = {
-        nchannels: searchParams.channel,
+        nchannels: searchParams.channel + '',
+        xy_resolution: searchParams.voxelX + '',
+        z_resolution: searchParams.voxelZ + '',
         input_filename: searchParams.searchInput,
         output_folder: searchParams.searchInputFolder
     };

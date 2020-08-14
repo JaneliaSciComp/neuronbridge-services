@@ -23,7 +23,8 @@ custom:
   securityGroupId: sg-963ee8df
   subnetId: subnet-5e11c814
   ec2AlignmentImageId: ami-0b99f97b0f8e3252b
-  alignmentContainerImage: cgoina/aligner_with_color_depth:1.0
+  alignmentContainerImage: cgoina/neuronbridge-aligner:1.0
+  defaultAlignmentThreads: 8
   sshKeyPairName: ec2_batch
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
@@ -146,7 +147,7 @@ provider:
     - Effect: Allow
       Action:
         - batch:SubmitJob
-      Resource: "arn:aws:batch:${self:provider.region}:#{AWS::AccountId}:*"
+      Resource: "arn:aws:batch:*:*:*"
   httpApi:
     payload: "2.0"
     cors: true
@@ -189,6 +190,7 @@ functions:
       DEBUG: ${self:custom.debug}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      JOB_DEFINITION: !Select [ 1, !Split [ /, !Ref ComputeAlignmentJobDefinition ] ]
       JOB_QUEUE: !Select [ 1, !Split [ /, !Ref ComputeAlignmentJobQueue ] ]
     events:
       - httpApi:
@@ -394,6 +396,7 @@ resources:
           z_resolution: ""
           nchannels: 2
           force_voxel_size: false
+          nslots: ${self:custom.defaultAlignmentThreads}
         ContainerProperties:
           Image: ${self:custom.alignmentContainerImage}
           Vcpus: 8
@@ -421,6 +424,8 @@ resources:
             - "Ref::nchannels"
             - "--forceVxSize"
             - "Ref::force_voxel_size"
+            - "--nslots"
+            - "Ref::nslots"
             - "-i"
             - "Ref::input_filename"
             - "-o"
