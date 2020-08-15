@@ -264,6 +264,15 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
 
+  searchUpdate:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_update.searchUpdate
+    memorySize: 128
+    timeout: 25
+    environment:
+      DEBUG: ${self:custom.debug}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+
   em2lmGradScorer:
     package:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
@@ -410,7 +419,7 @@ resources:
           Memory: 8192
           JobRoleArn: "arn:aws:iam::#{AWS::AccountId}:role/service-role/AWSBatchServiceRole"
           Command:
-            - /opt/aligner-scripts/run_aligner_using_s3.sh
+            - /opt/aligner-scripts/run_aligner_using_aws.sh
             - "-debug"
             - "Ref::debug_flag"
             - "--use-iam-role"
@@ -433,6 +442,8 @@ resources:
             - "Ref::force_voxel_size"
             - "--nslots"
             - "Ref::nslots"
+            - "--search-id"
+            - "Ref::search_id"
             - "-i"
             - "Ref::input_filename"
             - "-o"
@@ -454,6 +465,8 @@ resources:
           Environment:
             - Name: FB_MODE
               Value: xvfb
+            - Name: SEARCH_UPDATE_FUNCTION
+              Value: ${self:service}-${self:provider.stage}-searchUpdate
           ReadonlyRootFilesystem: true
           Privileged: true
           LinuxParameters:

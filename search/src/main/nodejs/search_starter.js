@@ -26,8 +26,11 @@ exports.searchStarter = async (event) => {
     const searchPromises = await newRecords.map(async r => {
         if (r.step === 0) {
             return await startAlignment(r);
-        } else {
+        } else if (r.step === 2) {
             return await startColorDepthSearch(r);
+        } else {
+            // do nothing
+            return r;
         }
     });
     const results = await Promise.all(searchPromises);
@@ -78,6 +81,7 @@ const startAlignment = async (searchParams) => {
         nchannels: searchParams.channel + '',
         xy_resolution: searchParams.voxelX + '',
         z_resolution: searchParams.voxelZ + '',
+        search_id: searchParams.id,
         input_filename: searchParams.searchInput,
         output_folder: searchParams.searchInputFolder
     };
