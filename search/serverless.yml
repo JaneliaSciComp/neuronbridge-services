@@ -83,6 +83,7 @@ provider:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
     DEVELOPER: ${env:USER}
+    STAGE: ${self:provider.stage}
   tracing:
     lambda: ${self:custom.tracing}
   environment:
@@ -383,7 +384,7 @@ resources:
           Ec2KeyPair: ${self:custom.sshKeyPairName}
           SpotIamFleetRole: !Ref SpotFleetRole
           InstanceRole: ecsInstanceRole
-          Tags: ${self:provider.tags}
+          Tags: ${self:provider.stackTags}
 
     ComputeAlignmentJobQueue:
       Type: AWS::Batch::JobQueue
@@ -495,16 +496,6 @@ resources:
         ManagedPolicyArns:
           - "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole"
           - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
-        Policies:
-          - PolicyName: AWSLambdaInvokeAccess
-            PolicyDocument:
-              Statement:
-                - Effect: Allow
-                  Action:
-                    - lambda:InvokeFunction
-                    - lambda:InvokeAsync
-                  Resource: '*'
-              Version: '2012-10-17'
 
     ECSTaskRole:
       Type: AWS::IAM::Role
@@ -520,6 +511,16 @@ resources:
         ManagedPolicyArns:
           - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
           - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        Policies:
+          - PolicyName: AWSLambdaInvokeAccess
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                    - lambda:InvokeAsync
+                  Resource: '*'
+              Version: '2012-10-17'
 
     SpotFleetRole:
       Type: AWS::IAM::Role
