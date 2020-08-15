@@ -364,7 +364,7 @@ resources:
       Properties:
         Type: MANAGED
         State: ENABLED
-        ServiceRole: "arn:aws:iam::#{AWS::AccountId}:role/service-role/AWSBatchServiceRole"
+        ServiceRole: !Ref BatchServiceRole
         ComputeEnvironmentName: "#{AWS::StackName}-compute-alignment"
         ComputeResources:
           Type: SPOT
@@ -381,7 +381,7 @@ resources:
           SecurityGroupIds:
             - ${self:custom.securityGroupId}
           Ec2KeyPair: ${self:custom.sshKeyPairName}
-          SpotIamFleetRole: "arn:aws:iam::#{AWS::AccountId}:role/AmazonEC2SpotFleetRole"
+          SpotIamFleetRole: !Ref SpotFleetRole
           InstanceRole: ecsInstanceRole
           Tags: ${self:provider.tags}
 
@@ -420,7 +420,7 @@ resources:
           Image: ${self:custom.alignmentContainerImage}
           Vcpus: 8
           Memory: 8192
-          JobRoleArn: "arn:aws:iam::#{AWS::AccountId}:role/service-role/AWSBatchServiceRole"
+          JobRoleArn: !Ref ECSTaskRole
           Command:
             - /opt/aligner-scripts/run_aligner_using_aws.sh
             - "-debug"
@@ -505,6 +505,21 @@ resources:
                     - lambda:InvokeAsync
                   Resource: '*'
               Version: '2012-10-17'
+
+    ECSTaskRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - "ecs-tasks.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+          - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 
     SpotFleetRole:
       Type: AWS::IAM::Role
