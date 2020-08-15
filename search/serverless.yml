@@ -505,3 +505,17 @@ resources:
                     - lambda:InvokeAsync
                   Resource: '*'
               Version: '2012-10-17'
+
+    SpotFleetRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - "spotfleet.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
