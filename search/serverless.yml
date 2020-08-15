@@ -358,6 +358,7 @@ resources:
         StreamSpecification:
           StreamViewType: KEYS_ONLY
         TableName: ${self:custom.searchTable}
+
     ComputeAlignmentSpotEnv:
       Type: AWS::Batch::ComputeEnvironment
       Properties:
@@ -383,6 +384,7 @@ resources:
           SpotIamFleetRole: "arn:aws:iam::#{AWS::AccountId}:role/AmazonEC2SpotFleetRole"
           InstanceRole: ecsInstanceRole
           Tags: ${self:provider.tags}
+
     ComputeAlignmentJobQueue:
       Type: AWS::Batch::JobQueue
       Properties:
@@ -392,6 +394,7 @@ resources:
         State: ENABLED
         Priority: 100
         JobQueueName: "#{AWS::StackName}-align-spot"
+
     ComputeAlignmentJobDefinition:
       Type: "AWS::Batch::JobDefinition"
       Properties:
@@ -477,3 +480,28 @@ resources:
                   - READ
                   - WRITE
                   - MKNOD
+
+    BatchServiceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - "batch.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole"
+          - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+        Policies:
+          - PolicyName: AWSLambdaInvokeAccess
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                    - lambda:InvokeAsync
+                  Resource: '*'
+              Version: '2012-10-17'
