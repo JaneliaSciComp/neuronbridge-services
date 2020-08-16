@@ -1,9 +1,12 @@
 {
-    "name": "compute-color-depth-masks",
-    "main": "colorDepthMips.js",
-    "dependencies": {
-        "aws-sdk": "^2.585.0",
-        "serverless": "^1.59.3"
-    },
-    "devDependencies": {}
+  "name": "neuronbridge-align-service",
+  "description": "Backend align service for NeuronBridge",
+  "version": "0.1.0",
+  "scripts": {
+    "sls": "sls"
+  },
+  "devDependencies": {
+    "serverless": "^1.78.1",
+    "serverless-pseudo-parameters": "^2.5.0"
+  }
 }

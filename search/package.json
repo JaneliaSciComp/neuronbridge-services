@@ -1,6 +1,6 @@
 {
-  "name": "neuronbridge-services",
-  "description": "Backend services for NeuronBridge",
+  "name": "neuronbridge-cds-service",
+  "description": "Backend color depth search service for NeuronBridge",
   "version": "0.1.0",
   "scripts": {
     "sls": "sls"
