@@ -15,7 +15,7 @@ custom:
   securityGroupId: sg-963ee8df
   subnetId: subnet-5e11c814
   ec2AlignmentImageId: ami-0d3f5e4624981ef1b
-  alignmentContainerImage: cgoina/neuronbridge-aligner:1.0
+  alignmentContainerImage: janeliascicomp/neuronbridge-aligner:1.0
   defaultAlignmentThreads: 8
   sshKeyPairName: ec2_batch
 
