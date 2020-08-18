@@ -74,6 +74,8 @@ exports.updateSearchMetadata = async (searchInput) => {
                 completedBatches
                 cdsStarted
                 cdsFinished
+                createdOn
+                updatedOn
             }
         }`),
         variables: {
