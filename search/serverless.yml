@@ -78,7 +78,7 @@ functions:
   searchDispatch:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_dispatch.searchDispatch
-    memorySize: 256
+    memorySize: 256serverless -version
     # 5 minute timeout
     timeout: 300
     environment:

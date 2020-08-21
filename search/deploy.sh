@@ -2,4 +2,4 @@
 #export SLS_DEBUG=*
 
 mvn clean package \
-    && serverless deploy -s cgdev
+    && serverless deploy -s tkdev

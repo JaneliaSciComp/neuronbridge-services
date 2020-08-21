@@ -16,6 +16,10 @@
 
     <repositories>
         <repository>
+            <id>janelia-repository-local</id>
+            <url>file://Users/kawase/.m2/repository</url>
+        </repository>
+        <repository>
             <id>janelia-repository</id>
             <url>https://nexus.janelia.org/repository/maven-releases</url>
             <snapshots>
@@ -124,7 +128,7 @@
         <dependency>
             <groupId>org.janelia.colormipsearch</groupId>
             <artifactId>colormipsearch-api</artifactId>
-            <version>2.3</version>
+            <version>2.4.1</version>
         </dependency>
 
         <!-- Testing -->

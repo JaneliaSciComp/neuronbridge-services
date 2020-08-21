@@ -92,6 +92,20 @@ class LambdaUtils {
         }
     }
 
+    static InputStream getObject(S3Client s3, String bucket, String key, long range_st, long range_ed) {
+        try {
+            return s3.getObject(GetObjectRequest.builder()
+                    .bucket(bucket)
+                    .key(key)
+                    .range(String.format("%d-%d", range_st, range_ed))
+                    .build(),
+                    ResponseTransformer.toInputStream());
+        } catch (Exception e) {
+            LOG.error("Error reading object from {}:{}", bucket, key, e);
+            throw new IllegalArgumentException(e);
+        }
+    }
+
     static void putObject(S3Client s3, URI s3URI, Object object) {
         putObject(s3, s3URI.getHost(), StringUtils.removeStart(s3URI.getPath(), "/"), object);
     }

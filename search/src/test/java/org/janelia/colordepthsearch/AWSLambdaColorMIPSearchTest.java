@@ -21,6 +21,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -76,6 +77,15 @@ public class AWSLambdaColorMIPSearchTest {
 
     private void prepareColorDepthSearchInvocation() {
         when(mipLoader.loadMIP(anyString(), any(MIPMetadata.class)))
+                .then(invocation -> {
+                    MIPMetadata mip = invocation.getArgument(1);
+                    return new MIPImage(mip,
+                            ImageArrayUtils.readImageArray(
+                                    mip.getId(),
+                                    "test.png",
+                                    new FileInputStream("src/test/resources/mips/testMIP.png")));
+                });
+        when(mipLoader.loadMIPRange(anyString(), any(MIPMetadata.class), anyLong(), anyLong()))
                 .then(invocation -> {
                     MIPMetadata mip = invocation.getArgument(1);
                     return new MIPImage(mip,
