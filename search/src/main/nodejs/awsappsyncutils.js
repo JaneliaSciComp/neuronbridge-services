@@ -88,6 +88,9 @@ exports.updateSearchMetadata = async (searchData) => {
 }
 
 const toSearchResult = (searchData) => {
+    if (!searchData) {
+        return searchData;
+    }
     const searchInputFolder = `private/${searchData.identityId}/${searchData.searchDir}`;
     const searchMask = searchData.searchMask
         ? { searchMask: searchData.searchMask, searchInputMask: `${searchInputFolder}/${searchData.searchMask}`}

@@ -51,11 +51,13 @@ const getNewRecords = async (e) => {
             .filter(r => r.eventName === 'INSERT')
             .map(r => r.dynamodb)
             .map(r => r.Keys.id.S)
-            .map(async searchId => await getSearchMetadata(searchId));
+            .map(async searchId => await getSearchMetadata(searchId))
+            .filter(r => !!r);
         return await Promise.all(newRecordsPromises);
     } else if (e.searchIds) {
         const newSearchesPromises = await e.searchIds
-            .map(async searchId => await getSearchMetadata(searchId));
+            .map(async searchId => await getSearchMetadata(searchId))
+            .filter(r => !!r);
         return await Promise.all(newSearchesPromises);
     } else if (e.searches) {
         return e.searches;

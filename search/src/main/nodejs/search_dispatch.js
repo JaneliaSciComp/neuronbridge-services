@@ -231,11 +231,12 @@ const getSearchInputParams = async (event) => {
     } else {
         searchMetadata = event;
     }
-    // if a searchMask is set use that for search otherwise use the upload
-    searchMetadata.searchInputName = searchMetadata.searchMask
-        ? searchMetadata.searchMask
-        : searchMetadata.searchInputName;
-
+    if (!!searchMetadata) {
+        // if a searchMask is set use that for search otherwise use the upload
+        searchMetadata.searchInputName = searchMetadata.searchMask
+            ? searchMetadata.searchMask
+            : searchMetadata.searchInputName;
+    }
     console.log("Searching params", searchMetadata);
     return searchMetadata;
 }
