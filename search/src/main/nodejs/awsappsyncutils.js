@@ -49,8 +49,9 @@ exports.getSearchMetadata = async (searchId) => {
         }`),
         variables: { searchId: searchId}
     });
+    console.log("Found search", result);
     const searchResult = toSearchResult(result.data.getSearch);
-    console.log("Found search", result, searchResult);
+    console.log("Found search result", searchResult);
     return searchResult;
 }
 
@@ -80,10 +81,12 @@ exports.updateSearchMetadata = async (searchInput) => {
             searchInput: searchInput
         }
     });
+    console.log("Updated search", result);
     const updatedSearch = toSearchResult(result.data.updateSearch);
-    console.log("Updated search", result, updatedSearch);
+    console.log("Updated search result", updatedSearch);
     return updatedSearch;
 }
+
 const toSearchResult = (searchData) => {
     const searchInputFolder = `private/${searchData.identityId}/${searchData.searchDir}`;
     const searchMask = searchData.searchMask
