@@ -49,16 +49,16 @@ exports.getSearchMetadata = async (searchId) => {
         }`),
         variables: { searchId: searchId}
     });
-    console.log("Found search", result);
+    console.log("Search data for", searchId, result);
     const searchResult = toSearchResult(result.data.getSearch);
     console.log("Found search result", searchResult);
     return searchResult;
 }
 
-exports.updateSearchMetadata = async (searchInput) => {
+exports.updateSearchMetadata = async (searchData) => {
     const result = await appSyncClient.mutate({
-        mutation: gql(`mutation updateSearch($searchInput: UpdateSearchInput!) {
-            updateSearch(input: $searchInput) {
+        mutation: gql(`mutation updateSearch($updateInput: UpdateSearchInput!) {
+            updateSearch(input: $updateInput) {
                 id
                 step
                 owner
@@ -78,10 +78,10 @@ exports.updateSearchMetadata = async (searchInput) => {
             }
         }`),
         variables: {
-            searchInput: searchInput
+            updateInput: searchData
         }
     });
-    console.log("Updated search", result);
+    console.log("Updated search for", searchData, result);
     const updatedSearch = toSearchResult(result.data.updateSearch);
     console.log("Updated search result", updatedSearch);
     return updatedSearch;
