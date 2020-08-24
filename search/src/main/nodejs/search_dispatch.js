@@ -231,16 +231,21 @@ const getSearchInputParams = async (event) => {
     } else {
         searchMetadata = event;
     }
+    // if a searchMask is set use that for search otherwise use the upload
+    searchMetadata.searchInputName = searchMetadata.searchMask
+        ? searchMetadata.searchMask
+        : searchMetadata.searchInputName;
+
     console.log("Searching params", searchMetadata);
     return searchMetadata;
 }
 
 
-const setSearchLibraries = (searchInput)  => {
-    switch (searchInput.searchType) {
+const setSearchLibraries = (searchData)  => {
+    switch (searchData.searchType) {
         case "em2lm":
             return {
-                ...searchInput,
+                ...searchData,
                 searchableMIPSFolder: "searchable_neurons",
                 libraries: [
                     "FlyLight_Split-GAL4_Drivers",
@@ -249,7 +254,7 @@ const setSearchLibraries = (searchInput)  => {
             };
         case "lm2em":
             return {
-                ...searchInput,
+                ...searchData,
                 searchableMIPSFolder: "searchable_neurons",
                 libraries: [
                     "FlyEM_Hemibrain_v1.1"
@@ -257,8 +262,8 @@ const setSearchLibraries = (searchInput)  => {
             };
         default:
             return {
-                ...searchInput,
-                libraries: searchInput.searchLibraries || []
+                ...searchData,
+                libraries: searchData.searchLibraries || []
             };
     }
 }

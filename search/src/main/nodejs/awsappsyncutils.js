@@ -41,19 +41,15 @@ exports.getSearchMetadata = async (searchId) => {
                 completedBatches
                 cdsStarted
                 cdsFinished
+                createdOn
+                updatedOn
+                searchMask
+                computedMIPs
             }
         }`),
         variables: { searchId: searchId}
     });
-    const resultData = result.data.getSearch;
-    const searchInputFolder = `private/${resultData.identityId}/${resultData.searchDir}`;
-    const searchResult = {
-        searchId: resultData.id,
-        searchInputFolder: searchInputFolder,
-        searchInputName: `${resultData.upload}`,
-        searchInput: `${searchInputFolder}/${resultData.upload}`,
-        ...resultData
-    }
+    const searchResult = toSearchResult(result.data.getSearch);
     console.log("Found search", result, searchResult);
     return searchResult;
 }
@@ -76,20 +72,29 @@ exports.updateSearchMetadata = async (searchInput) => {
                 cdsFinished
                 createdOn
                 updatedOn
+                searchMask
+                computedMIPs
             }
         }`),
         variables: {
             searchInput: searchInput
         }
     });
-    const resultData = result.data.updateSearch;
-    const searchInputFolder = `private/${resultData.identityId}/${resultData.searchDir}`;
-    const updatedSearch = {
-        searchId: resultData.id,
-        searchInputFolder: searchInputFolder,
-        searchInputName: `${resultData.upload}`,
-        ...resultData
-    }
+    const updatedSearch = toSearchResult(result.data.updateSearch);
     console.log("Updated search", result, updatedSearch);
     return updatedSearch;
+}
+const toSearchResult = (searchData) => {
+    const searchInputFolder = `private/${searchData.identityId}/${searchData.searchDir}`;
+    const searchMask = searchData.searchMask
+        ? { searchMask: searchData.searchMask, searchInputMask: `${searchInputFolder}/${searchData.searchMask}`}
+        : {};
+    return {
+        searchId: searchData.id,
+        searchInputFolder: searchInputFolder,
+        searchInputName: `${searchData.upload}`,
+        searchInput: `${searchInputFolder}/${searchData.upload}`,
+        ...searchMask,
+        ...searchData
+    }
 }
