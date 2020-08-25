@@ -16,7 +16,7 @@ custom:
   subnetId: subnet-5e11c814
   ec2AlignmentImageId: ami-0d3f5e4624981ef1b
   alignmentContainerImage: janeliascicomp/neuronbridge-aligner:1.0
-  defaultAlignmentThreads: 8
+  defaultAlignmentThreads: 16
   sshKeyPairName: ec2_batch
 
 
