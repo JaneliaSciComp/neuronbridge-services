@@ -16,10 +16,6 @@
 
     <repositories>
         <repository>
-            <id>janelia-repository-local</id>
-            <url>file://Users/kawase/.m2/repository</url>
-        </repository>
-        <repository>
             <id>janelia-repository</id>
             <url>https://nexus.janelia.org/repository/maven-releases</url>
             <snapshots>
