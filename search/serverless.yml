@@ -188,12 +188,8 @@ functions:
       DEBUG: ${self:custom.debug}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      JOB_DEFINITION: 
-        Fn::ImportValue:
-            Fn::Sub: "${file(../config.yml):config.project}-${self:provider.stage}-align-job-definition"
-      JOB_QUEUE: 
-        Fn::ImportValue:
-            Fn::Sub: "${file(../config.yml):config.project}-${self:provider.stage}-align-job-queue"
+      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-lowpriority
     events:
       - httpApi:
           method: POST

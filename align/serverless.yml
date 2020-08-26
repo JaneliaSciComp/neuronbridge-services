@@ -78,12 +78,12 @@ resources:
             ComputeEnvironment: !Ref ComputeAlignmentSpotEnv
         State: ENABLED
         Priority: 100
-        JobQueueName: "#{AWS::StackName}-align-job-queue-lowpriority"
+        JobQueueName: "${self:service}-${self:provider.stage}-align-job-queue-lowpriority"
 
     ComputeAlignmentJobDefinition:
       Type: "AWS::Batch::JobDefinition"
       Properties:
-        JobDefinitionName: "#{AWS::StackName}-align-job-definition"
+        JobDefinitionName: "${self:service}-${self:provider.stage}-align-job-definition"
         Type: Container
         RetryStrategy:
           Attempts: 1
@@ -103,7 +103,7 @@ resources:
           nslots: ${self:custom.defaultAlignmentThreads}
         ContainerProperties:
           Image: ${self:custom.alignmentContainerImage}
-          Vcpus: 8
+          Vcpus: 16
           Memory: 8192
           JobRoleArn: !Ref ECSTaskRole
           Command:
@@ -219,15 +219,3 @@ resources:
                 - "sts:AssumeRole"
         ManagedPolicyArns:
           - "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
-
-  Outputs:
-
-    ComputeAlignmentJobDefinition:
-      Value: !Select [ 1, !Split [ /, !Ref ComputeAlignmentJobDefinition ] ]
-      Export:
-        Name: ${file(../config.yml):config.project}-${self:provider.stage}-align-job-definition
-
-    ComputeAlignmentJobQueue:
-      Value: !Select [ 1, !Split [ /, !Ref ComputeAlignmentJobQueue ] ]
-      Export:
-        Name: ${file(../config.yml):config.project}-${self:provider.stage}-align-job-queue
