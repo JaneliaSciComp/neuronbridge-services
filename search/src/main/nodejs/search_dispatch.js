@@ -74,9 +74,12 @@ exports.searchDispatch = async (event) => {
                 const libraryFolder = searchInputParamsWithLibraries.searchableMIPSFolder
                     ? `${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
                     : lname;
+                const libraryAlignmentSpace = searchInputParamsWithLibraries.libraryAlignmentSpace
+                    ? `${searchInputParamsWithLibraries.libraryAlignmentSpace}/`
+                    : ''
                 const library = {
                     lname: lname,
-                    lkey: `JRC2018_Unisex_20x_HR/${libraryFolder}`
+                    lkey: `${libraryAlignmentSpace}${libraryFolder}`
                 };
                 console.log("Lookup library", library);
                 return library;
@@ -254,19 +257,21 @@ const getSearchInputParams = async (event) => {
 
 const setSearchLibraries = (searchData)  => {
     switch (searchData.searchType) {
-        case "em2lm":
+        case 'em2lm':
             return {
                 ...searchData,
-                searchableMIPSFolder: "searchable_neurons",
+                libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',
+                searchableMIPSFolder: 'searchable_neurons',
                 libraries: [
-                    "FlyLight_Split-GAL4_Drivers",
-                    "FlyLight_Gen1_MCFO"
+                    'FlyLight_Split-GAL4_Drivers',
+                    'FlyLight_Gen1_MCFO'
                 ]
             };
-        case "lm2em":
+        case 'lm2em':
             return {
                 ...searchData,
-                searchableMIPSFolder: "searchable_neurons",
+                libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',
+                searchableMIPSFolder: 'searchable_neurons',
                 libraries: [
                     "FlyEM_Hemibrain_v1.1"
                 ]

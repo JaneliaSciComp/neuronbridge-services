@@ -64,9 +64,12 @@ type SearchConnection @aws_cognito_user_pools @aws_iam {
 }
 
 type Subscription {
-    onCreateSearch(createdOn: String, id: ID, step: Int): Search @aws_subscribe(mutations : ["createSearch"])
-    onDeleteSearch(id: ID, step: Int): Search @aws_subscribe(mutations : ["deleteSearch"])
-    onUpdateSearch(id: ID, step: Int): Search @aws_subscribe(mutations : ["updateSearch"])
+    onCreateSearch(identityId: String, createdOn: String, id: ID, step: Int): Search
+        @aws_subscribe(mutations: ["createSearch"])
+    onDeleteSearch(identityId: String, id: ID, step: Int): Search
+        @aws_subscribe(mutations: ["deleteSearch"])
+    onUpdateSearch(identityId: String, id: ID, step: Int): Search
+        @aws_subscribe(mutations: ["updateSearch"])
 }
 
 enum Algorithm {
