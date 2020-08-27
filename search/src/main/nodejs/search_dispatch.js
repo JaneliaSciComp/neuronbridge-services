@@ -71,9 +71,12 @@ exports.searchDispatch = async (event) => {
         const librariesPromises = await searchInputParamsWithLibraries.libraries
             .map(lname => {
                 // for searching use MIPs from the searchableMIPs folder
+                const libraryFolder = searchInputParamsWithLibraries.searchableMIPSFolder
+                    ? `${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
+                    : lname;
                 return {
                     lname: lname,
-                    lkey: `JRC2018_Unisex_20x_HR/${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
+                    lkey: `JRC2018_Unisex_20x_HR/${libraryFolder}`
                 };
             })
             .map(async l => {
