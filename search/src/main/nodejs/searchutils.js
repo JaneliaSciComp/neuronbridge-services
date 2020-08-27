@@ -15,11 +15,6 @@ exports.getSearchMaskId = (searchInputName) => {
     }
 }
 
-exports.getSearchParamsKey = (searchInputName) =>  {
-    const searchInputKey = getKeyWithNoExt(searchInputName);
-    return `${searchInputKey}.search`;
-}
-
 exports.getSearchMetadataKey = (searchInputName) => {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     return `${searchInputKey}.metadata`;

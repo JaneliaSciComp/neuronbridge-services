@@ -67,17 +67,19 @@ exports.searchDispatch = async (event) => {
     if (level === 0) {
         subsegment = segment.addNewSubsegment('Prepare batch parallelization parameters');
         const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
-
+        console.log("Search input params with libraries", searchInputParamsWithLibraries);
         const librariesPromises = await searchInputParamsWithLibraries.libraries
             .map(lname => {
                 // for searching use MIPs from the searchableMIPs folder
                 const libraryFolder = searchInputParamsWithLibraries.searchableMIPSFolder
                     ? `${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
                     : lname;
-                return {
+                const library = {
                     lname: lname,
                     lkey: `JRC2018_Unisex_20x_HR/${libraryFolder}`
                 };
+                console.log("Lookup library", library);
+                return library;
             })
             .map(async l => {
                 const lsize = await getCount(l.lkey);
@@ -250,8 +252,14 @@ const getSearchInputParams = async (event) => {
     return searchMetadata;
 }
 
-
 const setSearchLibraries = (searchData)  => {
+    const unknownSearchType = {
+        ...searchData,
+        libraries: searchData.searchLibraries || []
+    };
+    if (!searchData.searchType) {
+        return unknownSearchType;
+    }
     switch (searchData.searchType) {
         case "em2lm":
             return {
@@ -271,14 +279,12 @@ const setSearchLibraries = (searchData)  => {
                 ]
             };
         default:
-            return {
-                ...searchData,
-                libraries: searchData.searchLibraries || []
-            };
+            return unknownSearchType;
     }
 }
 
 const getCount = async (libraryKey) => {
+    console.log("Get count from:", libraryKey);
     const countMetadata = await getObject(
         libraryBucket,
         `${libraryKey}/counts_denormalized.json`,
@@ -288,6 +294,7 @@ const getCount = async (libraryKey) => {
 }
 
 const getKeys = async (libraryKey) => {
+    console.log("Get keys from:", libraryKey);
     return await getObject(
         libraryBucket,
         `${libraryKey}/keys_denormalized.json`,

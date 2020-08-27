@@ -98,6 +98,7 @@ input CreateSearchInput {
     mirrorMask: Boolean
     minMatchingPixRatio: Int
     mimeType: String
+    searchMask: String
 }
 
 input DeleteSearchInput {
