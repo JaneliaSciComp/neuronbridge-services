@@ -253,13 +253,6 @@ const getSearchInputParams = async (event) => {
 }
 
 const setSearchLibraries = (searchData)  => {
-    const unknownSearchType = {
-        ...searchData,
-        libraries: searchData.searchLibraries || []
-    };
-    if (!searchData.searchType) {
-        return unknownSearchType;
-    }
     switch (searchData.searchType) {
         case "em2lm":
             return {
@@ -279,7 +272,10 @@ const setSearchLibraries = (searchData)  => {
                 ]
             };
         default:
-            return unknownSearchType;
+            return {
+                ...searchData,
+                libraries: searchData.libraries || []
+            };
     }
 }
 
