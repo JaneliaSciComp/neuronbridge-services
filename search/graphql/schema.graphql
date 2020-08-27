@@ -84,7 +84,7 @@ input CreateSearchInput {
     searchType: SearchType!
     searchDir: String!
     upload: String!
-    algorithm: Algorithm!
+    algorithm: Algorithm
     anatomicalRegion: String
     channel: Int
     voxelX: Int
