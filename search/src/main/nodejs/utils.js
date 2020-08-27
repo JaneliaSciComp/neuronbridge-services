@@ -1,6 +1,11 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+
+AWS.config.apiVersions = {
+    lambda: '2015-03-31',
+};
+
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
 
@@ -134,16 +139,37 @@ exports.partition = (list, size) => {
         plist.push(list.slice(i, i + size));
     }
     return plist;
-};
+}
+
+// Invoke another Lambda function
+exports.invokeFunction = async (functionName, parameters) => {
+    if (DEBUG)
+        console.log(`Invoke function ${functionName} with`, parameters);
+    const params = {
+        FunctionName: functionName,
+        InvocationType: 'Event',
+        Payload: JSON.stringify(parameters),
+    };
+    try {
+        return await lambda.invoke(params).promise();
+    } catch (e) {
+        console.error('Error invoking', params, e);
+        throw e;
+    }
+}
 
 // Invoke another Lambda function asynchronously
 exports.invokeAsync = async (functionName, parameters) => {
     if (DEBUG)
-        console.log(`Invoke ${functionName} with`, parameters);
+        console.log(`Invoke async ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
-        InvocationType: 'Event', // async invocation
-        Payload: JSON.stringify(parameters),
+        InvokeArgs: JSON.stringify(parameters),
     };
-    return lambda.invoke(params).promise();
-};
+    try {
+        return await lambda.invokeAsync(params).promise();
+    } catch (e) {
+        console.error('Error invoking', params, e);
+        throw e;
+    }
+}

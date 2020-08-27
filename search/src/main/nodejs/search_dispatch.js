@@ -2,10 +2,12 @@
 
 const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core')
-const { v1: uuidv1 } = require('uuid');
 
-const {getSearchMetadataKey, getSearchParamsKey, getSearchProgressKey, getIntermediateSearchResultsKey} = require('./searchutils');
-const {getObject, putObject, putText, invokeAsync, partition, DEBUG} = require('./utils');
+const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
+const {getObject, putObject, invokeAsync, partition, DEBUG} = require('./utils');
+const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
+
+const stepFunction = new AWS.StepFunctions();
 
 const DEFAULTS = {
     level: 0,
@@ -14,8 +16,8 @@ const DEFAULTS = {
     maskThreshold: 100,
     dataThreshold: 100,
     pixColorFluctuation: 2.0,
-    xyShift: 0,
-    mirrorMask: false,
+    xyShift: 2,
+    mirrorMask: true,
     minMatchingPixRatio: 2,
 };
 
@@ -23,7 +25,7 @@ const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 1000;
 const region = process.env.AWS_REGION;
 const libraryBucket = process.env.LIBRARY_BUCKET;
 const searchBucket = process.env.SEARCH_BUCKET;
-const dispatchFunction = process.env.DISPATCH_FUNCTION;
+const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
@@ -34,47 +36,43 @@ exports.searchDispatch = async (event) => {
     const segment = AWSXRay.getSegment();
     var subsegment = segment.addNewSubsegment('Read parameters');
 
-    const searchInputName = event.searchInputName;
+    const searchInputParams = await getSearchInputParams(event);
 
-    if (!searchInputName) {
-        throw new Error('Missing required parameter: "searchInputName"');
-    }
+    const searchId = searchInputParams.searchId;
+    const searchType = searchInputParams.searchType;
+    const searchInputFolder = searchInputParams.searchInputFolder;
+    const searchInputName = searchInputParams.searchInputName;
 
     // Parameters which have defaults
-    const level = event.level || DEFAULTS.level;
-    const numLevels = event.numLevels || DEFAULTS.numLevels;
-    const dataThreshold = event.dataThreshold || DEFAULTS.dataThreshold;
-    const pixColorFluctuation = event.pixColorFluctuation || DEFAULTS.pixColorFluctuation;
-    const xyShift = event.xyShift || DEFAULTS.xyShift;
-    const mirrorMask = event.mirrorMask || DEFAULTS.mirrorMask;
-    const minMatchingPixRatio = event.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
+    const level = searchInputParams.level || DEFAULTS.level;
+    const numLevels = searchInputParams.numLevels || DEFAULTS.numLevels;
+    const dataThreshold = searchInputParams.dataThreshold || DEFAULTS.dataThreshold;
+    const pixColorFluctuation = searchInputParams.pixColorFluctuation || DEFAULTS.pixColorFluctuation;
+    const xyShift = searchInputParams.xyShift || DEFAULTS.xyShift;
+    const mirrorMask = searchInputParams.mirrorMask || DEFAULTS.mirrorMask;
+    const minMatchingPixRatio = searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
+    const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
-    const searchId = event.searchId || uuidv1();
-    let maskThreshold = event.maskThreshold;
-    let libraries = event.libraries;
-    let batchSize = event.batchSize || DEFAULTS.batchSize;
-    let numBatches = event.numBatches;
-    let branchingFactor = event.branchingFactor;
-    let startIndex = event.startIndex;
-    let endIndex = event.endIndex;
+    let libraries = searchInputParams.libraries;
+    let batchSize = searchInputParams.batchSize || DEFAULTS.batchSize;
+    let numBatches = searchInputParams.numBatches;
+    let branchingFactor = searchInputParams.branchingFactor;
+    let startIndex = searchInputParams.startIndex;
+    let endIndex = searchInputParams.endIndex;
 
     subsegment.close();
 
     if (level === 0) {
-        subsegment = segment.addNewSubsegment('Create metadata');
-        const searchInputParams = await getSearchInputParams(searchInputName);
-        maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold
-        if (!searchInputParams.libraries) {
-            throw new Error(`Missing libraries for ${searchInputName}`);
-        }
-        console.log("Searching params", searchInputParams);
-        const librariesPromises = await searchInputParams.libraries
+        subsegment = segment.addNewSubsegment('Prepare batch parallelization parameters');
+        const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
+
+        const librariesPromises = await searchInputParamsWithLibraries.libraries
             .map(lname => {
                 // for searching use MIPs from the searchableMIPs folder
                 return {
                     lname: lname,
-                    lkey: `JRC2018_Unisex_20x_HR/${lname}/${searchInputParams.searchableMIPSFolder}`
+                    lkey: `JRC2018_Unisex_20x_HR/${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
                 };
             })
             .map(async l => {
@@ -103,27 +101,37 @@ exports.searchDispatch = async (event) => {
         branchingFactor = Math.ceil(Math.pow(numBatches, 1/numLevels)); // e.g. ceil(695^(1/3)) = ceil(8.86) = 9
         startIndex = 0
         endIndex = totalSearches;
+        subsegment.close();
+
         const now = new Date();
         const searchMetadata = {
             startTime: now.toISOString(),
-            parameters: event,
+            parameters: searchInputParamsWithLibraries,
             libraries: libraries,
             nsearches: totalSearches,
             branchingFactor: branchingFactor,
             partitions: numBatches
         };
-
-        // persist the search metadata and the progress file
-        await putObject(searchBucket, getSearchMetadataKey(searchInputName), searchMetadata);
-        await putText(searchBucket, getSearchProgressKey(searchInputName), "0");
-
-        subsegment.close();
+        // persist the search metadata on S3
+        await putObject(
+            searchBucket,
+            getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`),
+            searchMetadata);
+        // appsync search metadata
+        await updateSearchMetadata({
+            id: searchId,
+            step: SEARCH_IN_PROGRESS,
+            nBatches: numBatches,
+            completedBatches: 0,
+            cdsStarted: now.toISOString()
+        });
 
         if (stateMachineArn != null) {
             // if monitoring then start it right away
             const monitorParams = {
-                searchId,
                 bucket: searchBucket,
+                searchId,
+                searchInputFolder,
                 searchInputName,
                 startTime: now.toISOString(),
                 numBatches,
@@ -139,6 +147,8 @@ exports.searchDispatch = async (event) => {
         numLevels: numLevels,
         libraries: libraries,
         searchId: searchId,
+        searchType: searchType,
+        searchInputFolder: searchInputFolder,
         searchInputName: searchInputName,
         dataThreshold: dataThreshold,
         maskThreshold: maskThreshold,
@@ -189,12 +199,12 @@ exports.searchDispatch = async (event) => {
 
         subsegment = segment.addNewSubsegment('Invoke batches');
         for (const searchKeys of batchPartitions) {
-            const batchResultsKey = getIntermediateSearchResultsKey(searchInputName, batchIndex);
+            const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
                 outputURI: batchResultsURI,
                 maskPrefix: searchBucket,
-                maskKeys: [searchInputName],
+                maskKeys: [`${searchInputFolder}/${searchInputName}`],
                 maskThresholds: [maskThreshold],
                 searchPrefix: libraryBucket,
                 searchKeys,
@@ -210,12 +220,33 @@ exports.searchDispatch = async (event) => {
     return searchInputName;
 }
 
-const getSearchInputParams = async (searchInputName)  => {
-    const searchInput = await getObject(searchBucket, getSearchParamsKey(searchInputName));
-    switch (searchInput.searchtype) {
+const getSearchInputParams = async (event) => {
+    const searchId = event.searchId;
+    if (!searchId) {
+        throw new Error('Missing required parameter: "searchId"');
+    }
+    let searchMetadata;
+    if (!event.searchType || !event.searchInputName || !event.searchInputFolder) {
+        searchMetadata = await getSearchMetadata(searchId);
+    } else {
+        searchMetadata = event;
+    }
+    if (!!searchMetadata) {
+        // if a searchMask is set use that for search otherwise use the upload
+        searchMetadata.searchInputName = searchMetadata.searchMask
+            ? searchMetadata.searchMask
+            : searchMetadata.searchInputName;
+    }
+    console.log("Searching params", searchMetadata);
+    return searchMetadata;
+}
+
+
+const setSearchLibraries = (searchData)  => {
+    switch (searchData.searchType) {
         case "em2lm":
             return {
-                ...searchInput,
+                ...searchData,
                 searchableMIPSFolder: "searchable_neurons",
                 libraries: [
                     "FlyLight_Split-GAL4_Drivers",
@@ -224,7 +255,7 @@ const getSearchInputParams = async (searchInputName)  => {
             };
         case "lm2em":
             return {
-                ...searchInput,
+                ...searchData,
                 searchableMIPSFolder: "searchable_neurons",
                 libraries: [
                     "FlyEM_Hemibrain_v1.1"
@@ -232,8 +263,8 @@ const getSearchInputParams = async (searchInputName)  => {
             };
         default:
             return {
-                ...searchInput,
-                libraries: []
+                ...searchData,
+                libraries: searchData.searchLibraries || []
             };
     }
 }
@@ -256,11 +287,11 @@ const getKeys = async (libraryKey) => {
 
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
     let subsegment = segment.addNewSubsegment('Start monitor');
-    const stepFunction = new AWS.StepFunctions();
+    const now = new Date().getTime();
     const params = {
         stateMachineArn: stateMachineArn,
         input: JSON.stringify(monitorParams),
-        name: `ColorDepthSearch_${searchId}`
+        name: `ColorDepthSearch_${searchId}_${now}`
     };
     const result = await stepFunction.startExecution(params).promise();
     console.log("Step function started: ", result.executionArn);

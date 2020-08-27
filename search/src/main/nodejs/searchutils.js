@@ -25,11 +25,6 @@ exports.getSearchMetadataKey = (searchInputName) => {
     return `${searchInputKey}.metadata`;
 }
 
-exports.getSearchProgressKey = (searchInputName) => {
-    const searchInputKey = getKeyWithNoExt(searchInputName);
-    return `${searchInputKey}.progress`;
-}
-
 exports.getSearchResultsKey = (searchInputName) => {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     return `${searchInputKey}.result`;

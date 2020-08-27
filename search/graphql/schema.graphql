@@ -1,0 +1,191 @@
+﻿schema {
+    query: Query
+    mutation: Mutation
+    subscription: Subscription
+}
+
+type Query {
+    getSearch(id: ID!): Search @aws_cognito_user_pools @aws_iam
+    listSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam
+}
+
+type Mutation {
+    createSearch(input: CreateSearchInput!): Search @aws_cognito_user_pools @aws_iam
+    deleteSearch(input: DeleteSearchInput!): Search @aws_cognito_user_pools @aws_iam
+    updateSearch(input: UpdateSearchInput!): Search @aws_cognito_user_pools @aws_iam
+}
+
+type Search @aws_cognito_user_pools @aws_iam {
+    id: ID!
+    """
+    step specifies the search phase:
+        0 image uploaded
+        1 alignment in progress
+        2 alignment complete
+        3 search in progress
+        4 search complete
+    """
+    step: Int
+    owner: String
+    identityId: String!
+    createdOn: AWSDateTime
+    updatedOn: AWSDateTime
+    """
+    upload is the filename or key of the uploaded image
+    """
+    upload: String!
+    searchDir: String!
+    searchType: SearchType
+    algorithm: Algorithm
+    anatomicalRegion: String
+    channel: Int
+    voxelX: Int
+    voxelY: Int
+    voxelZ: Int
+    maskThreshold: Int
+    dataThreshold: Int
+    pixColorFluctuation: Float
+    xyShift: Int
+    mirrorMask: Boolean
+    minMatchingPixRatio: Int
+    mimeType: String
+    nBatches: Int
+    completedBatches: Int
+    cdsStarted: AWSDateTime
+    cdsFinished: AWSDateTime
+    searchMask: String
+    computedMIPs: [String]
+}
+
+type SearchConnection @aws_cognito_user_pools @aws_iam {
+    items: [Search]
+    nextToken: String
+}
+
+type Subscription {
+    onCreateSearch(createdOn: String, id: ID, step: Int): Search @aws_subscribe(mutations : ["createSearch"])
+    onDeleteSearch(id: ID, step: Int): Search @aws_subscribe(mutations : ["deleteSearch"])
+    onUpdateSearch(id: ID, step: Int): Search @aws_subscribe(mutations : ["updateSearch"])
+}
+
+enum Algorithm {
+    avg
+    max
+}
+
+enum SearchType {
+    em2lm
+    lm2em
+}
+
+input CreateSearchInput {
+    step: Int!
+    identityId: String!
+    searchType: SearchType!
+    searchDir: String!
+    upload: String!
+    algorithm: Algorithm
+    anatomicalRegion: String
+    channel: Int
+    voxelX: Int
+    voxelY: Int
+    voxelZ: Int
+    maskThreshold: Int
+    dataThreshold: Int
+    pixColorFluctuation: Float
+    xyShift: Int
+    mirrorMask: Boolean
+    minMatchingPixRatio: Int
+    mimeType: String
+}
+
+input DeleteSearchInput {
+    id: ID!
+}
+
+input TableSearchFilterInput {
+    id: TableIDFilterInput
+    step: TableStringFilterInput
+    createdOn: TableDateFilterInput
+    updatedOn: TableDateFilterInput
+    searchType: TableStringFilterInput
+    algorithm: TableStringFilterInput
+    cdsStarted: TableDateFilterInput
+    cdsFinished: TableDateFilterInput
+}
+
+input TableBooleanFilterInput {
+    eq: Boolean
+    ne: Boolean
+}
+
+input TableDateFilterInput {
+    between: [AWSDateTime]
+    eq: AWSDateTime
+    ge: AWSDateTime
+    gt: AWSDateTime
+    le: AWSDateTime
+    lt: AWSDateTime
+    ne: AWSDateTime
+}
+
+input TableFloatFilterInput {
+    between: [Float]
+    contains: Float
+    eq: Float
+    ge: Float
+    gt: Float
+    le: Float
+    lt: Float
+    ne: Float
+    notContains: Float
+}
+
+input TableIDFilterInput {
+    beginsWith: ID
+    between: [ID]
+    contains: ID
+    eq: ID
+    ge: ID
+    gt: ID
+    le: ID
+    lt: ID
+    ne: ID
+    notContains: ID
+}
+
+input TableIntFilterInput {
+    between: [Int]
+    contains: Int
+    eq: Int
+    ge: Int
+    gt: Int
+    le: Int
+    lt: Int
+    ne: Int
+    notContains: Int
+}
+
+input TableStringFilterInput {
+    beginsWith: String
+    between: [String]
+    contains: String
+    eq: String
+    ge: String
+    gt: String
+    le: String
+    lt: String
+    ne: String
+    notContains: String
+}
+
+input UpdateSearchInput {
+    id: ID!
+    step: Int
+    nBatches: Int
+    completedBatches: Int
+    cdsStarted: AWSDateTime
+    cdsFinished: AWSDateTime
+    searchMask: String
+    computedMIPs: [String]
+}

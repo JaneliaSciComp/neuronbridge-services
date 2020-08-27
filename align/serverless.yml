@@ -1,90 +1,221 @@
-service: neuronbridge-align
-frameworkVersion: ">=1.59.3"
+service: janelia-neuronbridge-align
+
+
+plugins:
+  - serverless-pseudo-parameters
+
 
 custom:
-  templatesBucket: janelia.hhmi.org-templates-dev
-  inputsBucket: janelia.hhmi.org-unalignedstacks-dev
-  outputsBucket: janelia.hhmi.org-alignedmips-dev
-  jobDefinition: 'AlignStackAndGenerateMIPs:14'
-  jobQueue: 'align-spot-dev'
-  version: 0.0.1
-  tracing: false
+  alignmentTemplatesBucket: ${file(../config.yml):config.alignmentTemplatesBucket}
+  alignmentTemplatesFolder: alignment_templates
+  alignInputBucket: ${file(../config.yml):config.searchBucket}
+  alignOutputBucket: ${file(../config.yml):config.searchBucket}
+  version: ${file(../config.yml):config.version}
+  debug: ${file(../config.yml):config.debug}
+  securityGroupId: sg-963ee8df
+  subnetId: subnet-5e11c814
+  ec2AlignmentImageId: ami-0d3f5e4624981ef1b
+  alignmentContainerImage: janeliascicomp/neuronbridge-aligner:1.0
+  defaultAlignmentThreads: 16
+  sshKeyPairName: ec2_batch
+
 
 provider:
   name: aws
-  region: us-east-1
-  stage: dev
+  region: ${opt:region, "us-east-1"}
+  stage: ${file(../config.yml):config.stage}
   tags:
-    PROJECT: NeuronBridge
-    DEVELOPER: ${env:USER}
+    PROJECT: ${file(../config.yml):config.project}
     VERSION: ${self:custom.version}
-  tracing:
-    lambda: ${self:custom.tracing}
+    DEVELOPER: ${env:USER}
+  stackTags:
+    PROJECT: ${file(../config.yml):config.project}
+    VERSION: ${self:custom.version}
+    DEVELOPER: ${env:USER}
+    STAGE: ${self:provider.stage}
 
-  environment:
-    JOB_DEFINITION: ${self:custom.jobDefinition}
-    JOB_QUEUE: ${self:custom.jobQueue}
-    TEMPLATES_BUCKET: ${self:custom.templatesBucket}
-    INPUTS_BUCKET: ${self:custom.inputsBucket}
-    OUTPUTS_BUCKET: ${self:custom.outputsBucket}
-    DEBUG: false
-
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - logs:CreateLogGroup
-        - logs:CreateLogStream
-        - logs:PutLogEvents
-      Resource:
-        - arn:aws:logs:*:*:*
-    - Effect: Allow
-      Action:
-        - batch:SubmitJob
-      Resource: "arn:aws:batch:*:*:*"
-    - Effect: Allow
-      Action:
-        - s3:GetBucketNotification
-        - s3:PutBucketNotification
-      Resource:
-        Fn::Join:
-          - ""
-          - - "arn:aws:s3:::${self:custom.inputsBucket}"
-    - Effect: Allow
-      Action:
-        - s3:DeleteObject
-        - s3:GetObject
-      Resource: "arn:aws:s3:::${self:custom.inputsBucket}/*"
-    - Effect: Allow
-      Action:
-        - s3:ListBucket
-      Resource: "arn:aws:s3:::${self:custom.inputsBucket}"
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-      Resource: "arn:aws:s3:::${self:custom.outputsBucket}/*"
 
 package:
-  include:
-    - "*.js"
-    - package.json
   exclude:
-    - ./*.sh
-    - ./*.json
-    - '!./package*.json'
+    - node_modules/**
 
-functions:
-  colorDepthMips:
-    runtime: nodejs12.x
-    handler: src/cdm/index.generateColorDepthMips
-    name: ${self:provider.stage}-generateColorDepthMips
-    description: align the input and generate color depth mips
-    memorySize: 128
-    timeout: 10
-    events:
-      - s3:
-          bucket: ${self:custom.inputsBucket}
-          event: s3:ObjectCreated:*
-          existing: true
-          rules:
-            - suffix: .json
 
+resources:
+
+  Resources:
+
+    ComputeAlignmentSpotEnv:
+      Type: AWS::Batch::ComputeEnvironment
+      Properties:
+        Type: MANAGED
+        State: ENABLED
+        ServiceRole: !Ref BatchServiceRole
+        ComputeEnvironmentName: "#{AWS::StackName}-align-compute-env"
+        ComputeResources:
+          Type: SPOT
+          BidPercentage: 50
+          AllocationStrategy: BEST_FIT_PROGRESSIVE
+          MinvCpus: 0
+          DesiredvCpus: 0
+          MaxvCpus: 64
+          InstanceTypes:
+            - optimal
+          ImageId: ${self:custom.ec2AlignmentImageId}
+          Subnets:
+            - ${self:custom.subnetId}
+          SecurityGroupIds:
+            - ${self:custom.securityGroupId}
+          Ec2KeyPair: ${self:custom.sshKeyPairName}
+          SpotIamFleetRole: !Ref SpotFleetRole
+          InstanceRole: ecsInstanceRole
+          Tags: ${self:provider.stackTags}
+
+    ComputeAlignmentJobQueue:
+      Type: AWS::Batch::JobQueue
+      Properties:
+        ComputeEnvironmentOrder:
+          - Order: 0
+            ComputeEnvironment: !Ref ComputeAlignmentSpotEnv
+        State: ENABLED
+        Priority: 100
+        JobQueueName: "${self:service}-${self:provider.stage}-align-job-queue-lowpriority"
+
+    ComputeAlignmentJobDefinition:
+      Type: "AWS::Batch::JobDefinition"
+      Properties:
+        JobDefinitionName: "${self:service}-${self:provider.stage}-align-job-definition"
+        Type: Container
+        RetryStrategy:
+          Attempts: 1
+        Timeout:
+          AttemptDurationSeconds: 7200
+        Parameters:
+          iam_role: auto
+          debug_flag: ${self:custom.debug}
+          templates_bucket: ${self:custom.alignmentTemplatesBucket}
+          inputs_bucket: ${self:custom.alignInputBucket}
+          outputs_bucket: ${self:custom.alignOutputBucket}
+          templates_dir: ${self:custom.alignmentTemplatesFolder}
+          xy_resolution: ""
+          z_resolution: ""
+          nchannels: 2
+          force_voxel_size: false
+          nslots: ${self:custom.defaultAlignmentThreads}
+        ContainerProperties:
+          Image: ${self:custom.alignmentContainerImage}
+          Vcpus: 16
+          Memory: 8192
+          JobRoleArn: !Ref ECSTaskRole
+          Command:
+            - /opt/aligner-scripts/run_aligner_using_aws.sh
+            - "-debug"
+            - "Ref::debug_flag"
+            - "--use-iam-role"
+            - "Ref::iam_role"
+            - "--templates-s3bucket-name"
+            - "Ref::templates_bucket"
+            - "--inputs-s3bucket-name"
+            - "Ref::inputs_bucket"
+            - "--outputs-s3bucket-name"
+            - "Ref::outputs_bucket"
+            - "--templatedir"
+            - "Ref::templates_dir"
+            - "--xyres"
+            - "Ref::xy_resolution"
+            - "--zres"
+            - "Ref::z_resolution"
+            - "--nchannels"
+            - "Ref::nchannels"
+            - "--forceVxSize"
+            - "Ref::force_voxel_size"
+            - "--nslots"
+            - "Ref::nslots"
+            - "--search-id"
+            - "Ref::search_id"
+            - "-i"
+            - "Ref::input_filename"
+            - "-o"
+            - "Ref::output_folder"
+          Volumes:
+            - Name: scratch_data_volume
+              Host:
+                SourcePath: /scratch_volume/data
+            - Name: scratch_tmp_volume
+              Host:
+                SourcePath: /scratch_volume/tmp
+          MountPoints:
+            - ContainerPath: /scratch
+              ReadOnly: false
+              SourceVolume: scratch_data_volume
+            - ContainerPath: /tmp
+              ReadOnly: false
+              SourceVolume: scratch_tmp_volume
+          Environment:
+            - Name: FB_MODE
+              Value: xvfb
+            - Name: SEARCH_UPDATE_FUNCTION
+              Value: ${file(../search/serverless.yml):service}-${self:provider.stage}-searchUpdate
+          ReadonlyRootFilesystem: true
+          Privileged: true
+          LinuxParameters:
+            Devices:
+              - HostPath: /dev/fuse
+                ContainerPath: ""
+                Permissions:
+                  - READ
+                  - WRITE
+                  - MKNOD
+
+    BatchServiceRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - "batch.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/service-role/AWSBatchServiceRole"
+          - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+
+    ECSTaskRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - "ecs-tasks.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/AmazonS3FullAccess"
+          - "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+        Policies:
+          - PolicyName: AWSLambdaInvokeAccess
+            PolicyDocument:
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                    - lambda:InvokeAsync
+                  Resource: '*'
+              Version: '2012-10-17'
+
+    SpotFleetRole:
+      Type: AWS::IAM::Role
+      Properties:
+        AssumeRolePolicyDocument:
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - "spotfleet.amazonaws.com"
+              Action:
+                - "sts:AssumeRole"
+        ManagedPolicyArns:
+          - "arn:aws:iam::aws:policy/service-role/AmazonEC2SpotFleetTaggingRole"
