@@ -2,6 +2,7 @@
 
 const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core')
+const { v1: uuidv1 } = require('uuid');
 
 const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
 const {getObject, putObject, invokeAsync, partition, DEBUG} = require('./utils');
@@ -117,20 +118,22 @@ exports.searchDispatch = async (event) => {
             searchBucket,
             getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`),
             searchMetadata);
-        // appsync search metadata
-        await updateSearchMetadata({
-            id: searchId,
-            step: SEARCH_IN_PROGRESS,
-            nBatches: numBatches,
-            completedBatches: 0,
-            cdsStarted: now.toISOString()
-        });
+        if (searchId) {
+            // update search metadata if searchId is provided
+            await updateSearchMetadata({
+                id: searchId,
+                step: SEARCH_IN_PROGRESS,
+                nBatches: numBatches,
+                completedBatches: 0,
+                cdsStarted: now.toISOString()
+            });
+        }
 
         if (stateMachineArn != null) {
             // if monitoring then start it right away
             const monitorParams = {
                 bucket: searchBucket,
-                searchId,
+                searchId: searchId || null,
                 searchInputFolder,
                 searchInputName,
                 startTime: now.toISOString(),
@@ -222,11 +225,14 @@ exports.searchDispatch = async (event) => {
 
 const getSearchInputParams = async (event) => {
     const searchId = event.searchId;
-    if (!searchId) {
-        throw new Error('Missing required parameter: "searchId"');
-    }
     let searchMetadata;
-    if (!event.searchType || !event.searchInputName || !event.searchInputFolder) {
+    if (!event.searchInputName || !event.searchInputFolder) {
+        // if searchInputName or searchInutFolder is not given the searchId must be provided
+        // both searchInputFolder and searchInputName must be provided because
+        // the full input path is `${searchInputFolder}/${searchInputName}`
+        if (!searchId) {
+            throw new Error('Missing required parameter: "searchId"');
+        }
         searchMetadata = await getSearchMetadata(searchId);
     } else {
         searchMetadata = event;
@@ -288,10 +294,11 @@ const getKeys = async (libraryKey) => {
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
     let subsegment = segment.addNewSubsegment('Start monitor');
     const now = new Date().getTime();
+    const uniqueMonitorId = searchId || uuidv1();
     const params = {
         stateMachineArn: stateMachineArn,
         input: JSON.stringify(monitorParams),
-        name: `ColorDepthSearch_${searchId}_${now}`
+        name: `ColorDepthSearch_${uniqueMonitorId}_${now}`
     };
     const result = await stepFunction.startExecution(params).promise();
     console.log("Step function started: ", result.executionArn);

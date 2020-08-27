@@ -31,6 +31,7 @@ Once the AMI instance ID is available make sure you set the proper AMI instance 
 To deploy:
 ```
 cd align
+npm install
 npm run sls -- deploy -s dev
 ```
 
@@ -42,5 +43,6 @@ In order to create the color depth search lambdas run:
 
 ```
 cd search
+npm install
 npm run sls -- deploy -s dev
 ```
