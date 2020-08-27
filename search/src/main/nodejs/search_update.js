@@ -11,5 +11,8 @@ exports.searchUpdate = async (event) => {
     if (event.computedMIPs && event.computedMIPs.length > 0) {
         searchData.computedMIPs = event.computedMIPs;
     }
+    if (event.errorMessage) {
+        searchData.errorMessage = event.errorMessage;
+    }
     return await updateSearchMetadata(searchData);
 }

@@ -55,6 +55,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     cdsFinished: AWSDateTime
     searchMask: String
     computedMIPs: [String]
+    errorMessage: String
 }
 
 type SearchConnection @aws_cognito_user_pools @aws_iam {
@@ -188,4 +189,5 @@ input UpdateSearchInput {
     cdsFinished: AWSDateTime
     searchMask: String
     computedMIPs: [String]
+    errorMessage: String
 }

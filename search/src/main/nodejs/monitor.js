@@ -53,11 +53,13 @@ exports.isSearchDone = async (event, context) => {
     const endTime = moment(now.toISOString());
     const elapsedSecs = endTime.diff(startTime, "s");
     const numRemaining = numBatches - numComplete;
-    // write down the progress
-    await updateSearchMetadata({
-        id: searchId,
-        completedBatches: numComplete
-    });
+    if (searchId) {
+        // write down the progress
+        await updateSearchMetadata({
+            id: searchId,
+            completedBatches: numComplete
+        });
+    }
     // return result for next state input
     if (numRemaining === 0) {
         console.log(`Search took ${elapsedSecs} seconds`);

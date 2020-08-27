@@ -45,6 +45,7 @@ exports.getSearchMetadata = async (searchId) => {
                 updatedOn
                 searchMask
                 computedMIPs
+                errorMessage
             }
         }`),
         variables: { searchId: searchId}
@@ -75,6 +76,7 @@ exports.updateSearchMetadata = async (searchData) => {
                 updatedOn
                 searchMask
                 computedMIPs
+                errorMessage
             }
         }`),
         variables: {

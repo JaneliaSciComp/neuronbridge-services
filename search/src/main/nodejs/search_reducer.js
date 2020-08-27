@@ -64,14 +64,15 @@ exports.searchReducer = async (event, context) => {
     );
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
-    // write down the progress - done
-    const now = new Date()
-    await updateSearchMetadata({
-        id: searchId,
-        step: SEARCH_COMPLETED,
-        cdsFinished: now.toISOString()
-    });
-
+    if (searchId) {
+        // write down the progress - done
+        const now = new Date()
+        await updateSearchMetadata({
+            id: searchId,
+            step: SEARCH_COMPLETED,
+            cdsFinished: now.toISOString()
+        });
+    }
     if (!DEBUG) {
         const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
         await removeKey(bucket, intermediateSearchResultsPrefix);
