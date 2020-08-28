@@ -57,6 +57,10 @@ exports.getSearchMetadata = async (searchId) => {
 }
 
 exports.updateSearchMetadata = async (searchData) => {
+    if (!searchData.id) {
+        console.log('Update not invoked because no search ID was set');
+        return searchData;
+    }
     const result = await appSyncClient.mutate({
         mutation: gql(`mutation updateSearch($updateInput: UpdateSearchInput!) {
             updateSearch(input: $updateInput) {

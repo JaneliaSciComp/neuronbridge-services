@@ -5,7 +5,7 @@ const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
 
 const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
-const {getObject, putObject, invokeAsync, partition, DEBUG} = require('./utils');
+const {getObject, putObject, invokeAsync, partition, verifyKey, DEBUG} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
 
 const stepFunction = new AWS.StepFunctions();
@@ -65,6 +65,16 @@ exports.searchDispatch = async (event) => {
     subsegment.close();
 
     if (level === 0) {
+        const checkMask = await verifyKey(searchBucket, `${searchInputFolder}/${searchInputName}`);
+        if (!checkMask) {
+            // set the error
+            await updateSearchMetadata({
+                id: searchId,
+                step: SEARCH_IN_PROGRESS,
+                errorMessage: `Mask s3://${searchBucket}/${searchInputFolder}/${searchInputName} not found`
+            });
+            return searchInputName;
+        }
         subsegment = segment.addNewSubsegment('Prepare batch parallelization parameters');
         const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
         console.log("Search input params with libraries", searchInputParamsWithLibraries);
@@ -97,6 +107,16 @@ exports.searchDispatch = async (event) => {
             .map(l => l.lsize)
             .reduce((acc, lsize) => acc + lsize, 0);
         console.log(`Found ${totalSearches} MIPs in libraries: `, libraries);
+        if (totalSearches === 0) {
+            console.log(`No libraries found for searching ${searchInputName}`);
+            // set the error
+            await updateSearchMetadata({
+                id: searchId,
+                step: SEARCH_IN_PROGRESS,
+                errorMessage: `No libraries found for searching ${searchInputName}`
+            });
+            return searchInputName;
+        }
         numBatches = Math.ceil(totalSearches / batchSize);
         console.log(`Partition ${totalSearches} searches into ${numBatches} of size ${batchSize}`);
         if (numBatches > MAX_PARALLELISM) {
@@ -126,17 +146,14 @@ exports.searchDispatch = async (event) => {
             searchBucket,
             getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`),
             searchMetadata);
-        if (searchId) {
-            // update search metadata if searchId is provided
-            await updateSearchMetadata({
-                id: searchId,
-                step: SEARCH_IN_PROGRESS,
-                nBatches: numBatches,
-                completedBatches: 0,
-                cdsStarted: now.toISOString()
-            });
-        }
-
+        // update search metadata if searchId is provided
+        await updateSearchMetadata({
+            id: searchId,
+            step: SEARCH_IN_PROGRESS,
+            nBatches: numBatches,
+            completedBatches: 0,
+            cdsStarted: now.toISOString()
+        });
         if (stateMachineArn != null) {
             // if monitoring then start it right away
             const monitorParams = {

@@ -34,13 +34,23 @@ exports.searchReducer = async (event, context) => {
         const batchResultsKey = getIntermediateSearchResultsKey(fullSearchInputName, batchIndex);
         const batchResults = await getObjectWithRetry(bucket, batchResultsKey, 3);
         if (DEBUG) console.log(batchResults);
-        batchResults.forEach(batchResult => {
-            if (allBatchResults[batchResult.maskId]) {
-                allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
-            } else {
-                allBatchResults[batchResult.maskId] = batchResult;
-            }
-        });
+        try {
+            batchResults.forEach(batchResult => {
+                if (allBatchResults[batchResult.maskId]) {
+                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+                } else {
+                    allBatchResults[batchResult.maskId] = batchResult;
+                }
+            });
+        } catch (e) {
+            // write down the error
+            await updateSearchMetadata({
+                id: searchId,
+                errorMessage: e.name + ': ' + e.message
+            });
+            // rethrow the error
+            throw e;
+        }
     }
 
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
@@ -64,15 +74,14 @@ exports.searchReducer = async (event, context) => {
     );
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
-    if (searchId) {
-        // write down the progress - done
-        const now = new Date()
-        await updateSearchMetadata({
-            id: searchId,
-            step: SEARCH_COMPLETED,
-            cdsFinished: now.toISOString()
-        });
-    }
+    // write down the progress - done
+    const now = new Date()
+    await updateSearchMetadata({
+        id: searchId,
+        step: SEARCH_COMPLETED,
+        cdsFinished: now.toISOString()
+    });
+
     if (!DEBUG) {
         const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
         await removeKey(bucket, intermediateSearchResultsPrefix);
