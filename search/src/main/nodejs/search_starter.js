@@ -2,11 +2,12 @@
 
 const AWS = require('aws-sdk');
 const {invokeAsync} = require('./utils');
-const {getSearchMetadata} = require('./awsappsyncutils');
+const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
+const maxSearchesPerDay = process.env.MAX_SEARCHES_PER_DAY || 1
 
 const bc = new AWS.Batch();
 
@@ -67,6 +68,14 @@ const getNewRecords = async (e) => {
 }
 
 const startColorDepthSearch = async (searchParams) => {
+    if (!checkLimits(searchParams, maxSearchesPerDay)) {
+        console.log("No color depth search started because the quota was exceeded", searchParams);
+        await updateSearchMetadata({
+            id: searchParams.id || searchParams.searchId,
+            errorMessage: `Color depth search was not started because the quota of ${maxSearchesPerDay} was exceeded`
+        });
+        return {};
+    }
     console.log('Start ColorDepthSearch', searchParams);
     const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
     console.log('Started ColorDepthSearch', cdsInvocationResult);
@@ -74,6 +83,14 @@ const startColorDepthSearch = async (searchParams) => {
 }
 
 const startAlignment = async (searchParams) => {
+    if (!checkLimits(searchParams, maxSearchesPerDay)) {
+        console.log("No job invoked because the quota was exceeded", searchParams);
+        await updateSearchMetadata({
+            id: searchParams.id || searchParams.searchId,
+            errorMessage: `Alignment was not started because the quota of ${maxSearchesPerDay} was exceeded`
+        });
+        return {};
+    }
     const jobResources = {
         'vcpus': 16,
         'memory': 8192
@@ -100,4 +117,23 @@ const startAlignment = async (searchParams) => {
     console.log('Submitted', job);
     console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
     return job;
+}
+
+const checkLimits = async (searchParams, limits) => {
+    if (limits < 0) {
+        return true;
+    }
+    const searches = await lookupSearchMetadata({
+        identityId: searchParams.identityId,
+        owner: searchParams.owner,
+        maxStep: 4,
+        withNoErrorsOnly: true,
+        lastUpdated: new Date()
+    });
+    if (searches.length >= limits) {
+        console.log(`The number of existing searches: ${searches.length} is greater than ${limits}`, searchParams);
+        return false;
+    } else {
+        return true;
+    }
 }

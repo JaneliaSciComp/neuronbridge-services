@@ -56,9 +56,63 @@ exports.getSearchMetadata = async (searchId) => {
     return searchResult;
 }
 
+exports.lookupSearchMetadata = async (searchFilterParams) => {
+    let searchFilter = {};
+    if (searchFilterParams.identityId) {
+        searchFilter.identityId = {"eq": searchFilterParams.identityId}
+    }
+    if (searchFilterParams.owner) {
+        searchFilter.owner = {"eq": searchFilterParams.owner}
+    }
+    if (searchFilterParams.maxStep) {
+        searchFilter.step = {"lt": searchFilterParams.maxStep}
+    }
+    if (searchFilterParams.lastUpdated) {
+        const lastUpdated = searchFilterParams.lastUpdated;
+        lastUpdated.setHours(0,0,0,0);
+        searchFilter.updatedOn = {"ge": lastUpdated.toISOString()};
+    }
+    const result = await appSyncClient.query({
+        query: gql(`query listSearches($searchFilter: TableSearchFilterInput!) {
+            listSearches(filter: $searchFilter, limit: 100, nextToken: null) {
+                items {
+                    id
+                    step
+                    owner
+                    identityId
+                    searchDir
+                    upload
+                    searchType
+                    algorithm
+                    channel
+                    voxelX
+                    voxelY
+                    voxelZ
+                    nBatches
+                    completedBatches
+                    cdsStarted
+                    cdsFinished
+                    createdOn
+                    updatedOn
+                    searchMask
+                    computedMIPs
+                    errorMessage
+                }
+            }
+        }`),
+        variables: { searchFilter: searchFilter}
+    });
+    console.log("Search data for", searchFilterParams, result);
+    const searches = result.data.listSearches.items
+        .map(s => toSearchResult(s))
+        .filter(s => searchFilterParams.withNoErrorsOnly ? !s.errorMessage : true);
+    console.log("Found searches", searches);
+    return searches;
+}
+
 exports.updateSearchMetadata = async (searchData) => {
     if (!searchData.id) {
-        console.log('Update not invoked because no search ID was set');
+        if (DEBUG) console.log('Update not invoked because no search ID was set');
         return searchData;
     }
     const result = await appSyncClient.mutate({

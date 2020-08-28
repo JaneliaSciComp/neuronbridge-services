@@ -110,11 +110,14 @@ input DeleteSearchInput {
 
 input TableSearchFilterInput {
     id: TableIDFilterInput
-    step: TableStringFilterInput
+    step: TableIntFilterInput
+    identityId: TableStringFilterInput
+    owner: TableStringFilterInput
     createdOn: TableDateFilterInput
     updatedOn: TableDateFilterInput
     searchType: TableStringFilterInput
     algorithm: TableStringFilterInput
+    errorMessage: TableStringFilterInput
     cdsStarted: TableDateFilterInput
     cdsFinished: TableDateFilterInput
 }

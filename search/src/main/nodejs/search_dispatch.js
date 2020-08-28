@@ -67,6 +67,7 @@ exports.searchDispatch = async (event) => {
     if (level === 0) {
         const checkMask = await verifyKey(searchBucket, `${searchInputFolder}/${searchInputName}`);
         if (!checkMask) {
+            console.log(`Mask s3://${searchBucket}/${searchInputFolder}/${searchInputName} not found`);
             // set the error
             await updateSearchMetadata({
                 id: searchId,
