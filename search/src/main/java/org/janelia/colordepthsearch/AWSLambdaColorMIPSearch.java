@@ -104,10 +104,27 @@ class AWSLambdaColorMIPSearch {
     private MIPMetadata createLibraryMIP(String mipKey) {
         Path mipPath = Paths.get(mipKey);
         String mipNameComponent = mipPath.getFileName().toString();
-        String mipName = RegExUtils.replacePattern(mipNameComponent, "\\..*$", "");
+        String mipExt;
+        int mipExtSeparator = mipNameComponent.lastIndexOf('.');
+        if (mipExtSeparator != -1) {
+            mipExt = mipNameComponent.substring(mipExtSeparator + 1);
+        } else {
+            mipExt = null;
+        }
+        String mipName;
+        if (mipExt == null) {
+            mipName = mipNameComponent;
+        } else {
+            mipName = RegExUtils.replacePattern(mipNameComponent, "\\." + mipExt + "$", "");
+        }
         // displayable mips are always png and the thumbnails jpg
-        String mipImageKey = RegExUtils.replacePattern(getDisplayableMIPKey(mipKey), "\\..*$", ".png");
-        String mipThumbnailKey = RegExUtils.replacePattern(mipImageKey, "\\..*$", ".jpg");
+        String mipImageKey;
+        if (mipExt == null) {
+            mipImageKey = getDisplayableMIPKey(mipKey);
+        } else {
+            mipImageKey = RegExUtils.replacePattern(getDisplayableMIPKey(mipKey), "\\." + mipExt + "$", ".png");
+        }
+        String mipThumbnailKey = RegExUtils.replacePattern(mipImageKey, "\\.png$", ".jpg");
         int nPathComponents = mipPath.getNameCount();
         MIPMetadata mip = new MIPMetadata();
         mip.setId(mipName);
@@ -140,14 +157,24 @@ class AWSLambdaColorMIPSearch {
             for (String removableGroup : new String[]{"cdmSuffix"}) {
                 int removableGroupStart = mipNameMatcher.start(removableGroup);
                 if (removableGroupStart > 0) {
-                    displayableKeyNameBuilder.append(mipKey.substring(namePos, removableGroupStart).replace("searchable_neurons/",  ""));
+                    displayableKeyNameBuilder.append(
+                            mipKey.substring(namePos, removableGroupStart)
+                                    .replace("searchable_neurons", "")
+                                    .replace("//", "/")
+                    );
                     namePos = mipNameMatcher.end(removableGroup);
                 }
             }
-            displayableKeyNameBuilder.append(mipKey.substring(namePos));
+            displayableKeyNameBuilder.append(
+                    mipKey.substring(namePos)
+                            .replace("searchable_neurons", "")
+                            .replace("//", "/")
+            );
             return displayableKeyNameBuilder.toString();
         } else {
-            return mipKey.replace("searchable_neurons/", "");
+            return mipKey
+                    .replace("searchable_neurons", "")
+                    .replace("//", "/");
         }
     }
 

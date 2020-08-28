@@ -59,6 +59,8 @@ public class AWSLambdaColorMIPSearchTest {
                 "private/us-east-1:853b7e81-c739-4434-99dd-aafeed3265e3/rc-upload-1594225719194-2/rc-upload-1594225719194-2.png"
         );
         List<String> libraryKeys = Arrays.asList(
+                "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/searchable_neurons/1110173824-TC-JRC2018_Unisex_20x_HR-CDM.tif",
+                "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/searchable_neurons/1110868515-TC-JRC2018_Unisex_20x_HR-CDM.tif",
                 "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/LH2453-20121114_31_E5-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-001.tif",
                 "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/LH2453-20121114_31_E5-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-001.tif",
                 "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/LH2453-20121114_31_E5-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.tif",

@@ -43,7 +43,6 @@ const getObject = async (bucket, key, defaultValue) => {
         } else {
             return defaultValue;
         }
-
     }
 };
 
@@ -172,4 +171,19 @@ exports.invokeAsync = async (functionName, parameters) => {
         console.error('Error invoking', params, e);
         throw e;
     }
+}
+
+// Verify that key exists on S3
+exports.verifyKey = async (Bucket, Key) => {
+    try {
+        const response = await s3.headObject({
+            Bucket,
+            Key}).promise();
+        console.log(`Found object ${Bucket}:${Key}`);
+        return true;
+    } catch (e) {
+        console.error(`Error looking up ${Bucket}:${Key}`, e);
+        return false;
+    }
+
 }

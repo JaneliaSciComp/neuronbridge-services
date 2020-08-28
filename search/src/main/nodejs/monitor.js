@@ -53,13 +53,11 @@ exports.isSearchDone = async (event, context) => {
     const endTime = moment(now.toISOString());
     const elapsedSecs = endTime.diff(startTime, "s");
     const numRemaining = numBatches - numComplete;
-    if (searchId) {
-        // write down the progress
-        await updateSearchMetadata({
-            id: searchId,
-            completedBatches: numComplete
-        });
-    }
+    // write down the progress
+    await updateSearchMetadata({
+        id: searchId,
+        completedBatches: numComplete
+    });
     // return result for next state input
     if (numRemaining === 0) {
         console.log(`Search took ${elapsedSecs} seconds`);
@@ -72,6 +70,11 @@ exports.isSearchDone = async (event, context) => {
         };
     } else if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
         console.log(`Search timed out after ${elapsedSecs} seconds`);
+        // update the error
+        await updateSearchMetadata({
+            id: searchId,
+            errorMessage: `Search timed out after ${elapsedSecs} seconds`
+        });
         return {
             ...event,
             elapsedSecs: elapsedSecs,
