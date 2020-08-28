@@ -7,7 +7,8 @@ const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata} = require(
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
-const maxSearchesPerDay = process.env.MAX_SEARCHES_PER_DAY || 1
+const perDaySearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
+const concurrentSearchLimits = process.env.CONCURRENT_SEARCHES || 1;
 
 const bc = new AWS.Batch();
 
@@ -68,12 +69,12 @@ const getNewRecords = async (e) => {
 }
 
 const startColorDepthSearch = async (searchParams) => {
-    const limits = await checkLimits(searchParams, maxSearchesPerDay);
-    if (!limits) {
-        console.log("No color depth search started because the quota was exceeded", searchParams);
+    const limitsMessage = await checkLimits(searchParams, concurrentSearchLimits, perDaySearchLimits);
+    if (limitsMessage) {
+        console.log(`No color depth search started because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
-            errorMessage: `Color depth search was not started because the quota of ${maxSearchesPerDay} was exceeded`
+            errorMessage: `Color depth search was not started because ${limitsMessage}`
         });
         return {};
     } else {
@@ -85,12 +86,12 @@ const startColorDepthSearch = async (searchParams) => {
 }
 
 const startAlignment = async (searchParams) => {
-    const limits = await checkLimits(searchParams, maxSearchesPerDay);
-    if (!limits) {
-        console.log("No job invoked because the quota was exceeded", searchParams);
+    const limitsMessage = await checkLimits(searchParams, concurrentSearchLimits, perDaySearchLimits);
+    if (limitsMessage) {
+        console.log(`No job invoked because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
-            errorMessage: `Alignment was not started because the quota of ${maxSearchesPerDay} was exceeded`
+            errorMessage: `Alignment was not started because ${limitsMessage}`
         });
         return {};
     } else {
@@ -123,22 +124,24 @@ const startAlignment = async (searchParams) => {
     }
 }
 
-const checkLimits = async (searchParams, limits) => {
-    if (limits < 0) {
-        return 1;
+const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
+    if (concurrentSearches < 0 && perDayLimits < 0) {
+        // no limits
+        return null;
     }
     const searches = await lookupSearchMetadata({
+        currentSearchId: searchParams.id,
         identityId: searchParams.identityId,
         owner: searchParams.owner,
-        maxStep: 4,
         withNoErrorsOnly: true,
         lastUpdated: new Date()
     });
-    if (searches.length >= limits) {
-        console.log(`The number of current searches: ${searches.length} is greater than or equal to ${limits}`, searchParams, 0);
-        return 0;
-    } else {
-        console.log(`The number of current searches: ${searches.length} is within limits`, searchParams, limits - searches.length);
-        return limits - searches.length;
+    if (perDayLimits >= 0 && searches.length >= perDayLimits) {
+        return `it already reached the daily limits`;
     }
+    const currentSearches =  searches.filter(s => s.step < 4);
+    if (concurrentSearches >= 0 && currentSearches.length >=  concurrentSearches) {
+        return `it is already running ${currentSearches.length} searches - the maximum allowed concurrent searches`;
+    }
+    return null;
 }

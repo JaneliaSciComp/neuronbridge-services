@@ -58,14 +58,14 @@ exports.getSearchMetadata = async (searchId) => {
 
 exports.lookupSearchMetadata = async (searchFilterParams) => {
     let searchFilter = {};
+    if (searchFilterParams.currentSearchId) {
+        searchFilter.id = {ne: searchFilterParams.currentSearchId}
+    }
     if (searchFilterParams.identityId) {
-        searchFilter.identityId = {"eq": searchFilterParams.identityId}
+        searchFilter.identityId = {eq: searchFilterParams.identityId}
     }
     if (searchFilterParams.owner) {
-        searchFilter.owner = {"eq": searchFilterParams.owner}
-    }
-    if (searchFilterParams.maxStep) {
-        searchFilter.step = {"lt": searchFilterParams.maxStep}
+        searchFilter.owner = {eq: searchFilterParams.owner}
     }
     if (searchFilterParams.lastUpdated) {
         const lastUpdated = searchFilterParams.lastUpdated;

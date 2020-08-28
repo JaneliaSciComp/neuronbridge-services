@@ -46,3 +46,9 @@ cd search
 npm install
 npm run sls -- deploy -s dev
 ```
+
+To deploy with different search limits:
+```
+PER_DAY_SEARCH_LIMITS=2 CONCURRENT_SEARCH_LIMITS=2 npm run sls -- deploy -s cgdev
+```
+Note: a negative value for a limit means unlimited.
