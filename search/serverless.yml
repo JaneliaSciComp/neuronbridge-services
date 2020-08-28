@@ -5,8 +5,6 @@ plugins:
   - serverless-step-functions
   - serverless-pseudo-parameters
   - serverless-appsync-plugin
-
-
 custom:
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
