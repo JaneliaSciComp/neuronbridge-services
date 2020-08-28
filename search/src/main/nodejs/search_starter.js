@@ -68,7 +68,8 @@ const getNewRecords = async (e) => {
 }
 
 const startColorDepthSearch = async (searchParams) => {
-    if (checkLimits(searchParams, maxSearchesPerDay) === false) {
+    const limits = await checkLimits(searchParams, maxSearchesPerDay);
+    if (!limits) {
         console.log("No color depth search started because the quota was exceeded", searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
@@ -84,7 +85,8 @@ const startColorDepthSearch = async (searchParams) => {
 }
 
 const startAlignment = async (searchParams) => {
-    if (checkLimits(searchParams, maxSearchesPerDay) === false) {
+    const limits = await checkLimits(searchParams, maxSearchesPerDay);
+    if (!limits) {
         console.log("No job invoked because the quota was exceeded", searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
@@ -123,7 +125,7 @@ const startAlignment = async (searchParams) => {
 
 const checkLimits = async (searchParams, limits) => {
     if (limits < 0) {
-        return true;
+        return 1;
     }
     const searches = await lookupSearchMetadata({
         identityId: searchParams.identityId,
@@ -133,9 +135,10 @@ const checkLimits = async (searchParams, limits) => {
         lastUpdated: new Date()
     });
     if (searches.length >= limits) {
-        console.log(`The number of existing searches: ${searches.length} is greater than or equal to ${limits}`, searchParams);
-        return false;
+        console.log(`The number of current searches: ${searches.length} is greater than or equal to ${limits}`, searchParams, 0);
+        return 0;
     } else {
-        return true;
+        console.log(`The number of current searches: ${searches.length} is within limits`, searchParams, limits - searches.length);
+        return limits - searches.length;
     }
 }
