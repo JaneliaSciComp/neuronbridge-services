@@ -68,55 +68,57 @@ const getNewRecords = async (e) => {
 }
 
 const startColorDepthSearch = async (searchParams) => {
-    if (!checkLimits(searchParams, maxSearchesPerDay)) {
+    if (checkLimits(searchParams, maxSearchesPerDay) === false) {
         console.log("No color depth search started because the quota was exceeded", searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
             errorMessage: `Color depth search was not started because the quota of ${maxSearchesPerDay} was exceeded`
         });
         return {};
+    } else {
+        console.log('Start ColorDepthSearch', searchParams);
+        const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
+        console.log('Started ColorDepthSearch', cdsInvocationResult);
+        return cdsInvocationResult;
     }
-    console.log('Start ColorDepthSearch', searchParams);
-    const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
-    console.log('Started ColorDepthSearch', cdsInvocationResult);
-    return cdsInvocationResult;
 }
 
 const startAlignment = async (searchParams) => {
-    if (!checkLimits(searchParams, maxSearchesPerDay)) {
+    if (checkLimits(searchParams, maxSearchesPerDay) === false) {
         console.log("No job invoked because the quota was exceeded", searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
             errorMessage: `Alignment was not started because the quota of ${maxSearchesPerDay} was exceeded`
         });
         return {};
+    } else {
+        const jobResources = {
+            'vcpus': 16,
+            'memory': 8192
+        };
+        const jobName = `align-${searchParams.owner}-${searchParams.id}`;
+        const jobParameters = {
+            nchannels: searchParams.channel + '',
+            xy_resolution: searchParams.voxelX + '',
+            z_resolution: searchParams.voxelZ + '',
+            search_id: searchParams.id,
+            input_filename: searchParams.searchInput,
+            output_folder: searchParams.searchInputFolder
+        };
+        const params = {
+            jobDefinition: jobDefinition,
+            jobQueue: jobQueue,
+            jobName: jobName,
+            containerOverrides: jobResources,
+            parameters: jobParameters
+        };
+        // submit batch job
+        console.log('Job parameters', params);
+        const job = await bc.submitJob(params).promise();
+        console.log('Submitted', job);
+        console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
+        return job;
     }
-    const jobResources = {
-        'vcpus': 16,
-        'memory': 8192
-    };
-    const jobName = `align-${searchParams.owner}-${searchParams.id}`;
-    const jobParameters = {
-        nchannels: searchParams.channel + '',
-        xy_resolution: searchParams.voxelX + '',
-        z_resolution: searchParams.voxelZ + '',
-        search_id: searchParams.id,
-        input_filename: searchParams.searchInput,
-        output_folder: searchParams.searchInputFolder
-    };
-    const params = {
-        jobDefinition: jobDefinition,
-        jobQueue: jobQueue,
-        jobName: jobName,
-        containerOverrides: jobResources,
-        parameters: jobParameters
-    };
-    // submit batch job
-    console.log('Job parameters', params);
-    const job = await bc.submitJob(params).promise();
-    console.log('Submitted', job);
-    console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
-    return job;
 }
 
 const checkLimits = async (searchParams, limits) => {
@@ -131,7 +133,7 @@ const checkLimits = async (searchParams, limits) => {
         lastUpdated: new Date()
     });
     if (searches.length >= limits) {
-        console.log(`The number of existing searches: ${searches.length} is greater than ${limits}`, searchParams);
+        console.log(`The number of existing searches: ${searches.length} is greater than or equal to ${limits}`, searchParams);
         return false;
     } else {
         return true;
