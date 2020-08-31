@@ -43,6 +43,7 @@ exports.getSearchMetadata = async (searchId) => {
                 cdsFinished
                 createdOn
                 updatedOn
+                displayableMask
                 searchMask
                 computedMIPs
                 errorMessage
@@ -94,6 +95,7 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     cdsFinished
                     createdOn
                     updatedOn
+                    displayableMask
                     searchMask
                     computedMIPs
                     errorMessage
@@ -132,6 +134,7 @@ exports.updateSearchMetadata = async (searchData) => {
                 cdsFinished
                 createdOn
                 updatedOn
+                displayableMask
                 searchMask
                 computedMIPs
                 errorMessage

@@ -53,6 +53,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     completedBatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
+    displayableMask: String
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
@@ -194,6 +195,7 @@ input UpdateSearchInput {
     completedBatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
+    displayableMask: String
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
