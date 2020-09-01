@@ -162,7 +162,6 @@ const toSearchResult = (searchData) => {
         searchId: searchData.id,
         searchInputFolder: searchInputFolder,
         searchInputName: `${searchData.upload}`,
-        searchInput: `${searchInputFolder}/${searchData.upload}`,
         ...searchMask,
         ...searchData
     }

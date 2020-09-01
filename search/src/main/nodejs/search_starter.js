@@ -1,7 +1,9 @@
 'use strict';
 
 const AWS = require('aws-sdk');
-const {invokeAsync} = require('./utils');
+const Jimp = require('jimp');
+const {getSearchKey} = require('./searchutils');
+const {getS3Content, invokeAsync, putS3Content} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
@@ -11,6 +13,7 @@ const perDaySearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
 const concurrentSearchLimits = process.env.CONCURRENT_SEARCHES || 1;
 
 const bc = new AWS.Batch();
+const searchBucket = process.env.SEARCH_BUCKET;
 
 exports.searchStarter = async (event) => {
     console.log(event);
@@ -25,16 +28,18 @@ exports.searchStarter = async (event) => {
         sourceIsHttpApiGateway = false;
     }
     const newRecords = await getNewRecords(eventBody);
-    const searchPromises = await newRecords.map(async r => {
-        if (r.step === 0) {
-            return await startAlignment(r);
-        } else if (r.step === 2) {
-            return await startColorDepthSearch(r);
-        } else {
-            // do nothing
-            return r;
-        }
-    });
+    const searchPromises = await newRecords
+        .filter(r => !!r)
+        .map(async r => {
+            if (r.step === 0) {
+                return await startAlignment(r);
+            } else if (r.step === 2) {
+                return await startColorDepthSearch(r);
+            } else {
+                // do nothing
+                return r;
+            }
+        });
     const results = await Promise.all(searchPromises);
     if (sourceIsHttpApiGateway) {
         return {
@@ -53,13 +58,11 @@ const getNewRecords = async (e) => {
             .filter(r => r.eventName === 'INSERT')
             .map(r => r.dynamodb)
             .map(r => r.Keys.id.S)
-            .map(async searchId => await getSearchMetadata(searchId))
-            .filter(r => !!r);
+            .map(async searchId => await getSearchMetadata(searchId));
         return await Promise.all(newRecordsPromises);
     } else if (e.searchIds) {
         const newSearchesPromises = await e.searchIds
             .map(async searchId => await getSearchMetadata(searchId))
-            .filter(r => !!r);
         return await Promise.all(newSearchesPromises);
     } else if (e.searches) {
         return e.searches;
@@ -79,6 +82,27 @@ const startColorDepthSearch = async (searchParams) => {
         return {};
     } else {
         console.log('Start ColorDepthSearch', searchParams);
+        if (searchParams.upload.endsWith('.tif') ||
+            searchParams.upload.endsWith('.tiff')) {
+            const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
+            console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
+            const imageContent = await getS3Content(searchBucket, fullSearchInputImage);
+            const pngMime = 'image/png';
+            await Jimp.read(imageContent)
+                .then(image => image.getBuffer(pngMime))
+                .then((imageBuffer) => {
+                    const pngImageName = getSearchKey(fullSearchInputImage, '.png');
+                    console.log(`Put ${searchBucket}:${pngImageName}`, imageBuffer);
+                    return putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
+                })
+                .catch(err => {
+                    throw err;
+                })
+                .finally(() => {
+                    console.info(`${fullSearchInputImage} converted to png successfully`);
+                })
+            console.log(image);
+        }
         const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
         return cdsInvocationResult;

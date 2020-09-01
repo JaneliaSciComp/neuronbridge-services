@@ -24,8 +24,8 @@ const DEFAULTS = {
 
 const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 1000;
 const region = process.env.AWS_REGION;
-const libraryBucket = process.env.LIBRARY_BUCKET;
-const searchBucket = process.env.SEARCH_BUCKET;
+const defaultLibraryBucket = process.env.LIBRARY_BUCKET;
+const defaultSearchBucket = process.env.SEARCH_BUCKET;
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
@@ -40,6 +40,8 @@ exports.searchDispatch = async (event) => {
     const searchInputParams = await getSearchInputParams(event);
 
     const searchId = searchInputParams.searchId;
+    const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;
+    const libraryBucket = searchInputParams.libraryBucket || defaultLibraryBucket;
     const searchType = searchInputParams.searchType;
     const searchInputFolder = searchInputParams.searchInputFolder;
     const searchInputName = searchInputParams.searchInputName;
@@ -65,14 +67,15 @@ exports.searchDispatch = async (event) => {
     subsegment.close();
 
     if (level === 0) {
-        const checkMask = await verifyKey(searchBucket, `${searchInputFolder}/${searchInputName}`);
+        const maskKey = `${searchInputFolder}/${searchInputName}`;
+        const checkMask = await verifyKey(searchBucket, maskKey);
         if (checkMask === false) {
-            console.log(`Mask s3://${searchBucket}/${searchInputFolder}/${searchInputName} not found`);
+            console.log(`Mask s3://${searchBucket}/${maskKey} not found`);
             // set the error
             await updateSearchMetadata({
                 id: searchId,
                 step: SEARCH_IN_PROGRESS,
-                errorMessage: `Mask s3://${searchBucket}/${searchInputFolder}/${searchInputName} not found`
+                errorMessage: `Mask s3://${searchBucket}/${maskKey} not found`
             });
             return searchInputName;
         }
@@ -96,7 +99,7 @@ exports.searchDispatch = async (event) => {
                 return library;
             })
             .map(async l => {
-                const lsize = await getCount(l.lkey);
+                const lsize = await getCount(libraryBucket, l.lkey);
                 return await {
                     ...l,
                     lsize: lsize
@@ -174,6 +177,8 @@ exports.searchDispatch = async (event) => {
     const nextEvent = {
         level: level + 1,
         numLevels: numLevels,
+        searchBucket: searchBucket,
+        libraryBucket: libraryBucket,
         libraries: libraries,
         searchId: searchId,
         searchType: searchType,
@@ -212,7 +217,7 @@ exports.searchDispatch = async (event) => {
             .map(async l => {
                 return await {
                     ...l,
-                    lkeys: await getKeys(l.lkey)
+                    lkeys: await getKeys(libraryBucket, l.lkey)
                 };
             });
         const librariesWithKeys = await Promise.all(librariesWithKeysPromise);
@@ -302,7 +307,7 @@ const setSearchLibraries = (searchData)  => {
     }
 }
 
-const getCount = async (libraryKey) => {
+const getCount = async (libraryBucket, libraryKey) => {
     console.log("Get count from:", libraryKey);
     const countMetadata = await getObject(
         libraryBucket,
@@ -312,7 +317,7 @@ const getCount = async (libraryKey) => {
     return countMetadata.objectCount;
 }
 
-const getKeys = async (libraryKey) => {
+const getKeys = async (libraryBucket, libraryKey) => {
     console.log("Get keys from:", libraryKey);
     return await getObject(
         libraryBucket,

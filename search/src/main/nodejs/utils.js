@@ -66,15 +66,15 @@ exports.getObjectWithRetry = async (bucket, key, retries) => {
     }
 }
 
-// Retrieve a text file from S3
-exports.getText = async (bucket, key) => {
+// Retrieve a file from S3
+exports.getS3Content = async (bucket, key) => {
     try {
         if (DEBUG)
-            console.log(`Getting text from ${bucket}:${key}`);
+            console.log(`Getting content from ${bucket}:${key}`);
         const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
-        return response.Body.toString();
+        return response.Body;
     } catch (e) {
-        console.error(`Error getting object ${bucket}:${key}`, e);
+        console.error(`Error getting content ${bucket}:${key}`, e);
         throw e; // rethrow it
     }
 };
@@ -99,21 +99,19 @@ exports.putObject = async (Bucket, Key, data) => {
     return `s3://${Bucket}/${Key}`
 };
 
-// Write text to an S3 bucket
-exports.putText = async (Bucket, Key, text) => {
+// Write content to an S3 bucket
+exports.putS3Content = async (Bucket, Key, contentType, content) => {
     try {
         if (DEBUG)
-            console.log(`Putting text to ${Bucket}:${Key}`);
+            console.log(`Putting content to ${Bucket}:${Key}`);
         await s3.putObject({
             Bucket,
             Key,
-            Body: text,
-            ContentType: 'plain/text'
+            Body: content,
+            ContentType: contentType
         }).promise();
-        if (DEBUG)
-            console.log(`Put text to ${Bucket}:${Key}:`, text);
     } catch (e) {
-        console.error('Error putting object', text, `to ${Bucket}:${Key}`, e);
+        console.error('Error putting content', `to ${Bucket}:${Key}`, e);
         throw e;
     }
     return `s3://${Bucket}/${Key}`

@@ -7,8 +7,8 @@
   "libraries": [
     "FlyEM_Hemibrain_v1.1"
   ],
-  "searchInputName": "1110173824_TC_18U.tif",
-  "searchInputFolder": "private/us-east-1:853b7e81-c739-4434-99dd-aafeed3265e3/64d12160-e8a0-11ea-afe0-0be3a81cc1a1",
+  "searchInputName": "mask1417367048598452966.png",
+  "searchInputFolder": "colorDepthTestData/test1",
   "dataThreshold": 100,
   "maskThreshold": 100,
   "pixColorFluctuation": 2,
@@ -25,8 +25,8 @@ as below:
   "libraries": [
     "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/searchable_neurons"
   ],
-  "searchInputName": "1110173824_TC_18U.tif",
-  "searchInputFolder": "private/us-east-1:853b7e81-c739-4434-99dd-aafeed3265e3/64d12160-e8a0-11ea-afe0-0be3a81cc1a1",
+  "searchInputName": "mask3900813784977233932.png",
+  "searchInputFolder": "colorDepthTestData/test2",
   "dataThreshold": 100,
   "maskThreshold": 100,
   "pixColorFluctuation": 2,

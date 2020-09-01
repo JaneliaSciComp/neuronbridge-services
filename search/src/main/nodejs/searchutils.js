@@ -5,6 +5,15 @@ const getKeyWithNoExt = (searchInputKey) => {
     return extSeparatorIndex > 0 ? searchInputKey.substring(0, extSeparatorIndex) : searchInputKey;
 }
 
+exports.getSearchKey = (searchInputName, ext) => {
+    if (!ext) {
+        return searchInputName;
+    } else {
+        const searchInputKey = getKeyWithNoExt(searchInputName);
+        return searchInputKey + ext;
+    }
+}
+
 exports.getSearchMaskId = (searchInputName) => {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     const searchInputPathComps = searchInputKey.split('/');

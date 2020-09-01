@@ -184,8 +184,11 @@ functions:
     handler: src/main/nodejs/search_starter.searchStarter
     memorySize: 256
     timeout: 25
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
     environment:
       DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
