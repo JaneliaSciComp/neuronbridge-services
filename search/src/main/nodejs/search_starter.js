@@ -85,23 +85,23 @@ const startColorDepthSearch = async (searchParams) => {
         if (searchParams.upload.endsWith('.tif') ||
             searchParams.upload.endsWith('.tiff')) {
             const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
-            console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
-            const imageContent = await getS3Content(searchBucket, fullSearchInputImage);
-            const pngMime = 'image/png';
-            await Jimp.read(imageContent)
-                .then(image => image.getBuffer(pngMime))
-                .then((imageBuffer) => {
-                    const pngImageName = getSearchKey(fullSearchInputImage, '.png');
-                    console.log(`Put ${searchBucket}:${pngImageName}`, imageBuffer);
-                    return putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
-                })
-                .catch(err => {
-                    throw err;
-                })
-                .finally(() => {
-                    console.info(`${fullSearchInputImage} converted to png successfully`);
-                })
-            console.log(image);
+            try {
+                console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
+                const imageContent = await getS3Content(searchBucket, fullSearchInputImage);
+                const pngMime = 'image/png';
+                const image = await Jimp.read(imageContent);
+                const imageBuffer = await image.getBufferAsync(pngMime);
+                const pngImageName = getSearchKey(fullSearchInputImage, '.png');
+                console.log(`Put ${searchBucket}:${pngImageName}`, imageBuffer);
+                await putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
+                console.info(`${fullSearchInputImage} converted to png successfully`);
+                await updateSearchMetadata({
+                    id: searchParams.id || searchParams.searchId,
+                    displayableMask: getSearchMaskId(pngImageName)
+                });
+            } catch (convertError) {
+                console.error(`Error converting ${searchBucket}:${fullSearchInputImage} to PNG`, e);
+            }
         }
         const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
