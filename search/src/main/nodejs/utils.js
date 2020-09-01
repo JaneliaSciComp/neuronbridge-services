@@ -67,7 +67,7 @@ exports.getObjectWithRetry = async (bucket, key, retries) => {
 }
 
 // Retrieve a file from S3
-exports.getS3Content = async (bucket, key) => {
+const getS3Content = async (bucket, key) => {
     try {
         if (DEBUG)
             console.log(`Getting content from ${bucket}:${key}`);
@@ -78,6 +78,22 @@ exports.getS3Content = async (bucket, key) => {
         throw e; // rethrow it
     }
 };
+
+exports.getS3Content = getS3Content;
+
+exports.getS3ContentWithRetry = async (bucket, key, retries) => {
+    for(let retry = 0; retry < retries; retry++) {
+        try {
+            return await getS3Content(bucket, key);
+            await sleep(500);
+        } catch (e) {
+            if (retry + 1 >= retries) {
+                console.error(`Error getting content ${bucket}:${key} after ${retries} retries`, e);
+                throw e;
+            }
+        }
+    }
+}
 
 // Write an object into S3 as JSON
 exports.putObject = async (Bucket, Key, data) => {

@@ -22,7 +22,7 @@ const DEFAULTS = {
     minMatchingPixRatio: 2,
 };
 
-const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 1000;
+const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 3000;
 const region = process.env.AWS_REGION;
 const defaultLibraryBucket = process.env.LIBRARY_BUCKET;
 const defaultSearchBucket = process.env.SEARCH_BUCKET;

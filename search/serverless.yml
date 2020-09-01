@@ -12,6 +12,7 @@ custom:
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+  searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
   neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
   cdsTimeoutInSeconds: 300
@@ -209,7 +210,8 @@ functions:
               - SearchTable
               - StreamArn
           batchSize: 1
-
+          startingPosition: LATEST
+          maximumRetryAttempts: 2
   searchDispatch:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_dispatch.searchDispatch
@@ -220,6 +222,7 @@ functions:
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}

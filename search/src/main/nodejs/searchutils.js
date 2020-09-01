@@ -14,13 +14,14 @@ exports.getSearchKey = (searchInputName, ext) => {
     }
 }
 
-exports.getSearchMaskId = (searchInputName) => {
+exports.getSearchMaskId = (searchInputName, extParam) => {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     const searchInputPathComps = searchInputKey.split('/');
     if (!searchInputPathComps.length) {
         return null;
     } else {
-        return searchInputPathComps[searchInputPathComps.length-1];
+        const ext = extParam ? extParam : '';
+        return searchInputPathComps[searchInputPathComps.length-1] + ext;
     }
 }
 

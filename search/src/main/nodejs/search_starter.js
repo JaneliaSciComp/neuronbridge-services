@@ -2,8 +2,8 @@
 
 const AWS = require('aws-sdk');
 const Jimp = require('jimp');
-const {getSearchKey} = require('./searchutils');
-const {getS3Content, invokeAsync, putS3Content} = require('./utils');
+const {getSearchKey, getSearchMaskId} = require('./searchutils');
+const {getS3ContentWithRetry, invokeAsync, putS3Content} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
@@ -14,6 +14,7 @@ const concurrentSearchLimits = process.env.CONCURRENT_SEARCHES || 1;
 
 const bc = new AWS.Batch();
 const searchBucket = process.env.SEARCH_BUCKET;
+const s3Retries = process.env.S3_RETRIES || 3;
 
 exports.searchStarter = async (event) => {
     console.log(event);
@@ -87,20 +88,22 @@ const startColorDepthSearch = async (searchParams) => {
             const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
             try {
                 console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
-                const imageContent = await getS3Content(searchBucket, fullSearchInputImage);
+                const imageContent = await getS3ContentWithRetry(searchBucket, fullSearchInputImage, s3Retries);
                 const pngMime = 'image/png';
+                const pngExt = '.png';
                 const image = await Jimp.read(imageContent);
                 const imageBuffer = await image.getBufferAsync(pngMime);
-                const pngImageName = getSearchKey(fullSearchInputImage, '.png');
+                const pngImageName = getSearchKey(fullSearchInputImage, pngExt);
                 console.log(`Put ${searchBucket}:${pngImageName}`, imageBuffer);
                 await putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
                 console.info(`${fullSearchInputImage} converted to png successfully`);
+                searchParams.displayableMask = getSearchMaskId(pngImageName, pngExt);
                 await updateSearchMetadata({
                     id: searchParams.id || searchParams.searchId,
-                    displayableMask: getSearchMaskId(pngImageName)
+                    displayableMask: searchParams.displayableMask
                 });
             } catch (convertError) {
-                console.error(`Error converting ${searchBucket}:${fullSearchInputImage} to PNG`, e);
+                console.error(`Error converting ${searchBucket}:${fullSearchInputImage} to PNG`, convertError);
             }
         }
         const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
