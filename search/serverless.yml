@@ -233,7 +233,7 @@ functions:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.BatchSearch
-    memorySize: 256
+    memorySize: 512
     # 5 minute timeout
     timeout: 300
     environment:
