@@ -108,7 +108,6 @@ provider:
         - dynamodb:DescribeStream
         - dynamodb:DescribeTable
         - dynamodb:GetRecords
-        - dynamodb:GetShardIterator
         - dynamodb:ListStreams
         - dynamodb:GetItem
         - dynamodb:PutItem
@@ -212,8 +211,7 @@ functions:
               - SearchTable
               - StreamArn
           batchSize: 1
-          startingPosition: LATEST
-          maximumRetryAttempts: 2
+          maximumRetryAttempts: 3
   searchDispatch:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_dispatch.searchDispatch
