@@ -205,14 +205,6 @@ functions:
           cors: true
           authorizer:
             name: neuronBridgeJwtAuthorizer
-      - stream:
-          type: dynamodb
-          arn:
-            Fn::GetAtt:
-              - SearchTable
-              - StreamArn
-          batchSize: 1
-          maximumRetryAttempts: 3
   searchDispatch:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_dispatch.searchDispatch
@@ -356,8 +348,6 @@ resources:
           - AttributeName: id
             AttributeType: S
         BillingMode: PAY_PER_REQUEST
-        StreamSpecification:
-          StreamViewType: KEYS_ONLY
         TableName: ${self:custom.searchTable}
 
 
