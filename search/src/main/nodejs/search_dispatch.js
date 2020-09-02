@@ -244,6 +244,7 @@ exports.searchDispatch = async (event) => {
             const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
+                searchId: searchId,
                 outputURI: batchResultsURI,
                 maskPrefix: searchBucket,
                 maskKeys: [`${searchInputFolder}/${searchInputName}`],

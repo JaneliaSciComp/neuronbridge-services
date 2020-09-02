@@ -49,7 +49,7 @@ class AWSMIPLoader {
         }
     }
 
-    MIPImage loadFirstMatchingMIP(String bucketName, MIPMetadata mip, String mipExt, String... otherMipExts) {
+    MIPImage loadFirstMatchingMIP(String bucketName, MIPMetadata mip) {
         long startTime = System.currentTimeMillis();
         InputStream inputStream;
         String mipImagePrefix = RegExUtils.replacePattern(mip.getImagePath(), "\\..*$", "");

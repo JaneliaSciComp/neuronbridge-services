@@ -9,6 +9,7 @@ import java.util.List;
  */
 public class BatchSearchParameters {
 
+    private String searchId;
     private String searchPrefix;
     private List<String> searchKeys;
     private String maskPrefix;
@@ -20,6 +21,15 @@ public class BatchSearchParameters {
     private boolean mirrorMask = false;
     private String outputURI;
     private Double minMatchingPixRatio = 2.;
+
+
+    public String getSearchId() {
+        return searchId;
+    }
+
+    public void setSearchId(String searchId) {
+        this.searchId = searchId;
+    }
 
     public String getSearchPrefix() {
         return searchPrefix;

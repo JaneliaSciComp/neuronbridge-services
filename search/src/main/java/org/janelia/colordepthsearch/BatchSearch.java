@@ -7,11 +7,13 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.xray.AWSXRay;
 
+import org.apache.commons.lang3.StringUtils;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import software.amazon.awssdk.services.s3.S3Client;
 
 /**
@@ -26,6 +28,9 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
 
     @Override
     public Integer handleRequest(BatchSearchParameters params, Context context) {
+        if (StringUtils.isNotBlank(params.getSearchId())) {
+            MDC.put("searchId", params.getSearchId());
+        }
         verifyCDSParams(params);
         S3Client s3 = LambdaUtils.createS3();
         List<ColorMIPSearchResult> cdsResults = performColorDepthSearch(params, s3);
