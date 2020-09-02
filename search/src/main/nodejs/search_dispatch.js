@@ -13,7 +13,6 @@ const stepFunction = new AWS.StepFunctions();
 const DEFAULTS = {
     level: 0,
     numLevels: 2,
-    batchSize: 40,
     maskThreshold: 100,
     dataThreshold: 100,
     pixColorFluctuation: 2.0,
@@ -21,6 +20,15 @@ const DEFAULTS = {
     mirrorMask: true,
     minMatchingPixRatio: 2,
 };
+
+const defaultBatchSize = () => {
+    if (process.env.BATCH_SIZE) {
+        const configuredBatchSize = process.env.BATCH_SIZE *  1;
+        return configuredBatchSize > 0 ? configuredBatchSize : 40;
+    } else {
+        return 40;
+    }
+}
 
 const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 3000;
 const region = process.env.AWS_REGION;
@@ -58,7 +66,7 @@ exports.searchDispatch = async (event) => {
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     let libraries = searchInputParams.libraries;
-    let batchSize = searchInputParams.batchSize || DEFAULTS.batchSize;
+    let batchSize = searchInputParams.batchSize || defaultBatchSize();
     let numBatches = searchInputParams.numBatches;
     let branchingFactor = searchInputParams.branchingFactor;
     let startIndex = searchInputParams.startIndex;
