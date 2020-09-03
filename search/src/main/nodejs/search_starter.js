@@ -83,8 +83,8 @@ const startColorDepthSearch = async (searchParams) => {
         return {};
     } else {
         console.log('Start ColorDepthSearch', searchParams);
-        if (searchParams.upload.endsWith('.tif') ||
-            searchParams.upload.endsWith('.tiff')) {
+        if (searchParams.searchInputName.endsWith('.tif') ||
+            searchParams.searchInputName.endsWith('.tiff')) {
             const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
             try {
                 console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
@@ -105,6 +105,13 @@ const startColorDepthSearch = async (searchParams) => {
             } catch (convertError) {
                 console.error(`Error converting ${searchBucket}:${fullSearchInputImage} to PNG`, convertError);
             }
+        } else {
+            // the upload mask is displayable so set it as such
+            searchParams.displayableMask = searchParams.searchInputName;
+            await updateSearchMetadata({
+                id: searchParams.id || searchParams.searchId,
+                displayableMask: searchParams.displayableMask
+            });
         }
         const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
