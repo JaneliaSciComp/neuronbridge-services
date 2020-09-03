@@ -133,13 +133,14 @@ const startAlignment = async (searchParams) => {
             'vcpus': 16,
             'memory': 8192
         };
+        const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
         const jobName = `align-${searchParams.owner}-${searchParams.id}`;
         const jobParameters = {
             nchannels: searchParams.channel + '',
             xy_resolution: searchParams.voxelX + '',
             z_resolution: searchParams.voxelZ + '',
             search_id: searchParams.id,
-            input_filename: searchParams.searchInput,
+            input_filename: fullSearchInputImage,
             output_folder: searchParams.searchInputFolder
         };
         const params = {
