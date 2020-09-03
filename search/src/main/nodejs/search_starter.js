@@ -4,7 +4,7 @@ const AWS = require('aws-sdk');
 const Jimp = require('jimp');
 const {getSearchKey, getSearchMaskId} = require('./searchutils');
 const {getS3ContentWithRetry, invokeAsync, putS3Content} = require('./utils');
-const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata} = require('./awsappsyncutils');
+const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata, ALIGNMENT_JOB_SUBMITTED} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
@@ -150,12 +150,26 @@ const startAlignment = async (searchParams) => {
             containerOverrides: jobResources,
             parameters: jobParameters
         };
-        // submit batch job
         console.log('Job parameters', params);
-        const job = await bc.submitJob(params).promise();
-        console.log('Submitted', job);
-        console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
-        return job;
+        try {
+            // submit batch job
+            const job = await bc.submitJob(params).promise();
+            console.log('Submitted', job);
+            console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
+            await updateSearchMetadata({
+                id: searchParams.id || searchParams.searchId,
+                step: ALIGNMENT_JOB_SUBMITTED,
+            });
+            return job;
+        } catch (submitError) {
+            console.error('Error submitting job with parameters', params, submitError);
+            await updateSearchMetadata({
+                id: searchParams.id || searchParams.searchId,
+                step: ALIGNMENT_JOB_SUBMITTED,
+                errorMessage: `Error submitting alignment job for ${searchParams.id}:${fullSearchInputImage} - ${submitError.message}`
+            });
+            throw submitError;
+        }
     }
 }
 
