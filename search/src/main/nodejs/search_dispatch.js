@@ -145,6 +145,7 @@ exports.searchDispatch = async (event) => {
         const now = new Date();
         const searchMetadata = {
             startTime: now.toISOString(),
+            searchType: searchInputParamsWithLibraries.searchType,
             parameters: searchInputParamsWithLibraries,
             libraries: libraries,
             nsearches: totalSearches,
