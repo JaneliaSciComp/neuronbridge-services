@@ -135,7 +135,7 @@ const startAlignment = async (searchParams) => {
             'memory': 8192
         };
         const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
-        const jobName = `align-${searchParams.owner}-${searchParams.id}`;
+        const jobName = `align-${searchParams.id}`;
         const jobParameters = {
             nchannels: searchParams.channel + '',
             xy_resolution: searchParams.voxelX + '',
@@ -163,13 +163,13 @@ const startAlignment = async (searchParams) => {
             });
             if (alignMonitorStateMachineArn != null) {
                 // start the state machine
-                const now = new Date();
+                const now = new Date().toISOString();
                 await startStepFunction(
                     `Align_${job.jobId}_${now}`,
                     {
-                        searchId: searchId || null,
+                        searchId: searchParams.id || null,
                         jobId: job.jobId,
-                        startTime: now.toISOString()
+                        startTime: now
                     },
                     alignMonitorStateMachineArn
                 );
