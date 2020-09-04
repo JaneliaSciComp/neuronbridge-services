@@ -84,9 +84,12 @@ const startColorDepthSearch = async (searchParams) => {
         return {};
     } else {
         console.log('Start ColorDepthSearch', searchParams);
-        if (searchParams.searchInputName.endsWith('.tif') ||
-            searchParams.searchInputName.endsWith('.tiff')) {
-            const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
+        const searchInputName = searchParams.searchMask
+            ? searchParams.searchMask
+            : searchParams.searchInputName
+        if (searchInputName.endsWith('.tif') ||
+            searchInputName.endsWith('.tiff')) {
+            const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchInputName}`;
             try {
                 console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
                 const imageContent = await getS3ContentWithRetry(searchBucket, fullSearchInputImage, s3Retries);
@@ -108,7 +111,7 @@ const startColorDepthSearch = async (searchParams) => {
             }
         } else {
             // the upload mask is displayable so set it as such
-            searchParams.displayableMask = searchParams.searchInputName;
+            searchParams.displayableMask = searchInputName;
             await updateSearchMetadata({
                 id: searchParams.id || searchParams.searchId,
                 displayableMask: searchParams.displayableMask
