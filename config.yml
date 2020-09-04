@@ -1,6 +1,6 @@
 config:
   project: NeuronBridge
-  stage: ${opt:stage, "cgdev"}
+  stage: ${opt:stage, "tkjsdev"}
   version: 2.0.0
   libraryBucket: janelia-flylight-color-depth-dev
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
