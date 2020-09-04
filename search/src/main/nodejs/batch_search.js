@@ -72,14 +72,15 @@ exports.batchSearch = async (event) => {
 
     if (batchParams.outputURI != null) {
 
-        const matchedMetadata = cdsResults.map(perMaskMetadata);
-        groupBy()
+        const matchedMetadata = cdsResults.map(perMaskMetadata)
+            .sort(function(a, b) {return a.matchingPixels < b.matchingPixels ? 1 : -1;});
+        const ret = groupBy("sourceId","sourcePublishedName", "sourceLibraryName", "sourceImageURL")(matchedMetadata);
 
         subsegment = segment.addNewSubsegment('Sort and save results');
         await putObject(
             batchParams.outputBucket,
             batchParams.outputKey,
-            ColorMIPSearchResultUtils.groupResults(cdsResults, ColorMIPSearchResult::perMaskMetadata));
+            ret);
         subsegment.close();
     }
 
