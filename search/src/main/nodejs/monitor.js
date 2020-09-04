@@ -20,8 +20,8 @@ exports.isSearchDone = async (event) =>  {
 }
 
 const monitorAlignmentJob = async (alignJobParams) => {
-    const searchId = cdsJobParams.searchId;
-    const jobId = cdsJobParams.jobId;
+    const searchId = alignJobParams.searchId;
+    const jobId = alignJobParams.jobId;
 
     const jobDescriptions = await bc.describeJobs({
         jobs: [jobId]
