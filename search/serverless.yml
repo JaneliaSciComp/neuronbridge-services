@@ -219,10 +219,8 @@ functions:
       DEBUG: ${self:custom.debug}
 
   search:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.BatchSearch
+    runtime: nodejs12.x
+    handler: src/main/nodejs/batch_search.batchSearch
     memorySize: 256
     # 5 minute timeout
     timeout: 300

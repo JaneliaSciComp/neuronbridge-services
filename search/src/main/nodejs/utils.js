@@ -1,6 +1,7 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const url = require('url');
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
@@ -23,6 +24,23 @@ exports.getAllKeys = async params => {
         params.ContinuationToken = result.NextContinuationToken;
     } while (result.NextContinuationToken);
     return allKeys;
+};
+
+// Retrieve a file from S3
+exports.getObjectDataArray = async (bucket, key, defaultValue) => {
+    try {
+        if (DEBUG)
+            console.log(`Getting object from ${bucket}:${key}`);
+        const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
+        return response.Body.arrayBuffer();
+    } catch (e) {
+        console.error(`Error getting object ${bucket}:${key}`, e);
+        if (defaultValue === undefined) {
+            throw e; // rethrow it
+        } else {
+            return defaultValue;
+        }
+    }
 };
 
 // Retrieve a JSON file from S3
