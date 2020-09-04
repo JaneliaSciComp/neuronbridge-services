@@ -10,7 +10,7 @@ const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
 const perDaySearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
-const concurrentSearchLimits = process.env.CONCURRENT_SEARCHES || 1;
+const concurrentSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 
 const bc = new AWS.Batch();
@@ -163,7 +163,7 @@ const startAlignment = async (searchParams) => {
             });
             if (alignMonitorStateMachineArn != null) {
                 // start the state machine
-                const now = new Date().toISOString();
+                const now = new Date().getTime();
                 await startStepFunction(
                     `Align_${job.jobId}_${now}`,
                     {

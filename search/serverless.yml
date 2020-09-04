@@ -206,6 +206,7 @@ functions:
           cors: true
           authorizer:
             name: neuronBridgeJwtAuthorizer
+
   searchDispatch:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_dispatch.searchDispatch
