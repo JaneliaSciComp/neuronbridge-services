@@ -1,121 +1,151 @@
 'use strict';
 
-const utils = require('./utils');
 const AWS = require('aws-sdk');
 const moment = require('moment');
 
-const s3 = new AWS.S3();
-const DEBUG = false;
+const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
+const {getAllKeys, putText, DEBUG} = require('./utils');
+const {updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
+
+const bc = new AWS.Batch();
 const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
-exports.isSearchDone = async (event, context) => {
+exports.isSearchDone = async (event) =>  {
+    console.log(event);
+    if (event.jobId) {
+        return await monitorAlignmentJob(event);
+    } else {
+        return await monitoCDSJob(event);
+    }
+}
+
+const monitorAlignmentJob = async (alignJobParams) => {
+    const searchId = cdsJobParams.searchId;
+    const jobId = cdsJobParams.jobId;
+
+    const jobDescriptions = await bc.describeJobs({
+        jobs: [jobId]
+    });
+    const job = jobDescriptions.jobs.find(j => j.jobId === jobId);
+    if (job) {
+        if (job.status === 'SUCCEEDED') {
+            await updateSearchMetadata({
+                id: searchId,
+                step: ALIGNMENT_JOB_COMPLETED
+            });
+            return {
+                ...alignJobParams,
+                completed: true,
+                withErrors: false
+            };
+        } else if (job.status === 'FAILED') {
+            const searchMetadata = getSearchMetadata(searchId);
+            if (!searchMetadata.errorMessage) {
+                await updateSearchMetadata({
+                    id: searchId,
+                    errorMessage: 'Alignment job failed'
+                });
+            }
+            return {
+                ...alignJobParams,
+                completed: true,
+                withErrors: true
+            };
+        } else {
+            // job is still running
+            return {
+                ...alignJobParams
+            };
+        }
+    } else {
+        // job not found
+        console.log('No job not found for', alignJobParams);
+        return {
+            ...alignJobParams,
+            completed: true,
+            withErrors: true
+        };
+    }
+}
+
+const monitoCDSJob = async (cdsJobParams) => {
 
     // Parameters
-    if (DEBUG) console.log(event);
-    const bucket = event.bucket;
-    const prefix = event.prefix;
+    const bucket = cdsJobParams.bucket;
+    const searchId = cdsJobParams.searchId;
+    const searchInputFolder = cdsJobParams.searchInputFolder;
+    const searchInputName = cdsJobParams.searchInputName;
+    const numBatches = cdsJobParams.numBatches;
+    const startTime = moment(cdsJobParams.startTime);
 
-    if (bucket == null) {
+    if (!bucket) {
         throw new Error('Missing required key \'bucket\' in input to isSearchDone');
     }
 
-    if (prefix == null) {
-        throw new Error('Missing required key \'prefix\' in input to isSearchDone');
+    if (!searchInputName) {
+        throw new Error('Missing required key \'searchInputName\' in input to isSearchDone');
     }
 
-    // Fetch metadata
-    const metadata = await utils.getObject(s3, bucket, prefix+"/metadata.json");
-    const numPartitions = metadata['partitions'];
-    const startTime = moment(metadata['startTime']);
+    const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
+    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
 
     // Fetch all keys
-    const allKeys = new Set(await utils.getAllKeys(s3, { Bucket: bucket, Prefix: prefix }));
-    if (DEBUG) console.log(allKeys);
+    const allKeys  = await getAllKeys({
+        Bucket: bucket,
+        Prefix: intermediateSearchResultsPrefix
+    });
+    const allBatchResultsKeys = new Set(allKeys);
 
     // Check if all partitions have completed
     let numComplete = 0;
-    for(let i=0; i<numPartitions; i++) {
-        const batchId = i.toString().padStart(4,"0");
-        const outputKey = prefix+"/batch_"+batchId+".json";
-        if (allKeys.has(outputKey)) {
+    for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
+        const batchResultsKey = getIntermediateSearchResultsKey(fullSearchInputName, batchIndex);
+        if (allBatchResultsKeys.has(batchResultsKey)) {
             numComplete++;
         }
     }
 
-    const completed = numPartitions === numComplete;
-    const numRemaining = numPartitions - numComplete;
+    console.log(`Completed: ${numComplete}/${numBatches}`);
 
     // Calculate total search time
     const now = new Date();
     const endTime = moment(now.toISOString());
     const elapsedSecs = endTime.diff(startTime, "s");
-    
-    if (completed) {
-        console.log(`Search complete: ${numComplete}/${numPartitions}`);
-
-        // Reduce results
-        const allMatches = [];
-        for(let i=0; i<numPartitions; i++) {
-            const batchId = i.toString().padStart(4,"0");
-            const outputKey = prefix+"/batch_"+batchId+".json";
-            const batchResults = await utils.getObject(s3, bucket, outputKey);
-            for(var j=0; j<batchResults.length; j++) {
-                var maskMatches;
-                if (i==0) {
-                    maskMatches = [];
-                    allMatches.push(maskMatches);
-                }
-                else {
-                    maskMatches = allMatches[j];
-                }
-                for(const result of batchResults[j]) {
-                    maskMatches.push(result);
-                }
-            }
-        }
-
-        // Sort the matches by descending score
-        let totalMatches = 0;
-        for(let i=0; i<allMatches.length; i++) {
-            allMatches[i] = allMatches[i].sort((a, b) => b.score - a.score);
-            console.log(`Found ${allMatches[i].length} total matches for Mask #${i}`);
-            totalMatches += allMatches[i].length;
-        }
-
-        // Write matches to a file
-        const outputUri = await utils.putObject(s3, bucket, prefix+"/results.json", allMatches);
-        console.log(`Saved reduced matches to ${outputUri}`);
-
-        // TODO: delete individual batch result files, which are no longer needed
-
+    const numRemaining = numBatches - numComplete;
+    // write down the progress
+    await updateSearchMetadata({
+        id: searchId,
+        completedBatches: numComplete
+    });
+    // return result for next state input
+    if (numRemaining === 0) {
         console.log(`Search took ${elapsedSecs} seconds`);
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
-            numPartitions: numPartitions,
             numRemaining: 0,
-            totalMatches: totalMatches,
             completed: true,
             timedOut: false
         };
-    }
-    else if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
+    } else if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
         console.log(`Search timed out after ${elapsedSecs} seconds`);
+        // update the error
+        await updateSearchMetadata({
+            id: searchId,
+            errorMessage: `Search timed out after ${elapsedSecs} seconds`
+        });
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
-            numPartitions: numPartitions,
             numRemaining: numRemaining,
             completed: false,
             timedOut: true
         };
-    }
-    else {
-        console.log(`Search still running after ${elapsedSecs} seconds. Completed ${numComplete} of ${numPartitions} jobs.`);
+    } else {
+        console.log(`Search still running after ${elapsedSecs} seconds. Completed ${numComplete} of ${numBatches} jobs.`);
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
-            numPartitions: numPartitions,
             numRemaining: numRemaining,
             completed: false,
             timedOut: false

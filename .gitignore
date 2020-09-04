@@ -1,4 +1,4 @@
-target
-.serverless
 .idea
-
+.serverless
+node_modules
+local

@@ -1,16 +1,74 @@
-service: janelia-neuronbridge-services
+service: janelia-neuronbridge-cds
+
+
+plugins:
+  - serverless-step-functions
+  - serverless-pseudo-parameters
+  - serverless-appsync-plugin
+
 
 custom:
-  libraryBucket: janelia-flylight-color-depth
-  maskBucket: janelia-neuronbridge-masks-${self:provider.stage}
-  searchBucket: janelia-neuronbridge-searches-${self:provider.stage}
-  version: 1.0.0
+  libraryBucket: ${file(../config.yml):config.libraryBucket}
+  libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
+  searchBucket: ${file(../config.yml):config.searchBucket}
+  searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+  searchBatchSize: 40
+  searchParallelization: 10000
+  cognitoUserPoolId: us-east-1_owgI6RY6Y
+  neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
+  cdsTimeoutInSeconds: 300
+  version: 2.0.0
   tracing: true
+  debug: true
+  appSync:
+    name: neuronbridge-appsync-${self:provider.stage}
+    authenticationType: AMAZON_COGNITO_USER_POOLS
+    userPoolConfig:
+      awsRegion: ${self:provider.region}
+      defaultAction: ALLOW
+      userPoolId: ${self:custom.cognitoUserPoolId}
+    additionalAuthenticationProviders:
+      - authenticationType: AWS_IAM
+    schema: graphql/schema.graphql
+    mappingTemplatesLocation: graphql/mapping-templates
+    mappingTemplates:
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: getSearch
+        request: "dynamodb-getSearch-request-template.vtl"
+        response: "dynamodb-getSearch-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: listSearches
+        request: "dynamodb-listSearches-request-template.vtl"
+        response: "dynamodb-listSearches-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: createSearch
+        request: "dynamodb-createSearch-request-template.vtl"
+        response: "dynamodb-createSearch-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: deleteSearch
+        request: "dynamodb-deleteSearch-request-template.vtl"
+        response: "dynamodb-deleteSearch-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: updateSearch
+        request: "dynamodb-updateSearch-request-template.vtl"
+        response: "dynamodb-updateSearch-response-template.vtl"
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: NeuronBridge_GraphQLDS_${self:provider.stage}
+        description: Table containing neuron searches
+        config:
+          tableName: ${self:custom.searchTable}
+
 
 provider:
   name: aws
-  region: ${opt:region, 'us-east-1'}
-  stage: ${opt:stage, 'dev'}
+  region: ${opt:region, "us-east-1"}
+  stage: ${opt:stage, "cgdev"}
   tags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
@@ -19,20 +77,18 @@ provider:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
     DEVELOPER: ${env:USER}
+    STAGE: ${self:provider.stage}
   tracing:
     lambda: ${self:custom.tracing}
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
-
   iamRoleStatements:
     - Effect: Allow
       Action:
         - s3:GetObject
         - s3:ListBucket
       Resource:
-        - "arn:aws:s3:::${self:custom.maskBucket}"
-        - "arn:aws:s3:::${self:custom.maskBucket}/*"
         - "arn:aws:s3:::${self:custom.libraryBucket}"
         - "arn:aws:s3:::${self:custom.libraryBucket}/*"
         - "arn:aws:s3:::${self:custom.searchBucket}"
@@ -41,21 +97,82 @@ provider:
       Action:
         - s3:PutObject
       Resource:
-        - "arn:aws:s3:::${self:custom.libraryBucket}"
-        - "arn:aws:s3:::${self:custom.libraryBucket}/*"
         - "arn:aws:s3:::${self:custom.searchBucket}/"
         - "arn:aws:s3:::${self:custom.searchBucket}/*"
     - Effect: Allow
       Action:
+        - s3:DeleteObject
+      Resource:
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:DescribeStream
+        - dynamodb:DescribeTable
+        - dynamodb:GetRecords
+        - dynamodb:ListStreams
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:UpdateTable
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
+    - Effect: Allow
+      Action:
         - lambda:InvokeFunction
+        - lambda:InvokeAsync
       Resource: "*"
     - Effect: Allow
       Action:
         - states:StartExecution
       Resource: "*"
+    - Effect: Allow
+      Action:
+        - appsync:GraphQL
+      Resource: { Fn::Join: [
+        "",
+        [
+          "arn:aws:appsync:",
+          {
+            Ref: "AWS::Region"
+          },
+          ":",
+          {
+            Ref: "AWS::AccountId"
+          },
+          ":apis/",
+          {
+            Fn::GetAtt: [ GraphQlApi, ApiId ]
+          },
+          "/*"
+        ]
+      ]}
+    - Effect: Allow
+      Action:
+        - batch:SubmitJob
+      Resource: "arn:aws:batch:*:*:*"
+  httpApi:
+    payload: "2.0"
+    cors: true
+    authorizers:
+      neuronBridgeJwtAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.${self:provider.region}.amazonaws.com/${self:custom.cognitoUserPoolId}
+        audience:
+          - ${self:custom.neuronbridgeAppId}
+
 
 package:
   individually: true
+  exclude:
+    - pom.xml
+    - ./*.iml
+    - .idea/**
+    - target/**
+    - src/test/**
+    - src/main/java/**
+    - src/main/resources/**
+  include:
+    - src/main/nodejs/**
+
 
 functions:
 
@@ -63,22 +180,32 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/denormalize.denormalize
     memorySize: 128
-    timeout: 300
+    timeout: 900
 
-  parallelSearch:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.ParallelSearch
+  searchStarter:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_starter.searchStarter
     memorySize: 256
-    # 5 minute timeout
-    timeout: 300
+    timeout: 25
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
     environment:
-      MASK_BUCKET: ${self:custom.maskBucket}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
-      SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
-      STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
+      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-lowpriority
+      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
+    events:
+      - httpApi:
+          method: POST
+          path: /searches
+          cors: true
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
 
   searchDispatch:
     runtime: nodejs12.x
@@ -87,21 +214,27 @@ functions:
     # 5 minute timeout
     timeout: 300
     environment:
-      MASK_BUCKET: ${self:custom.maskBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
-      DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      BATCH_SIZE: ${self:custom.searchBatchSize}
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
+      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
+      DEBUG: ${self:custom.debug}
 
   search:
     package:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.BatchSearch
-    memorySize: 256
+    memorySize: 384
     # 5 minute timeout
     timeout: 300
+    environment:
+      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
+      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
   monitor:
     runtime: nodejs12.x
@@ -110,13 +243,47 @@ functions:
     # 5 minute timeout because the last iteration also runs the reduce step
     timeout: 300
     environment:
-      SEARCH_TIMEOUT_SECS: 300
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      DEBUG: ${self:custom.debug}
+
+  searchReduce:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_reducer.searchReducer
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
+    environment:
+      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      DEBUG: ${self:custom.debug}
+
+  searchUpdate:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_update.searchUpdate
+    memorySize: 128
+    timeout: 25
+    environment:
+      DEBUG: ${self:custom.debug}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+
+  em2lmGradScorer:
+    package:
+      artifact: target/neuronbridge-search-${self:custom.version}.jar
+    runtime: java8
+    handler: org.janelia.colordepthsearch.AWSLambdaEM2LMGradientScoreCalc
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
+
 
 stepFunctions:
 
   stateMachines:
     searchMonitorStateMachine:
-      name: searchMonitorStateMachine
+      id: SearchMonitorStateMachine
+      name: searchMonitorStateMachine-${self:service}-${self:provider.stage}
       definition:
         Comment: "Monitors a parallel Color Depth Search and notifies the user upon completion"
         StartAt: Monitor
@@ -143,42 +310,89 @@ stepFunctions:
             Choices:
               - Variable: "$.completed"
                 BooleanEquals: true
-                Next: EndState
+                Next: Reduce
             Default: Wait
           Wait:
             Type: Wait
-            Seconds: 1
+            Seconds: 30
             Next: Monitor
           TimedOut:
             Type: Fail
             Cause: "Search timed out"
+          Reduce:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [searchReduce, Arn]
+            Next: EndState
           EndState:
             Type: Pass
             End: true
-
+    jobMonitorStateMachine:
+      id: JobMonitorStateMachine
+      name: jobMonitorStateMachine-${self:service}-${self:provider.stage}
+      definition:
+        StartAt: Monitor
+        States:
+          Monitor:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [monitor, Arn]
+            Retry:
+              - ErrorEquals:
+                  - Lambda.TooManyRequestsException
+                IntervalSeconds: 1
+                MaxAttempts: 100
+            Next: AreWeDoneYet
+          AreWeDoneYet:
+            Type: Choice
+            Choices:
+              - Variable: "$.completed"
+                BooleanEquals: true
+                Next: CheckErrors
+            Default: Wait
+          Wait:
+            Type: Wait
+            Seconds: 300
+            Next: Monitor
+          CheckErrors:
+            Type: Choice
+            Choices:
+              - Variable: "$.withErrors"
+                BooleanEquals: true
+                Next: ErrorState
+            Default: EndState
+          ErrorState:
+            Type: Fail
+            Cause: "Job completed with errors"
+          EndState:
+            Type: Pass
+            End: true
   validate: true # enable pre-deployment definition validation
 
 
 resources:
-
-  Resources:
-    S3BucketInputs:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.maskBucket}
-
-    S3BucketSearches:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.searchBucket}
 
   Outputs:
     SearchMonitorStateMachine:
       Description: The ARN of the state machine
       Value:
         Ref: SearchMonitorStateMachine
+    JobMonitorStateMachine:
+      Value:
+        Ref: JobMonitorStateMachine
+
+  Resources:
+    SearchTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.searchTable}
 
 
-plugins:
-  - serverless-step-functions
-  - serverless-pseudo-parameters
+

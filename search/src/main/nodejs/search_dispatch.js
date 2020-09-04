@@ -1,249 +1,346 @@
 'use strict';
 
-const utils = require('./utils');
-const AWSXRay = require('aws-xray-sdk-core')
 const AWS = require('aws-sdk');
-// const AWS = AWSXRay.captureAWS(require('aws-sdk')
+const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
 
-const DEBUG = true;
-const s3 = new AWS.S3();
-//const lambda = AWSXRay.captureAWSClient(new AWS.Lambda());
-const lambda = new AWS.Lambda();
-
-const MAX_PARALLELISM = 3000;
+const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
+const {getObject, putObject, invokeAsync, partition, startStepFunction, verifyKey, DEBUG} = require('./utils');
+const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
 
 const DEFAULTS = {
     level: 0,
     numLevels: 2,
-    batchSize: 40,
+    maskThreshold: 100,
     dataThreshold: 100,
     pixColorFluctuation: 2.0,
-    xyShift: 0,
-    mirrorMask: false,
-    minMatchingPix: 5,
+    xyShift: 2,
+    mirrorMask: true,
+    minMatchingPixRatio: 2,
 };
 
+const defaultBatchSize = () => {
+    if (process.env.BATCH_SIZE) {
+        const configuredBatchSize = process.env.BATCH_SIZE *  1;
+        return configuredBatchSize > 0 ? configuredBatchSize : 40;
+    } else {
+        return 40;
+    }
+}
+
+const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 3000;
 const region = process.env.AWS_REGION;
-const maskBucket = process.env.MASK_BUCKET;
-const libraryBucket = process.env.LIBRARY_BUCKET;
-const searchBucket = process.env.SEARCH_BUCKET;
-const dispatchFunction = process.env.DISPATCH_FUNCTION;
+const defaultLibraryBucket = process.env.LIBRARY_BUCKET;
+const defaultSearchBucket = process.env.SEARCH_BUCKET;
+const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
-async function getCount(library) {
-    const countMetadata = await utils.getObject(s3, libraryBucket, library+"/counts_denormalized.json");
-    console.log("Retrieved count metadata: ", countMetadata);
-    return countMetadata.objectCount;
-    //return 1337;
-}
+exports.searchDispatch = async (event) => {
 
-async function getKeys(library) {
-    const keys = await utils.getObject(s3, libraryBucket, library+"/keys_denormalized.json");
-    return keys;
-    //return keys.slice(0, 1337);
-}
-
-exports.searchDispatch = async (event, context) => {
+    if (DEBUG) console.log(event);
 
     const segment = AWSXRay.getSegment();
     var subsegment = segment.addNewSubsegment('Read parameters');
 
-    if (DEBUG) console.log(event);
-    
-    const username = "anonymous";
+    const searchInputParams = await getSearchInputParams(event);
 
-    // Parameters without defaults; must be specified by the user
-    const library = event.library;
-    const maskKeys = event.maskKeys;
-    const maskThresholds = event.maskThresholds;
-
-    if (library == null) {
-        throw new Error('Missing required key \'library\' in input');
-    }
-
-    if (maskKeys == null) {
-        throw new Error('Missing required key \'maskKeys\' in input');
-    }
-
-    if (maskKeys.length != maskThresholds.length) {
-        throw new Error('Number of mask thresholds does not match number of masks');
-    }
+    const searchId = searchInputParams.searchId;
+    const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;
+    const libraryBucket = searchInputParams.libraryBucket || defaultLibraryBucket;
+    const searchType = searchInputParams.searchType;
+    const searchInputFolder = searchInputParams.searchInputFolder;
+    const searchInputName = searchInputParams.searchInputName;
 
     // Parameters which have defaults
-    const level = event.level || DEFAULTS.level;
-    const numLevels = event.numLevels || DEFAULTS.numLevels;
-    const dataThreshold = event.dataThreshold || DEFAULTS.dataThreshold;
-    const pixColorFluctuation = event.pixColorFluctuation || DEFAULTS.pixColorFluctuation;
-    const xyShift = event.xyShift || DEFAULTS.xyShift;
-    const mirrorMask = event.mirrorMask || DEFAULTS.mirrorMask;
-    const minMatchingPix = event.minMatchingPix || DEFAULTS.minMatchingPix;
+    const level = searchInputParams.level || DEFAULTS.level;
+    const numLevels = searchInputParams.numLevels || DEFAULTS.numLevels;
+    const dataThreshold = searchInputParams.dataThreshold || DEFAULTS.dataThreshold;
+    const pixColorFluctuation = searchInputParams.pixColorFluctuation || DEFAULTS.pixColorFluctuation;
+    const xyShift = searchInputParams.xyShift || DEFAULTS.xyShift;
+    const mirrorMask = searchInputParams.mirrorMask || DEFAULTS.mirrorMask;
+    const minMatchingPixRatio = searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
+    const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
-    let searchUid = event.searchUid;
-    let outputFolder = event.outputFolder;
-    let outputFolderUri = event.outputFolderUri;
-    let batchSize = event.batchSize || DEFAULTS.batchSize;
-    let numBatches = event.numBatches;
-    let startIndex = event.startIndex;
-    let endIndex = event.endIndex;
+    let libraries = searchInputParams.libraries;
+    let batchSize = searchInputParams.batchSize || defaultBatchSize();
+    let numBatches = searchInputParams.numBatches;
+    let branchingFactor = searchInputParams.branchingFactor;
+    let startIndex = searchInputParams.startIndex;
+    let endIndex = searchInputParams.endIndex;
 
+    subsegment.close();
+
+    if (level === 0) {
+        const maskKey = `${searchInputFolder}/${searchInputName}`;
+        const checkMask = await verifyKey(searchBucket, maskKey);
+        if (checkMask === false) {
+            console.log(`Mask s3://${searchBucket}/${maskKey} not found`);
+            // set the error
+            await updateSearchMetadata({
+                id: searchId,
+                step: SEARCH_IN_PROGRESS,
+                errorMessage: `Mask s3://${searchBucket}/${maskKey} not found`
+            });
+            return searchInputName;
+        }
+        subsegment = segment.addNewSubsegment('Prepare batch parallelization parameters');
+        const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
+        console.log("Search input params with libraries", searchInputParamsWithLibraries);
+        const librariesPromises = await searchInputParamsWithLibraries.libraries
+            .map(lname => {
+                // for searching use MIPs from the searchableMIPs folder
+                const libraryFolder = searchInputParamsWithLibraries.searchableMIPSFolder
+                    ? `${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
+                    : lname;
+                const libraryAlignmentSpace = searchInputParamsWithLibraries.libraryAlignmentSpace
+                    ? `${searchInputParamsWithLibraries.libraryAlignmentSpace}/`
+                    : ''
+                const library = {
+                    lname: lname,
+                    lkey: `${libraryAlignmentSpace}${libraryFolder}`
+                };
+                console.log("Lookup library", library);
+                return library;
+            })
+            .map(async l => {
+                const lsize = await getCount(libraryBucket, l.lkey);
+                return await {
+                    ...l,
+                    lsize: lsize
+                };
+            });
+        libraries =  await Promise.all(librariesPromises);
+        console.log(`Input MIP libraries: `, libraries);
+        const totalSearches = libraries
+            .map(l => l.lsize)
+            .reduce((acc, lsize) => acc + lsize, 0);
+        console.log(`Found ${totalSearches} MIPs in libraries: `, libraries);
+        if (totalSearches === 0) {
+            console.log(`No libraries found for searching ${searchInputName}`);
+            // set the error
+            await updateSearchMetadata({
+                id: searchId,
+                step: SEARCH_IN_PROGRESS,
+                errorMessage: `No libraries found for searching ${searchInputName}`
+            });
+            return searchInputName;
+        }
+        numBatches = Math.ceil(totalSearches / batchSize);
+        console.log(`Partition ${totalSearches} searches into ${numBatches} of size ${batchSize}`);
+        if (numBatches > MAX_PARALLELISM) {
+            // adjust the batch size
+            batchSize = Math.ceil(totalSearches / MAX_PARALLELISM)
+            numBatches = Math.ceil(totalSearches / batchSize);
+            console.log(`Capping batch size to ${batchSize} due to max parallelism (${MAX_PARALLELISM})`);
+        }
+        // the branchingFactor formula assumes that each leaf node at level = <numLevels> corresponds to a batch of size <batchSize>
+        // nLeafNodes = totalSearches / batchSize = branchingFactor ^ numLevels
+        branchingFactor = Math.ceil(Math.pow(numBatches, 1/numLevels)); // e.g. ceil(695^(1/3)) = ceil(8.86) = 9
+        startIndex = 0
+        endIndex = totalSearches;
+        subsegment.close();
+
+        const now = new Date();
+        const searchMetadata = {
+            startTime: now.toISOString(),
+            searchType: searchInputParamsWithLibraries.searchType,
+            parameters: searchInputParamsWithLibraries,
+            libraries: libraries,
+            nsearches: totalSearches,
+            branchingFactor: branchingFactor,
+            partitions: numBatches
+        };
+        // persist the search metadata on S3
+        await putObject(
+            searchBucket,
+            getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`),
+            searchMetadata);
+        // update search metadata if searchId is provided
+        await updateSearchMetadata({
+            id: searchId,
+            step: SEARCH_IN_PROGRESS,
+            nBatches: numBatches,
+            completedBatches: 0,
+            cdsStarted: now.toISOString()
+        });
+        if (stateMachineArn != null) {
+            // if monitoring then start it right away
+            const monitorParams = {
+                bucket: searchBucket,
+                searchId: searchId || null,
+                searchInputFolder,
+                searchInputName,
+                startTime: now.toISOString(),
+                numBatches,
+            }
+            await startMonitor(searchId, monitorParams, stateMachineArn, segment);
+        }
+
+    }
+    const nextLevelManagerRange = Math.pow(branchingFactor, numLevels-level-1) * batchSize;
+    console.log(`Level ${level} -> next range: ${nextLevelManagerRange}`);
     const nextEvent = {
         level: level + 1,
         numLevels: numLevels,
-        library: library,
-        maskKeys: maskKeys,
+        searchBucket: searchBucket,
+        libraryBucket: libraryBucket,
+        libraries: libraries,
+        searchId: searchId,
+        searchType: searchType,
+        searchInputFolder: searchInputFolder,
+        searchInputName: searchInputName,
         dataThreshold: dataThreshold,
-        maskThresholds: maskThresholds,
+        maskThreshold: maskThreshold,
         pixColorFluctuation: pixColorFluctuation,
         xyShift: xyShift,
         mirrorMask: mirrorMask,
-        minMatchingPix: minMatchingPix,
-        searchUid: searchUid,
-        outputFolder: outputFolder,
-        outputFolderUri: outputFolderUri,
+        minMatchingPixRatio: minMatchingPixRatio,
         batchSize: batchSize,
-        numBatches: numBatches
-    };
+        numBatches: numBatches,
+        branchingFactor: branchingFactor
+    }
 
-    if (level+1 < numLevels) {
-
-        subsegment.close();
-        subsegment = segment.addNewSubsegment('Subdivide');
-
-        // Dispatch subdivided ranges
-
-        if (level==0) {
-            // This is the top-level manager, so we need to find our range first
-            const total = await getCount(library);
-            // Calculate batch size, capping at a max level of parallelism
-            nextEvent.numBatches = numBatches = Math.ceil(total / batchSize);
-            if (numBatches > MAX_PARALLELISM) {
-                nextEvent.batchSize = batchSize = Math.ceil(total / MAX_PARALLELISM);
-                nextEvent.numBatches = numBatches = Math.ceil(total / batchSize);
-                console.log(`Capping batch size to ${batchSize} due to max parallelism (${MAX_PARALLELISM})`);
-            }
-            
-            startIndex = 0;
-            endIndex = total;
-        }
-        
-        const count = endIndex - startIndex; // e.g. 34717
-
-        console.log("Batch size:", batchSize);
-        console.log("Num batches:", numBatches);
-        console.log(`Item range: ${startIndex} - ${endIndex} (${count} items)`);
-
-        // How much to branch at each manager level in order to accomodate numLevels of managers
-        const branchingFactor = Math.ceil(Math.pow(numBatches, 1/numLevels)); // e.g. ceil(695^(1/3)) = ceil(8.86) = 9
-        console.log(`numNextLevelManagers: ${branchingFactor}`);
-
-        // How many items each manager gets at the next level
-        const nextLevelManagerRange = Math.pow(branchingFactor, numLevels-level-1) * batchSize;
-        console.log(`nextLevelManagerRange: ${nextLevelManagerRange}`);
-
-        if (level==0) {
-            // Also, save metadata about this search
-
-            subsegment.close();
-            subsegment = segment.addNewSubsegment('Persist metadata');
-
-            nextEvent.searchUid = searchUid = uuidv1();
-            nextEvent.outputFolder = outputFolder = `${username}/${searchUid}`;
-            nextEvent.outputFolderUri = outputFolderUri = `s3://${searchBucket}/${outputFolder}`;
-            
-            const outputMetadataKey = `${outputFolder}/metadata.json`;
-            const outputMetadataUri = `s3://${searchBucket}/${outputMetadataKey}`;
-            const now = new Date();
-            const searchMetadata = {
-                startTime: now.toISOString(),
-                parameters: event,
-                itemCount: count,
-                partitions: numBatches
-            };
-            await utils.putObject(s3, searchBucket, outputMetadataKey, searchMetadata);
-            console.log("Parallel search started with output at", outputFolderUri);
-            console.log(`Metadata written to ${outputMetadataUri}`);
-        } 
-
-        subsegment.close();
-        subsegment = segment.addNewSubsegment('Launch sub-managers');
-
-        // Dispatch all sub workers
-        var j = 0;
+    if (level + 1 < numLevels) {
+        subsegment = segment.addNewSubsegment('Start intermediate level dispatchers');
+        // start more intermediate dispatchers
         for(let i = startIndex; i < endIndex; i += nextLevelManagerRange) {
             const workerStart = i;
             const workerEnd = i+nextLevelManagerRange > endIndex ? endIndex : i+nextLevelManagerRange;
-            await utils.invokeAsync(lambda, dispatchFunction, {startIndex:workerStart, endIndex:workerEnd, ...nextEvent});
-            console.log(`Dispatched sub-manager #${j} (${workerStart} - ${workerEnd})`);
-            j++;
+            await invokeAsync(
+                dispatchFunction, {
+                    startIndex: workerStart,
+                    endIndex: workerEnd,
+                    ...nextEvent
+                });
+            console.log(`Dispatched sub-manager ${workerStart} - ${workerEnd}`);
         }
-
         subsegment.close();
-
-        if (level==0) {
-            // Start monitoring using the step function
-            subsegment = segment.addNewSubsegment('Start search monitor');
-
-            if (stateMachineArn!=null) {
-                const monitorStateMachineInput = {
-                    bucket: searchBucket,
-                    prefix: outputFolder
-                };
-                const stepFunction = new AWS.StepFunctions();
-                const params = {
-                    stateMachineArn: stateMachineArn,
-                    input: JSON.stringify(monitorStateMachineInput),
-                    name: "ColorDepthSearch_"+searchUid
-                };
-                const result = await stepFunction.startExecution(params).promise();
-                console.log("Search monitor started: ", result.executionArn);
-            }
-
-            subsegment.close();
-        }
-
-    }
-    else {
-        // We're in a leaf manager, dispatch the workers
-        console.log(`Item range: ${startIndex}-${endIndex}`);
-
-        subsegment.close();
+    } else {
+        // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
         subsegment = segment.addNewSubsegment('Get library keys');
-        
-        const allKeys = await getKeys(library)
+        const librariesWithKeysPromise =  await libraries
+            .map(async l => {
+                return await {
+                    ...l,
+                    lkeys: await getKeys(libraryBucket, l.lkey)
+                };
+            });
+        const librariesWithKeys = await Promise.all(librariesWithKeysPromise);
+        const allKeys = librariesWithKeys
+            .map(l => l.lkeys)
+            .reduce((acc, lkeys) => acc.concat(lkeys), []);
         const keys = allKeys.slice(startIndex, endIndex);
-        console.log("Total number of images to search: "+keys.length);
-    
+        const batchPartitions = partition(keys, batchSize);
+        let batchIndex = Math.ceil(startIndex / batchSize);
+        console.log(`Selected keys from ${startIndex} to ${endIndex} out of ${allKeys.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
+            libraries);
         subsegment.close();
-        subsegment = segment.addNewSubsegment('Execute batches');
-    
-        // Dispatch all batches
-        var i = Math.ceil(startIndex / batchSize);
-        const partitions = utils.partition(keys, batchSize);
 
-        for (const searchKeys of partitions) {
-    
-            const batchId = i.toString().padStart(4,"0");
-            const outputFile = `${outputFolderUri}/batch_${batchId}.json`;
-    
-            const searchParameters = {
+        subsegment = segment.addNewSubsegment('Invoke batches');
+        for (const searchKeys of batchPartitions) {
+            const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
+            const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
+            const searchParams = {
+                searchId: searchId,
+                outputURI: batchResultsURI,
+                maskPrefix: searchBucket,
+                maskKeys: [`${searchInputFolder}/${searchInputName}`],
+                maskThresholds: [maskThreshold],
                 searchPrefix: libraryBucket,
-                searchKeys: searchKeys,
-                maskPrefix: maskBucket,
-                maskKeys: maskKeys,
-                outputFile: outputFile,
+                searchKeys,
+                ...nextEvent
             };
-
-            await utils.invokeAsync(lambda, searchFunction, {...searchParameters, ...nextEvent});
-            console.log(`Dispatched batch #${i} (${searchKeys.length} items)`);
-            i++;
+            await invokeAsync(searchFunction, searchParams);
+            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchKeys.length} items)`);
+            batchIndex++;
         }
-        
         subsegment.close();
     }
 
-    // Return the s3 bucket where the results will be saved
-    return outputFolderUri;
+    return searchInputName;
+}
+
+const getSearchInputParams = async (event) => {
+    const searchId = event.searchId;
+    let searchMetadata;
+    if (!event.searchInputName || !event.searchInputFolder) {
+        // if searchInputName or searchInutFolder is not given the searchId must be provided
+        // both searchInputFolder and searchInputName must be provided because
+        // the full input path is `${searchInputFolder}/${searchInputName}`
+        if (!searchId) {
+            throw new Error('Missing required parameter: "searchId"');
+        }
+        searchMetadata = await getSearchMetadata(searchId);
+    } else {
+        searchMetadata = event;
+    }
+    if (!!searchMetadata) {
+        // if a searchMask is set use that for search otherwise use the upload
+        searchMetadata.searchInputName = searchMetadata.searchMask
+            ? searchMetadata.searchMask
+            : searchMetadata.searchInputName;
+    }
+    console.log("Searching params", searchMetadata);
+    return searchMetadata;
+}
+
+const setSearchLibraries = (searchData)  => {
+    switch (searchData.searchType) {
+        case 'em2lm':
+            return {
+                ...searchData,
+                libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',
+                searchableMIPSFolder: 'searchable_neurons',
+                libraries: [
+                    'FlyLight_Split-GAL4_Drivers',
+                    'FlyLight_Gen1_MCFO'
+                ]
+            };
+        case 'lm2em':
+            return {
+                ...searchData,
+                libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',
+                searchableMIPSFolder: 'searchable_neurons',
+                libraries: [
+                    "FlyEM_Hemibrain_v1.1"
+                ]
+            };
+        default:
+            return {
+                ...searchData,
+                libraries: searchData.libraries || []
+            };
+    }
+}
+
+const getCount = async (libraryBucket, libraryKey) => {
+    console.log("Get count from:", libraryKey);
+    const countMetadata = await getObject(
+        libraryBucket,
+        `${libraryKey}/counts_denormalized.json`,
+        {objectCount: 0}
+    );
+    return countMetadata.objectCount;
+}
+
+const getKeys = async (libraryBucket, libraryKey) => {
+    console.log("Get keys from:", libraryKey);
+    return await getObject(
+        libraryBucket,
+        `${libraryKey}/keys_denormalized.json`,
+        []);
+}
+
+const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
+    let subsegment = segment.addNewSubsegment('Start monitor');
+    const now = new Date().getTime();
+    const uniqueMonitorId = searchId || uuidv1();
+    await startStepFunction(
+        `ColorDepthSearch_${uniqueMonitorId}_${now}`,
+        monitorParams,
+        stateMachineArn
+    );
+    subsegment.close();
 }
