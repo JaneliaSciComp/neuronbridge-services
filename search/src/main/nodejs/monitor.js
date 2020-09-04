@@ -1,23 +1,82 @@
 'use strict';
 
+const AWS = require('aws-sdk');
 const moment = require('moment');
 
 const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
 const {getAllKeys, putText, DEBUG} = require('./utils');
-const {updateSearchMetadata} = require('./awsappsyncutils');
+const {updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 
+const bc = new AWS.Batch();
 const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
-exports.isSearchDone = async (event, context) => {
+exports.isSearchDone = async (event) =>  {
+    console.log(event);
+    if (event.jobId) {
+        return await monitorAlignmentJob(event);
+    } else {
+        return await monitoCDSJob(event);
+    }
+}
+
+const monitorAlignmentJob = async (alignJobParams) => {
+    const searchId = cdsJobParams.searchId;
+    const jobId = cdsJobParams.jobId;
+
+    const jobDescriptions = await bc.describeJobs({
+        jobs: [jobId]
+    });
+    const job = jobDescriptions.jobs.find(j => j.jobId === jobId);
+    if (job) {
+        if (job.status === 'SUCCEEDED') {
+            await updateSearchMetadata({
+                id: searchId,
+                step: ALIGNMENT_JOB_COMPLETED
+            });
+            return {
+                ...alignJobParams,
+                completed: true,
+                withErrors: false
+            };
+        } else if (job.status === 'FAILED') {
+            const searchMetadata = getSearchMetadata(searchId);
+            if (!searchMetadata.errorMessage) {
+                await updateSearchMetadata({
+                    id: searchId,
+                    errorMessage: 'Alignment job failed'
+                });
+            }
+            return {
+                ...alignJobParams,
+                completed: true,
+                withErrors: true
+            };
+        } else {
+            // job is still running
+            return {
+                ...alignJobParams
+            };
+        }
+    } else {
+        // job not found
+        console.log('No job not found for', alignJobParams);
+        return {
+            ...alignJobParams,
+            completed: true,
+            withErrors: true
+        };
+    }
+}
+
+const monitoCDSJob = async (cdsJobParams) => {
 
     // Parameters
-    if (DEBUG) console.log(event);
-    const bucket = event.bucket;
-    const searchId = event.searchId;
-    const searchInputFolder = event.searchInputFolder;
-    const searchInputName = event.searchInputName;
-    const numBatches = event.numBatches;
-    const startTime = moment(event.startTime);
+    const bucket = cdsJobParams.bucket;
+    const searchId = cdsJobParams.searchId;
+    const searchInputFolder = cdsJobParams.searchInputFolder;
+    const searchInputName = cdsJobParams.searchInputName;
+    const numBatches = cdsJobParams.numBatches;
+    const startTime = moment(cdsJobParams.startTime);
 
     if (!bucket) {
         throw new Error('Missing required key \'bucket\' in input to isSearchDone');
@@ -62,7 +121,7 @@ exports.isSearchDone = async (event, context) => {
     if (numRemaining === 0) {
         console.log(`Search took ${elapsedSecs} seconds`);
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
             numRemaining: 0,
             completed: true,
@@ -76,7 +135,7 @@ exports.isSearchDone = async (event, context) => {
             errorMessage: `Search timed out after ${elapsedSecs} seconds`
         });
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
             numRemaining: numRemaining,
             completed: false,
@@ -85,7 +144,7 @@ exports.isSearchDone = async (event, context) => {
     } else {
         console.log(`Search still running after ${elapsedSecs} seconds. Completed ${numComplete} of ${numBatches} jobs.`);
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
             numRemaining: numRemaining,
             completed: false,

@@ -5,10 +5,8 @@ const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
 
 const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
-const {getObject, putObject, invokeAsync, partition, verifyKey, DEBUG} = require('./utils');
+const {getObject, putObject, invokeAsync, partition, startStepFunction, verifyKey, DEBUG} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
-
-const stepFunction = new AWS.StepFunctions();
 
 const DEFAULTS = {
     level: 0,
@@ -338,12 +336,10 @@ const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) =
     let subsegment = segment.addNewSubsegment('Start monitor');
     const now = new Date().getTime();
     const uniqueMonitorId = searchId || uuidv1();
-    const params = {
-        stateMachineArn: stateMachineArn,
-        input: JSON.stringify(monitorParams),
-        name: `ColorDepthSearch_${uniqueMonitorId}_${now}`
-    };
-    const result = await stepFunction.startExecution(params).promise();
-    console.log("Step function started: ", result.executionArn);
+    await startStepFunction(
+        `ColorDepthSearch_${uniqueMonitorId}_${now}`,
+        monitorParams,
+        stateMachineArn
+    );
     subsegment.close();
 }

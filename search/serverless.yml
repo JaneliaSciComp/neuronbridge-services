@@ -198,6 +198,7 @@ functions:
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-lowpriority
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
     events:
       - httpApi:
           method: POST
@@ -325,7 +326,46 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
-
+    jobMonitorStateMachine:
+      id: JobMonitorStateMachine
+      name: jobMonitorStateMachine-${self:service}-${self:provider.stage}
+      definition:
+        StartAt: Monitor
+        States:
+          Monitor:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [monitor, Arn]
+            Retry:
+              - ErrorEquals:
+                  - Lambda.TooManyRequestsException
+                IntervalSeconds: 1
+                MaxAttempts: 100
+            Next: AreWeDoneYet
+          AreWeDoneYet:
+            Type: Choice
+            Choices:
+              - Variable: "$.completed"
+                BooleanEquals: true
+                Next: CheckErrors
+            Default: Wait
+          Wait:
+            Type: Wait
+            Seconds: 300
+            Next: Monitor
+          CheckErrors:
+            Type: Choice
+            Choices:
+              - Variable: "$.withErrors"
+                BooleanEquals: true
+                Next: ErrorState
+            Default: EndState
+          ErrorState:
+            Type: Fail
+            Cause: "Job completed with errors"
+          EndState:
+            Type: Pass
+            End: true
   validate: true # enable pre-deployment definition validation
 
 
@@ -336,6 +376,9 @@ resources:
       Description: The ARN of the state machine
       Value:
         Ref: SearchMonitorStateMachine
+    JobMonitorStateMachine:
+      Value:
+        Ref: JobMonitorStateMachine
 
   Resources:
     SearchTable:

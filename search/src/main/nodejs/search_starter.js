@@ -3,7 +3,7 @@
 const AWS = require('aws-sdk');
 const Jimp = require('jimp');
 const {getSearchKey, getSearchMaskId} = require('./searchutils');
-const {getS3ContentWithRetry, invokeAsync, putS3Content} = require('./utils');
+const {getS3ContentWithRetry, invokeAsync, putS3Content, startStepFunction} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata, ALIGNMENT_JOB_SUBMITTED} = require('./awsappsyncutils');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
@@ -11,6 +11,7 @@ const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
 const perDaySearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
 const concurrentSearchLimits = process.env.CONCURRENT_SEARCHES || 1;
+const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 
 const bc = new AWS.Batch();
 const searchBucket = process.env.SEARCH_BUCKET;
@@ -160,6 +161,19 @@ const startAlignment = async (searchParams) => {
                 id: searchParams.id || searchParams.searchId,
                 step: ALIGNMENT_JOB_SUBMITTED,
             });
+            if (alignMonitorStateMachineArn != null) {
+                // start the state machine
+                const now = new Date();
+                await startStepFunction(
+                    `Align_${job.jobId}_${now}`,
+                    {
+                        searchId: searchId || null,
+                        jobId: job.jobId,
+                        startTime: now.toISOString()
+                    },
+                    alignMonitorStateMachineArn
+                );
+            }
             return job;
         } catch (submitError) {
             console.error('Error submitting job with parameters', params, submitError);

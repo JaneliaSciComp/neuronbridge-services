@@ -9,6 +9,7 @@ require("isomorphic-fetch");
 const DEBUG = !!process.env.DEBUG;
 
 exports.ALIGNMENT_JOB_SUBMITTED = 1;
+exports.ALIGNMENT_JOB_COMPLETED = 2;
 exports.SEARCH_IN_PROGRESS = 3;
 exports.SEARCH_COMPLETED = 4;
 
@@ -157,7 +158,9 @@ const toSearchResult = (searchData) => {
     }
     const searchInputFolder = `private/${searchData.identityId}/${searchData.searchDir}`;
     const searchMask = searchData.searchMask
-        ? { searchMask: searchData.searchMask, searchInputMask: `${searchInputFolder}/${searchData.searchMask}`}
+        ? { searchMask: searchData.searchMask,
+            searchInputMask: `${searchInputFolder}/${searchData.searchMask}`
+          }
         : {};
     return {
         searchId: searchData.id,

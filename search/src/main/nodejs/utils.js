@@ -8,6 +8,7 @@ AWS.config.apiVersions = {
 
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
+const stepFunction = new AWS.StepFunctions();
 
 const DEBUG = !!process.env.DEBUG;
 
@@ -187,6 +188,18 @@ exports.invokeAsync = async (functionName, parameters) => {
     }
 }
 
+// Start state machine
+exports.startStepFunction = async (uniqueName, stateMachineParams, stateMachineArn) => {
+    const params = {
+        stateMachineArn: stateMachineArn,
+        input: JSON.stringify(stateMachineParams),
+        name: uniqueName
+    };
+    const result = await stepFunction.startExecution(params).promise();
+    console.log("Step function started: ", result.executionArn);
+    return result
+}
+
 // Verify that key exists on S3
 exports.verifyKey = async (Bucket, Key) => {
     try {
@@ -199,5 +212,4 @@ exports.verifyKey = async (Bucket, Key) => {
         console.error(`Error looking up ${Bucket}:${Key}`, e);
         return false;
     }
-
 }
