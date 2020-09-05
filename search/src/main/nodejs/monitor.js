@@ -7,7 +7,9 @@ const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getS
 const {getAllKeys, putText, DEBUG} = require('./utils');
 const {updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 
-const bc = new AWS.Batch();
+const bc = new AWS.Batch({
+    apiVersion: '2016-08-10'
+});
 const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
 exports.isSearchDone = async (event) =>  {
@@ -25,7 +27,20 @@ const monitorAlignmentJob = async (alignJobParams) => {
 
     const jobDescriptions = await bc.describeJobs({
         jobs: [jobId]
-    });
+    }).promise();
+    console.log('Jobs', jobDescriptions);
+    if (!jobDescriptions.jobs)  {
+        console.log('Something must have gone completely wrong - no jobs found for', alignJobParams);
+        await updateSearchMetadata({
+            id: searchId,
+            errorMessage: `No jobs found for ${jobId} created for search ${searchId}`
+        });
+        return {
+            ...alignJobParams,
+            completed: true,
+            withErrors: true
+        };
+    }
     const job = jobDescriptions.jobs.find(j => j.jobId === jobId);
     if (job) {
         if (job.status === 'SUCCEEDED') {
@@ -54,7 +69,9 @@ const monitorAlignmentJob = async (alignJobParams) => {
         } else {
             // job is still running
             return {
-                ...alignJobParams
+                ...alignJobParams,
+                completed: false,
+                withErrors: false
             };
         }
     } else {

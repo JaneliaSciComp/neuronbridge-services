@@ -147,8 +147,9 @@ provider:
       ]}
     - Effect: Allow
       Action:
+        - batch:DescribeJobs
         - batch:SubmitJob
-      Resource: "arn:aws:batch:*:*:*"
+      Resource: "*"
   httpApi:
     payload: "2.0"
     cors: true

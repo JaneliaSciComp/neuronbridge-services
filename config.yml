@@ -7,6 +7,6 @@ config:
   alignmentTemplatesBucket: janelia-flylight-color-depth-dev
   searchBucket: janelia-neuronbridge-searches-dev
   perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
-  concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 1}
+  concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 10}
   tracing: true
   debug: true
