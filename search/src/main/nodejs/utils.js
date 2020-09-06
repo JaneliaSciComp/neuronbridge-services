@@ -32,7 +32,7 @@ exports.getObjectDataArray = async (bucket, key, defaultValue) => {
         if (DEBUG)
             console.log(`Getting object from ${bucket}:${key}`);
         const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
-        return response.Body.arrayBuffer();
+        return response.Body.buffer;
     } catch (e) {
         console.error(`Error getting object ${bucket}:${key}`, e);
         if (defaultValue === undefined) {
@@ -105,7 +105,7 @@ exports.putObject = async (Bucket, Key, data) => {
         await s3.putObject({
             Bucket,
             Key,
-            Body: JSON.stringify(data),
+            Body: JSON.stringify(data, null , "\t"),
             ContentType: 'application/json'
         }).promise();
         if (DEBUG)

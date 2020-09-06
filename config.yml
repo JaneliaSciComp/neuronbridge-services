@@ -5,6 +5,6 @@ config:
   libraryBucket: janelia-flylight-color-depth-dev
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
   alignmentTemplatesBucket: janelia-flylight-color-depth-dev
-  searchBucket: janelia-neuronbridge-searches-dev
+  searchBucket: janelia-neuronbridge-masks-tkdev
   tracing: true
   debug: true

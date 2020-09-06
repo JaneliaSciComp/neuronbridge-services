@@ -4,11 +4,12 @@ const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core');
 const tiff = require('geotiff');
 const path = require('path');
+const UPNG = require('./UPNG');
 
 const {GenerateColorMIPMasks, ColorMIPSearch} = require('./mipsearch');
-const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
+//const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
 const {getObjectDataArray, getObject, putObject, invokeAsync, partition, verifyKey, DEBUG} = require('./utils');
-const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
+//const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
 
 exports.batchSearch = async (event) => {
     const batchParams = {
@@ -27,8 +28,6 @@ exports.batchSearch = async (event) => {
     }
 
     console.log(batchParams);
-    const eventBody = JSON.parse(batchParams.body);
-    console.log("Parsed body", eventBody);
     const segment = AWSXRay.getSegment();
     let subsegment = segment.addNewSubsegment('Read parameters');
     if (batchParams.searchPrefix == null) {
@@ -53,7 +52,7 @@ exports.batchSearch = async (event) => {
     subsegment = segment.addNewSubsegment('Read search');
 
     console.log(`Comparing ${batchParams.maskKeys.length} masks with ${batchParams.searchKeys.length} library mips`);
-    let cdsResults = findAllColorDepthMatches({
+    let cdsResults = await findAllColorDepthMatches({
         maskKeys: batchParams.maskKeys,
         maskThresholds: batchParams.maskThresholds,
         libraryKeys: batchParams.searchKeys,
@@ -70,19 +69,23 @@ exports.batchSearch = async (event) => {
 
     subsegment.close();
 
-    if (batchParams.outputURI != null) {
+    subsegment = segment.addNewSubsegment('Sort and save results');
 
-        const matchedMetadata = cdsResults.map(perMaskMetadata)
-            .sort(function(a, b) {return a.matchingPixels < b.matchingPixels ? 1 : -1;});
-        const ret = groupBy("sourceId","sourcePublishedName", "sourceLibraryName", "sourceImageURL")(matchedMetadata);
+    const matchedMetadata = cdsResults.map(perMaskMetadata)
+        .sort(function(a, b) {return a.matchingPixels < b.matchingPixels ? 1 : -1;});
+    const ret = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
 
-        subsegment = segment.addNewSubsegment('Sort and save results');
+    if (batchParams.outputBucket != null && batchParams.outputKey != null) {
         await putObject(
             batchParams.outputBucket,
             batchParams.outputKey,
             ret);
-        subsegment.close();
     }
+    else {
+        console.log(JSON.stringify(ret, null , "\t"));
+    }
+
+    subsegment.close();
 
     return cdsResults.length;
 
@@ -94,27 +97,27 @@ const groupBy = (...keys) => xs =>
 const updateGB = (...keys) => (acc, e) => {
     const foundI = acc.findIndex( d => keys.every( key => d[key] === e[key]))
     const divided = divProps(...keys)(e)
-    return foundI === -1  ? [...acc, {...divided.labels, data:[divided.data]}]
-        : (acc[foundI].data = [...acc[foundI].data, divided.data], acc)
+    return foundI === -1  ? [...acc, {...divided.labels, results:[divided.results]}]
+        : (acc[foundI].results = [...acc[foundI].results, divided.results], acc)
 }
 
 const divProps =(...keys) => e =>
     Object.entries(e).reduce(
         ( acc, [k, v] ) =>
             keys.includes(k)? {...acc, labels:{...acc.labels, [k]:v}}
-                : {...acc, data:{...acc.data, [k]:v}}
-        , {labels:{}, data:{}}
+                : {...acc, results:{...acc.results, [k]:v}}
+        , {labels:{}, results:{}}
     )
 
 const perMaskMetadata = (params) => {
     return {
-        sourceId: params.maskMIP.id,
-        sourceLibraryName: params.maskMIP.libraryName,
-        sourcePublishedName: params.maskMIP.publishedName,
-        sourceImageArchivePath: params.maskMIP.imageArchivePath,
-        sourceImageName: params.maskMIP.imageName,
-        sourceImageType: params.maskMIP.imageType,
-        sourceImageURL: params.maskMIP.imageURL,
+        maskId: params.maskMIP.id,
+        maskLibraryName: params.maskMIP.libraryName || null,
+        maskPublishedName: params.maskMIP.publishedName || null,
+        maskImageArchivePath: params.maskMIP.imageArchivePath,
+        maskImageName: params.maskMIP.imageName,
+        maskImageType: params.maskMIP.imageType,
+        maskImageURL: params.maskMIP.imageURL,
 
         imageURL: params.libraryMIP.imageURL,
         thumbnailURL: params.libraryMIP.thumbnailURL,
@@ -141,7 +144,7 @@ const perMaskMetadata = (params) => {
     };
 }
 
-const findAllColorDepthMatches = (params) => {
+const findAllColorDepthMatches = async (params) => {
     const maskKeys = params.maskKeys;
     const maskThresholds = params.maskThresholds;
     const libraryKeys = params.libraryKeys;
@@ -152,8 +155,8 @@ const findAllColorDepthMatches = (params) => {
     let results = [];
     let i;
     for (i = 0; i < maskKeys.length; i++) {
-        results.push(runMaskSearches({
-            maskKey: params.maskKey[i],
+        results.push(await runMaskSearches({
+            maskKey: params.maskKeys[i],
             maskThreshold: params.maskThresholds[i],
             libraryKeys: params.libraryKeys,
             awsMasksBucket: params.awsMasksBucket,
@@ -170,37 +173,35 @@ const findAllColorDepthMatches = (params) => {
 }
 
 const runMaskSearches = async (params) => {
-    const maskMetadata = getMaskMIPMetdata(params.maskKey);
-    const maskfile = getObjectDataArray(params.awsMasksBucket, params.maskKey);
-    const maskImage = await tiff.fromArrayBuffer(await maskfile).getImage();
-    if (maskImage == null) {
-        return null;
-    }
-    const maskImageArray = maskImage.readRasters({ interleave: true });
-    const width = maskImage.getWidth();
-    const height = maskImage.getHeight();
+    const maskMetadata = getMaskMIPMetdata(params.awsMasksBucket, params.maskKey);
+
     const zTolerance = params.pixColorFluctuation == null ? 0.0 : params.pixColorFluctuation / 100.0;
     const maskThreshold = params.maskThreshold != null ? params.maskThreshold : 0;
+
+    let maskImage = await loadMIPRange(params.awsMasksBucket, params.maskKey, 0, 0);
+
+    const masks = GenerateColorMIPMasks({
+        width: maskImage.width,
+        height: maskImage.height,
+        queryImage: maskImage.data,
+        maskThreshold: maskThreshold,
+        negQueryImage: null,
+        negMaskThreshold: 0,
+        xyShift: params.xyShift,
+        mirrorMask: params.mirrorMask,
+        mirrorNegMask: false
+    });
+
+    console.log(`maskpos: ${masks.maskPositions.length}`);
 
     let results = [];
     let i;
     for (i = 0; i < params.libraryKeys.length; i++)
     {
         const libMetadata = getLibraryMIPMetadata(params.awsLibrariesBucket, params.awsLibrariesThumbnailsBucket, params.libraryKeys[i]);
-        const masks = GenerateColorMIPMasks({
-            width: width,
-            height: height,
-            queryImage: maskImageArray,
-            maskThreshold: maskThreshold,
-            negQueryImage: null,
-            negMaskThreshold: 0,
-            xyShift: params.xyShift,
-            mirrorMask: params.mirrorMask,
-            mirrorNegMask: false
-        });
-        const tarimage = loadMIPRange(params.awsLibrariesBucket, libMetadata, masks.maskpos_st, masks.maskpos_ed);
-        if (tarimage != null) {
-            const sr = ColorMIPSearch(tarimage, params.dataThreshold, zTolerance, masks);
+        const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], masks.maskpos_st, masks.maskpos_ed);
+        if (tarImage.data != null) {
+            const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, masks);
             const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.;
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 results.push({
@@ -218,8 +219,86 @@ const runMaskSearches = async (params) => {
     return results;
 }
 
-const loadMIPRange = (bucketName, metadata, start, end) => {
+const loadMIPRange = async (bucketName, key, start, end) => {
+    const mipPath = path.parse(key);
+    const mipName = mipPath.name;
+    const mipExt = mipPath.ext;
 
+    const imgfile = await getObjectDataArray(bucketName, key);
+
+    let outdata = null;
+    let width = 0;
+    let height = 0;
+
+    if (mipExt === ".png") {
+        let img = UPNG.decode(imgfile);
+        let rgba = new DataView(UPNG.toRGBA8(img)[0]);
+        width = img.width;
+        height = img.height;
+        const pixnum = width * height;
+
+        outdata = new Uint8Array(width * height * 3);
+        for (let i = 0; i < pixnum; i++) {
+            outdata[3*i] = rgba.getUint8(4*i);
+            outdata[3*i+1] = rgba.getUint8(4*i+1);
+            outdata[3*i+2] = rgba.getUint8(4*i+2);
+        }
+    }
+    else if (mipExt === '.tif' || mipExt === '.tiff') {
+        const tartiff = await tiff.fromArrayBuffer(imgfile);
+        const tarimage = await tartiff.getImage();
+
+        width = tarimage.getWidth();
+        height = tarimage.getHeight();
+        const outdatasize = width * height * 3;
+
+        let outoffset = 0;
+        outdata = new Uint8Array(outdatasize);
+
+        const input = new DataView(imgfile);
+
+        const ifd = tarimage.getFileDirectory();
+
+        let positive = 0;
+        const b_end = end > 0 ? end * 3 : outdatasize;
+
+        if (ifd.Compression == 32773) {
+            for (let s = 0; s < ifd.StripOffsets.length; s++) {
+                const stripoffset = ifd.StripOffsets[s];
+                const byteCount = ifd.StripByteCounts[s];
+
+                let index = stripoffset;
+                while (outoffset < b_end && outoffset < outdatasize && index < stripoffset + byteCount) {
+                    const n = input.getInt8(index++);
+                    if (n >= 0) { // 0 <= n <= 127
+                        for (let i = 0; i < n + 1; i++) {
+                            outdata[outoffset++] = input.getUint8(index++);
+                        }
+                    } else if (n != -128) { // -127 <= n <= -1
+                        const len = -n + 1;
+                        const val = input.getUint8(index++);
+                        for (let i = 0; i < len; i++) outdata[outoffset++] = val;
+                    }
+                }
+
+                if (outoffset >= b_end)
+                    break;
+            }
+        } else {
+            for (let s = 0; s < ifd.StripOffsets.length; s++) {
+                const stripoffset = ifd.StripOffsets[s];
+                const byteCount = ifd.StripByteCounts[s];
+
+                for (let i = stripoffset; i < byteCount; ++i) {
+                    outdata[outoffset] = dataView.getUint8(i);
+                    outoffset++;
+                    if (outoffset >= b_end) break;
+                }
+            }
+        }
+    }
+
+    return {data: outdata, width: width, height: height};
 }
 
 const getMaskMIPMetdata = (awsMasksBucket, mipKey) => {

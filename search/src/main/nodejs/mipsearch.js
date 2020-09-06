@@ -381,7 +381,7 @@ const getMaskPosArray = (mskarray, width, height, thresm) => {
     let pos = [];
     let pix, red, green, blue, pi;
     for (pi = 0; pi < sumpx; pi++) {
-        let x = pi % width.;
+        let x = pi % width;
         let y = Math.floor(pi / width);
         if (x < 330 && y < 100 || x >= 950 && y < 85) {
             // label regions are not to be searched
@@ -392,9 +392,11 @@ const getMaskPosArray = (mskarray, width, height, thresm) => {
         green = mskarray[3*pi + 1];
         blue = mskarray[3*pi + 2];
 
-        if (red > thresm || green > thresm || blue > thresm)
+        if (red > thresm || green > thresm || blue > thresm) {
             pos.push(pi);
+        }
     }
+
     return pos;
 }
 

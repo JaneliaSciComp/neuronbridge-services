@@ -230,7 +230,8 @@ exports.searchDispatch = async (event) => {
             const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
-                outputURI: batchResultsURI,
+                outputBucket: searchBucket,
+                outputKey: batchResultsKey,
                 maskPrefix: searchBucket,
                 maskKeys: [`${searchInputFolder}/${searchInputName}`],
                 maskThresholds: [maskThreshold],
