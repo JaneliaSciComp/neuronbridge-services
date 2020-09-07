@@ -1,7 +1,7 @@
 'use strict';
 
 const {getIntermediateSearchResultsKey, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getObjectWithRetry, putText, putObject, removeKey, DEBUG} = require('./utils');
+const {getObject, sleep, putText, putObject, removeKey, DEBUG} = require('./utils');
 const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 const mergeResults = (rs1, rs2) => {
@@ -30,9 +30,14 @@ exports.searchReducer = async (event, context) => {
 
     const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
     let allBatchResults = {};
+    let fail = [];
     for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
         const batchResultsKey = getIntermediateSearchResultsKey(fullSearchInputName, batchIndex);
-        const batchResults = await getObjectWithRetry(bucket, batchResultsKey, 3);
+        const batchResults = await getObject(bucket, batchResultsKey, null);
+        if (batchResults == null) {
+            fail.push(batchResultsKey);
+            continue;
+        }
         if (DEBUG) console.log(batchResults);
         try {
             batchResults.forEach(batchResult => {
@@ -51,6 +56,108 @@ exports.searchReducer = async (event, context) => {
             // rethrow the error
             throw e;
         }
+    }
+
+    if (fail.length > 0) {
+        await sleep(500);
+        console.log(`SecondTry: `, fail.length);
+    }
+
+    let fail2 = [];
+    for(let i = 0; i < fail.length; i++) {
+        const batchResults = await getObject(bucket, fail[i], null);
+        if (batchResults == null) {
+            fail2.push(fail[i]);
+            continue;
+        }
+        if (DEBUG) console.log(batchResults);
+        try {
+            batchResults.forEach(batchResult => {
+                if (allBatchResults[batchResult.maskId]) {
+                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+                } else {
+                    allBatchResults[batchResult.maskId] = batchResult;
+                }
+            });
+        } catch (e) {
+            // write down the error
+            await updateSearchMetadata({
+                id: searchId,
+                errorMessage: e.name + ': ' + e.message
+            });
+            // rethrow the error
+            throw e;
+        }
+    }
+
+    if (fail2.length > 0) {
+        await sleep(1000);
+        console.log(`ThirdTry: `, fail.length);
+    }
+
+    let fail3 = [];
+    for(let i = 0; i < fail2.length; i++) {
+        const batchResults = await getObject(bucket, fail2[i], null);
+        if (batchResults == null) {
+            fail3.push(fail2[i]);
+            continue;
+        }
+        if (DEBUG) console.log(batchResults);
+        try {
+            batchResults.forEach(batchResult => {
+                if (allBatchResults[batchResult.maskId]) {
+                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+                } else {
+                    allBatchResults[batchResult.maskId] = batchResult;
+                }
+            });
+        } catch (e) {
+            // write down the error
+            await updateSearchMetadata({
+                id: searchId,
+                errorMessage: e.name + ': ' + e.message
+            });
+            // rethrow the error
+            throw e;
+        }
+    }
+
+    if (fail3.length > 0) {
+        await sleep(2000);
+        console.log(`FourthTry: `, fail3.length);
+    }
+
+    let fail4 = [];
+    for(let i = 0; i < fail3.length; i++) {
+        const batchResults = await getObject(bucket, fail3[i], null);
+        if (batchResults == null) {
+            fail4.push(fail3[i]);
+            continue;
+        }
+        if (DEBUG) console.log(batchResults);
+        try {
+            batchResults.forEach(batchResult => {
+                if (allBatchResults[batchResult.maskId]) {
+                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+                } else {
+                    allBatchResults[batchResult.maskId] = batchResult;
+                }
+            });
+        } catch (e) {
+            // write down the error
+            await updateSearchMetadata({
+                id: searchId,
+                errorMessage: e.name + ': ' + e.message
+            });
+            // rethrow the error
+            throw e;
+        }
+    }
+
+    if (fail4.length > 0) {
+        const e = `Error getting object: ${fail4}`;
+        console.error(e);
+        throw new Error(e);
     }
 
     const allMatches = Object.values(allBatchResults).map(rsByMask => {

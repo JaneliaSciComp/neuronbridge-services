@@ -66,7 +66,7 @@ const getObject = async (bucket, key, defaultValue) => {
 
 exports.getObject = getObject;
 
-const sleep = async (ms) => {
+exports.sleep = async (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
