@@ -14,10 +14,19 @@ const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
 exports.isSearchDone = async (event) =>  {
     console.log(event);
-    if (event.jobId) {
-        return await monitorAlignmentJob(event);
-    } else {
-        return await monitoCDSJob(event);
+    try {
+        if (event.jobId) {
+            return await monitorAlignmentJob(event);
+        } else {
+            return await monitoCDSJob(event);
+        }
+    } catch (e) {
+        console.log('Error while checking if search completed', event, e);
+        return {
+            ...event,
+            completed: true,
+            withErrors: true
+        };
     }
 }
 
