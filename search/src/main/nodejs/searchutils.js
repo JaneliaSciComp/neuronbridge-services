@@ -46,10 +46,11 @@ const getSearchSubFolder = (searchInputName, folderName) => {
 }
 
 exports.getSearchSubFolder = getSearchSubFolder;
+
 exports.getIntermediateSearchResultsPrefix = (searchInputName) => getSearchSubFolder(searchInputName, 'results');
 
 exports.getIntermediateSearchResultsKey = (searchInputName, batchNumber) => {
-    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);
+    const intermediateSearchResultsPrefix = getSearchSubFolder(searchInputName, 'results');
     const batchId = 'batch_' + batchNumber.toString().padStart(4,"0") + '.json';
     return `${intermediateSearchResultsPrefix}/${batchId}`;
 }
