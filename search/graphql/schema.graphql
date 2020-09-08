@@ -57,6 +57,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
+    simulateMIPGeneration: Boolean
 }
 
 type SearchConnection @aws_cognito_user_pools @aws_iam {
@@ -103,6 +104,7 @@ input CreateSearchInput {
     minMatchingPixRatio: Int
     mimeType: String
     searchMask: String
+    simulateMIPGeneration: Boolean
 }
 
 input DeleteSearchInput {

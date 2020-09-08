@@ -5,6 +5,7 @@ const Jimp = require('jimp');
 const {getSearchKey, getSearchMaskId} = require('./searchutils');
 const {getS3ContentWithRetry, invokeAsync, putS3Content, startStepFunction} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata, ALIGNMENT_JOB_SUBMITTED} = require('./awsappsyncutils');
+const {generateMIPs} = require('./mockMIPGeneration');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
@@ -133,59 +134,10 @@ const startAlignment = async (searchParams) => {
         });
         return {};
     } else {
-        const jobResources = {
-            'vcpus': 16,
-            'memory': 8192
-        };
-        const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
-        const jobName = `align-${searchParams.id}`;
-        const jobParameters = {
-            nchannels: searchParams.channel + '',
-            xy_resolution: searchParams.voxelX + '',
-            z_resolution: searchParams.voxelZ + '',
-            search_id: searchParams.id,
-            input_filename: fullSearchInputImage,
-            output_folder: searchParams.searchInputFolder
-        };
-        const params = {
-            jobDefinition: jobDefinition,
-            jobQueue: jobQueue,
-            jobName: jobName,
-            containerOverrides: jobResources,
-            parameters: jobParameters
-        };
-        console.log('Job parameters', params);
-        try {
-            // submit batch job
-            const job = await bc.submitJob(params).promise();
-            console.log('Submitted', job);
-            console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
-            await updateSearchMetadata({
-                id: searchParams.id || searchParams.searchId,
-                step: ALIGNMENT_JOB_SUBMITTED,
-            });
-            if (alignMonitorStateMachineArn != null) {
-                // start the state machine
-                const now = new Date().getTime();
-                await startStepFunction(
-                    `Align_${job.jobId}_${now}`,
-                    {
-                        searchId: searchParams.id || null,
-                        jobId: job.jobId,
-                        startTime: now
-                    },
-                    alignMonitorStateMachineArn
-                );
-            }
-            return job;
-        } catch (submitError) {
-            console.error('Error submitting job with parameters', params, submitError);
-            await updateSearchMetadata({
-                id: searchParams.id || searchParams.searchId,
-                step: ALIGNMENT_JOB_SUBMITTED,
-                errorMessage: `Error submitting alignment job for ${searchParams.id}:${fullSearchInputImage} - ${submitError.message}`
-            });
-            throw submitError;
+        if (searchParams.simulateMIPGeneration) {
+            return await generateMIPs(searchParams);
+        } else {
+            return await submitAlignmentJob(searchParams);
         }
     }
 }
@@ -210,4 +162,61 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
         return `it is already running ${currentSearches.length} searches - the maximum allowed concurrent searches`;
     }
     return null;
+}
+
+const submitAlignmentJob = async (searchParams) => {
+    const jobResources = {
+        'vcpus': 16,
+        'memory': 8192
+    };
+    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
+    const jobName = `align-${searchParams.id}`;
+    const jobParameters = {
+        nchannels: searchParams.channel + '',
+        xy_resolution: searchParams.voxelX + '',
+        z_resolution: searchParams.voxelZ + '',
+        search_id: searchParams.id,
+        input_filename: fullSearchInputImage,
+        output_folder: searchParams.searchInputFolder
+    };
+    const params = {
+        jobDefinition: jobDefinition,
+        jobQueue: jobQueue,
+        jobName: jobName,
+        containerOverrides: jobResources,
+        parameters: jobParameters
+    };
+    console.log('Job parameters', params);
+    try {
+        // submit batch job
+        const job = await bc.submitJob(params).promise();
+        console.log('Submitted', job);
+        console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
+        await updateSearchMetadata({
+            id: searchParams.id || searchParams.searchId,
+            step: ALIGNMENT_JOB_SUBMITTED,
+        });
+        if (alignMonitorStateMachineArn != null) {
+            // start the state machine
+            const now = new Date().getTime();
+            await startStepFunction(
+                `Align_${job.jobId}_${now}`,
+                {
+                    searchId: searchParams.id || null,
+                    jobId: job.jobId,
+                    startTime: now
+                },
+                alignMonitorStateMachineArn
+            );
+        }
+        return job;
+    } catch (submitError) {
+        console.error('Error submitting job with parameters', params, submitError);
+        await updateSearchMetadata({
+            id: searchParams.id || searchParams.searchId,
+            step: ALIGNMENT_JOB_SUBMITTED,
+            errorMessage: `Error submitting alignment job for ${searchParams.id}:${fullSearchInputImage} - ${submitError.message}`
+        });
+        throw submitError;
+    }
 }

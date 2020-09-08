@@ -35,17 +35,18 @@ exports.getSearchResultsKey = (searchInputName) => {
     return `${searchInputKey}.result`;
 }
 
-const getIntermediateSearchResultsPrefix = (searchInputName) => {
+const getSearchSubFolder = (searchInputName, folderName) => {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     const searchInputPathComps = searchInputKey.split('/');
     if (!searchInputPathComps.length) {
         return `results`;
     } else {
-        return searchInputPathComps.slice(0, -1).join('/')+`/results`;
+        return searchInputPathComps.slice(0, -1).join('/')+`/${folderName}`;
     }
 }
 
-exports.getIntermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix;
+exports.getSearchSubFolder = getSearchSubFolder;
+exports.getIntermediateSearchResultsPrefix = (searchInputName) => getSearchSubFolder(searchInputName, 'results');
 
 exports.getIntermediateSearchResultsKey = (searchInputName, batchNumber) => {
     const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(searchInputName);

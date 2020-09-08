@@ -49,6 +49,7 @@ exports.getSearchMetadata = async (searchId) => {
                 searchMask
                 computedMIPs
                 errorMessage
+                simulateMIPGeneration
             }
         }`),
         variables: { searchId: searchId}
@@ -101,6 +102,7 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     searchMask
                     computedMIPs
                     errorMessage
+                    simulateMIPGeneration
                 }
             }
         }`),
