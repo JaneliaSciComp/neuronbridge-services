@@ -22,6 +22,10 @@ exports.isSearchDone = async (event) =>  {
         }
     } catch (e) {
         console.log('Error while checking if search completed', event, e);
+        await updateSearchMetadata({
+            id: event.searchId,
+            errorMessage: `Error while checking search status ${event.searchId} - ${e.message}`
+        });
         return {
             ...event,
             completed: true,
