@@ -21,8 +21,9 @@ import org.janelia.colormipsearch.api.cdsearch.CDSMatches;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchMatchMetadata;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.janelia.colormipsearch.api.gradienttools.GradientAreaGapUtils;
-import org.janelia.colormipsearch.api.gradienttools.MaskGradientAreaGapCalculator;
-import org.janelia.colormipsearch.api.gradienttools.MaskGradientAreaGapCalculatorProvider;
+import org.janelia.colormipsearch.api.gradienttools.MaskNegativeScoresCalculator;
+import org.janelia.colormipsearch.api.gradienttools.MaskNegativeScoresCalculatorProvider;
+import org.janelia.colormipsearch.api.gradienttools.NegativeGradientScores;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -46,17 +47,17 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                 params.getNumberOfPublishedNamesToRank(),
                 params.getNumberOfSamplesPerPublishedNameToRank(),
                 params.getNumberOfMatchesPerSampleToRank());
-        MaskGradientAreaGapCalculatorProvider maskAreaGapCalculatorProvider =
-                MaskGradientAreaGapCalculator.createMaskGradientAreaGapCalculatorProvider(
+        MaskNegativeScoresCalculatorProvider maskNegativeScoresCalculatorProvider =
+                MaskNegativeScoresCalculator.createMaskGradientAreaGapCalculatorProvider(
                         params.getMaskThreshold(), params.getNegativeRadius(), params.isMirrorMask()
                 );
         Executor gradientScoreExecutor = createGradientScoreCalcExecutor(params.getWorkerThreads());
         LOG.info("Begin gradient area calculations");
-        List<CompletableFuture<List<ColorMIPSearchMatchMetadata>>> gradientAreaGapComputations =
+        List<CompletableFuture<List<ColorMIPSearchMatchMetadata>>> negativeScoreComputations =
                 resultsGroupedById.entrySet().stream()
                         .map(resultsEntry -> {
                             LOG.info("Begin gradient area calculation for mask {}", resultsEntry.getKey());
-                            return asyncCalculateGradientAreaScoreForCDSResults(
+                            return asyncCalculateNegativeScoresForCDSResults(
                                     resultsEntry.getKey(),
                                     resultsEntry.getValue(),
                                     params.getMasksBucket(),
@@ -65,14 +66,14 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                                     params.getZgapsBucket(),
                                     params.getZgapsSuffix(),
                                     new AWSMIPLoader(s3),
-                                    maskAreaGapCalculatorProvider,
+                                    maskNegativeScoresCalculatorProvider,
                                     gradientScoreExecutor);
                         })
                         .collect(Collectors.toList());
         // wait for all results to complete
-        CompletableFuture.allOf(gradientAreaGapComputations.toArray(new CompletableFuture<?>[0])).join();
+        CompletableFuture.allOf(negativeScoreComputations.toArray(new CompletableFuture<?>[0])).join();
         LOG.info("Gather gradient area gap results");
-        List<ColorMIPSearchMatchMetadata> srWithGradScores = gradientAreaGapComputations.stream()
+        List<ColorMIPSearchMatchMetadata> srWithGradScores = negativeScoreComputations.stream()
                 .flatMap(gac -> gac.join().stream())
                 .collect(Collectors.toList());
         LOG.info("Sort results using gradient scores");
@@ -127,23 +128,23 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
         return Executors.newFixedThreadPool(nThreads);
     }
 
-    private CompletableFuture<List<ColorMIPSearchMatchMetadata>> asyncCalculateGradientAreaScoreForCDSResults(MIPMetadata inputMaskMIP,
-                                                                                                              List<ColorMIPSearchMatchMetadata> selectedCDSResultsForInputMIP,
-                                                                                                              String maskBucket,
-                                                                                                              String gradientsBucket,
-                                                                                                              String gradientSuffix,
-                                                                                                              String zgapsBucket,
-                                                                                                              String zgapsSuffix,
-                                                                                                              AWSMIPLoader mipLoader,
-                                                                                                              MaskGradientAreaGapCalculatorProvider maskAreaGapCalculatorProvider,
-                                                                                                              Executor executor) {
-        CompletableFuture<MaskGradientAreaGapCalculator> gradientGapCalculatorPromise = CompletableFuture.supplyAsync(() -> {
+    private CompletableFuture<List<ColorMIPSearchMatchMetadata>> asyncCalculateNegativeScoresForCDSResults(MIPMetadata inputMaskMIP,
+                                                                                                           List<ColorMIPSearchMatchMetadata> selectedCDSResultsForInputMIP,
+                                                                                                           String maskBucket,
+                                                                                                           String gradientsBucket,
+                                                                                                           String gradientSuffix,
+                                                                                                           String zgapsBucket,
+                                                                                                           String zgapsSuffix,
+                                                                                                           AWSMIPLoader mipLoader,
+                                                                                                           MaskNegativeScoresCalculatorProvider maskNegativeScoresCalculatorProvider,
+                                                                                                           Executor executor) {
+        CompletableFuture<MaskNegativeScoresCalculator> negativeScoresCalculatorPromise = CompletableFuture.supplyAsync(() -> {
             LOG.info("Load input mask {}", inputMaskMIP);
             MIPImage inputMaskImage = mipLoader.loadMIP(maskBucket, inputMaskMIP); // no caching for the mask
-            return maskAreaGapCalculatorProvider.createMaskGradientAreaGapCalculator(inputMaskImage.getImageArray());
+            return maskNegativeScoresCalculatorProvider.createMaskNegativeScoresCalculator(inputMaskImage.getImageArray());
         }, executor);
-        List<CompletableFuture<Long>> areaGapComputations = selectedCDSResultsForInputMIP.stream()
-                .map(csr -> gradientGapCalculatorPromise.thenApplyAsync(gradientGapCalculator -> {
+        List<CompletableFuture<Long>> negativeScoreComputations = selectedCDSResultsForInputMIP.stream()
+                .map(csr -> negativeScoresCalculatorPromise.thenApplyAsync(gradientGapCalculator -> {
                     MIPMetadata matchedMIP = new MIPMetadata();
                     matchedMIP.setImageArchivePath(csr.getImageArchivePath());
                     matchedMIP.setImageName(csr.getImageName());
@@ -151,41 +152,47 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                     MIPImage matchedImage = mipLoader.loadMIP(extractBucketName(csr.getImageURL()), matchedMIP);
                     MIPImage matchedGradientImage = mipLoader.loadMIP(gradientsBucket, getVariantMIP(matchedMIP, gradientSuffix));
                     MIPImage matchedZGapImage = mipLoader.loadFirstMatchingMIP(zgapsBucket, getVariantMIP(matchedMIP, zgapsSuffix));
-                    long areaGap;
+                    long negativeScore;
                     if (matchedImage != null && matchedGradientImage != null) {
                         // only calculate the area gap if the gradient exist
                         LOG.info("Calculate area gap for {}", csr);
-                        areaGap = gradientGapCalculator.calculateMaskAreaGap(
+                        NegativeGradientScores negativeGradientScores = gradientGapCalculator.calculateMaskAreaGap(
                                 matchedImage.getImageArray(),
                                 matchedGradientImage.getImageArray(),
                                 matchedZGapImage != null ? matchedZGapImage.getImageArray() : null);
-                        LOG.info("Area gap for {} -> {}", csr, areaGap);
+                        csr.setGradientAreaGap(negativeGradientScores.gradientAreaGap);
+                        csr.setHighExpressionArea(negativeGradientScores.highExpressionArea);
+                        negativeScore = negativeGradientScores.getCumulatedScore();
+                        LOG.info("Negative scores for {} -> {} ({})", csr, negativeGradientScores, negativeScore);
                     } else {
-                        areaGap = -1;
+                        csr.setGradientAreaGap(-1);
+                        csr.setHighExpressionArea(-1);
+                        negativeScore = -1;
                     }
-                    csr.setGradientAreaGap(areaGap);
-                    return areaGap;
+                    return negativeScore;
                 }, executor))
                 .collect(Collectors.toList());
-        return CompletableFuture.allOf(areaGapComputations.toArray(new CompletableFuture<?>[0]))
+        return CompletableFuture.allOf(negativeScoreComputations.toArray(new CompletableFuture<?>[0]))
                 .thenApply(vr -> {
                     int maxMatchingPixels = selectedCDSResultsForInputMIP.stream()
                             .map(ColorMIPSearchMatchMetadata::getMatchingPixels)
                             .max(Integer::compare)
                             .orElse(0);
-                    List<Long> areaGaps = areaGapComputations.stream()
-                            .map(areaGapComputation -> areaGapComputation.join())
+                    List<Long> negativeScores = negativeScoreComputations.stream()
+                            .map(CompletableFuture::join)
                             .collect(Collectors.toList());
-                    long maxAreaGap = areaGaps.stream()
+                    long maxNegativeScore = negativeScores.stream()
                             .max(Long::compare)
                             .orElse(-1L);
                     // set the normalized area gap values
-                    if (maxAreaGap >= 0 && maxMatchingPixels > 0) {
-                        selectedCDSResultsForInputMIP.stream().filter(csr -> csr.getGradientAreaGap() >= 0)
+                    if (maxNegativeScore >= 0 && maxMatchingPixels > 0) {
+                        selectedCDSResultsForInputMIP.stream()
+                                .filter(csr -> csr.getNegativeScore() >= 0)
                                 .forEach(csr -> {
-                                    csr.setNormalizedGapScore(GradientAreaGapUtils.calculateAreaGapScore(
+                                    csr.setNormalizedGapScore(GradientAreaGapUtils.calculateNormalizedScore(
                                             csr.getGradientAreaGap(),
-                                            maxAreaGap,
+                                            csr.getHighExpressionArea(),
+                                            maxNegativeScore,
                                             csr.getMatchingPixels(),
                                             csr.getMatchingRatio(),
                                             maxMatchingPixels));
