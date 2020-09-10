@@ -57,12 +57,12 @@ exports.getObjectWithRetry = async (bucket, key, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await getObject(bucket, key);
-            await sleep(500);
         } catch (e) {
             if (retry + 1 >= retries) {
                 console.error(`Error getting object ${bucket}:${key} after ${retries} retries`, e);
                 throw e;
             }
+            await sleep(500);
         }
     }
 }
@@ -203,7 +203,7 @@ exports.startStepFunction = async (uniqueName, stateMachineParams, stateMachineA
 // Verify that key exists on S3
 exports.verifyKey = async (Bucket, Key) => {
     try {
-        const response = await s3.headObject({
+        await s3.headObject({
             Bucket,
             Key}).promise();
         console.log(`Found object ${Bucket}:${Key}`);

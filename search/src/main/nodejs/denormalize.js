@@ -1,7 +1,6 @@
 'use strict';
 
 const utils = require('./utils');
-const AWS = require('aws-sdk');
 
 const suffix = "_denormalized.json";
 

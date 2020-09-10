@@ -276,7 +276,7 @@ const getSearchInputParams = async (event) => {
     } else {
         searchMetadata = event;
     }
-    if (!!searchMetadata) {
+    if (searchMetadata) {
         // if a searchMask is set use that for search otherwise use the upload
         searchMetadata.searchInputName = searchMetadata.searchMask
             ? searchMetadata.searchMask
