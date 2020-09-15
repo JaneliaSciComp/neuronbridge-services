@@ -34,3 +34,13 @@ as below:
   "mirrorMask": true
 }
 ```
+
+## Unit testing
+
+Simply run:
+```
+npm test
+```
+
+
+

@@ -1,4 +1,5 @@
 'use strict';
+/*global process*/
 
 const AWS = require('aws-sdk');
 const Jimp = require('jimp');
