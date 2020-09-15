@@ -48,7 +48,6 @@ class AWSMIPLoader {
             }
             LOG.trace("Loaded image {}:{} in {}ms", bucketName, imageKey, System.currentTimeMillis() - startTime);
         }
-
     }
 
     MIPImage loadMIP(String bucketName, MIPMetadata mip) {
@@ -77,38 +76,24 @@ class AWSMIPLoader {
         }
     }
 
-    MIPImage loadFirstMatchingMIP(String bucketName, MIPMetadata mip) {
+    ImageArray loadFirstMatchingImage(String bucketName, String imageKey) {
         long startTime = System.currentTimeMillis();
-        InputStream inputStream;
-        String mipImagePrefix = RegExUtils.replacePattern(mip.getImagePath(), "\\..*$", "");
-        String mipImageName;
+        String imageKeyPrefix = RegExUtils.replacePattern(imageKey, "\\..*$", "");
+        String imageName;
         try {
-            LOG.trace("List MIP candidates for: {}", mipImagePrefix);
-            List<S3Object> matchingMIPs = LambdaUtils.listObjects(s3, bucketName, mipImagePrefix);
-            if (CollectionUtils.isEmpty(matchingMIPs)) {
+            LOG.trace("List candidates for: {}", imageKeyPrefix);
+            List<S3Object> matchingImages = LambdaUtils.listObjects(s3, bucketName, imageKeyPrefix);
+            if (CollectionUtils.isEmpty(matchingImages)) {
                 return null;
             } else {
-                mipImageName = matchingMIPs.get(0).key();
-                LOG.info("Loading MIP {} using first match from {}", mipImageName, matchingMIPs);
-                inputStream = LambdaUtils.getObject(s3, bucketName, matchingMIPs.get(0).key());
-                if (inputStream == null) {
-                    return null;
-                }
+                imageName = matchingImages.get(0).key();
+                LOG.info("Loading {} using first match from {}", imageName, matchingImages);
+                return readImage(bucketName, imageName);
             }
         } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-        try {
-            return new MIPImage(mip, ImageArrayUtils.readImageArray(mip.getId(), mipImageName, inputStream));
-        } catch (Exception e) {
-            LOG.error("Error loading {}", mip, e);
             throw new IllegalStateException(e);
         } finally {
-            try {
-                inputStream.close();
-            } catch (IOException ignore) {
-            }
-            LOG.trace("Loaded MIP {} in {}ms", mip, System.currentTimeMillis() - startTime);
+            LOG.trace("Loaded image matching {} in {}ms", imageKey, System.currentTimeMillis() - startTime);
         }
     }
 

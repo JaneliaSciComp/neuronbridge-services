@@ -38,6 +38,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         if (StringUtils.isNotBlank(params.getSearchId())) {
             MDC.put("searchId", params.getSearchId());
         }
+        LOG.trace("Batch search invoked with {}", params);
         verifyCDSParams(params);
         S3Client s3 = LambdaUtils.createS3();
         List<ColorMIPSearchResult> cdsResults = performColorDepthSearch(params, s3);
@@ -75,7 +76,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                     params.getPixColorFluctuation(),
                     params.getXyShift(),
                     params.getNegativeRadius(),
-                    mipsLoader.readImage(params.getSearchPrefix(), LambdaUtils.getOptionalEnv("MAX_HEMIBRAIN_MASK_NAME", null))
+                    mipsLoader.readImage(params.getSearchPrefix(), params.getMaskROIKey())
             );
         } else {
             cdsAlgorithmProvider = ColorDepthSearchAlgorithmProviderFactory.createPixMatchCDSAlgorithmProvider(

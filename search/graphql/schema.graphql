@@ -48,6 +48,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     xyShift: Int
     mirrorMask: Boolean
     minMatchingPixRatio: Int
+    negativeRadius: Int
     mimeType: String
     nBatches: Int
     completedBatches: Int
@@ -102,6 +103,7 @@ input CreateSearchInput {
     xyShift: Int
     mirrorMask: Boolean
     minMatchingPixRatio: Int
+    negativeRadius: Int
     mimeType: String
     searchMask: String
     simulateMIPGeneration: Boolean

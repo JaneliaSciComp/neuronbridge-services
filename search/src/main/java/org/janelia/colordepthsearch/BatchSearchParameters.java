@@ -170,14 +170,6 @@ public class BatchSearchParameters {
         return outputURI;
     }
 
-    public int getNegativeRadius() {
-        return negativeRadius;
-    }
-
-    public void setNegativeRadius(int negativeRadius) {
-        this.negativeRadius = negativeRadius;
-    }
-
     /**
      * Set the path to the output file on S3.
      * @param outputURI
@@ -193,4 +185,13 @@ public class BatchSearchParameters {
     public void setMinMatchingPixRatio(Double minMatchingPixRatio) {
         this.minMatchingPixRatio = minMatchingPixRatio;
     }
+
+    public int getNegativeRadius() {
+        return negativeRadius;
+    }
+
+    public void setNegativeRadius(int negativeRadius) {
+        this.negativeRadius = negativeRadius;
+    }
+
 }

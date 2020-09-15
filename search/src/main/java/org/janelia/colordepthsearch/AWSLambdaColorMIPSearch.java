@@ -87,8 +87,8 @@ class AWSLambdaColorMIPSearch {
                                     : null;
                             ColorMIPMatchScore colorMIPMatchScore = maskColorDepthSearch.calculateMatchingScore(
                                     indexedTargetMIP.getRight().getImageArray(),
-                                    mipLoader.readImage(awsLibrariesBucket, targetGradientKey),
-                                    mipLoader.readImage(awsLibrariesBucket, targetZGapMaskKey));
+                                    mipLoader.loadFirstMatchingImage(awsLibrariesBucket, targetGradientKey),
+                                    mipLoader.loadFirstMatchingImage(awsLibrariesBucket, targetZGapMaskKey));
                             boolean isMatch = colorMIPSearch.isMatch(colorMIPMatchScore);
                             return new ColorMIPSearchResult(
                                     maskMIP,

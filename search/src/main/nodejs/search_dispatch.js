@@ -4,7 +4,7 @@ const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
 
-const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
+const {getSearchMetadataKey, getIntermediateSearchResultsKey, getSearchMaskId} = require('./searchutils');
 const {getObject, putObject, invokeAsync, partition, startStepFunction, verifyKey, DEBUG} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
 
@@ -17,6 +17,7 @@ const DEFAULTS = {
     xyShift: 2,
     mirrorMask: true,
     minMatchingPixRatio: 2,
+    negativeRadius: 10,
 };
 
 const defaultBatchSize = () => {
@@ -32,13 +33,14 @@ const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 3000;
 const region = process.env.AWS_REGION;
 const defaultLibraryBucket = process.env.LIBRARY_BUCKET;
 const defaultSearchBucket = process.env.SEARCH_BUCKET;
+const maxHemibrainMask = process.env.MAX_HEMIBRAIN_MASK_NAME;
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
 exports.searchDispatch = async (event) => {
 
-    if (DEBUG) console.log(event);
+    console.log(event);
 
     const segment = AWSXRay.getSegment();
     var subsegment = segment.addNewSubsegment('Read parameters');
@@ -91,15 +93,23 @@ exports.searchDispatch = async (event) => {
         const librariesPromises = await searchInputParamsWithLibraries.libraries
             .map(lname => {
                 // for searching use MIPs from the searchableMIPs folder
-                const libraryFolder = searchInputParamsWithLibraries.searchableMIPSFolder
-                    ? `${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
-                    : lname;
                 const libraryAlignmentSpace = searchInputParamsWithLibraries.libraryAlignmentSpace
                     ? `${searchInputParamsWithLibraries.libraryAlignmentSpace}/`
                     : ''
+                const searchableMIPSFolder = searchInputParamsWithLibraries.searchableMIPSFolder
+                    ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
+                    : `${libraryAlignmentSpace}${lname}`;
+                const gradientsFolder = searchInputParamsWithLibraries.gradientsFolder
+                    ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.gradientsFolder}`
+                    : null;
+                const zgapMasksFolder = searchInputParamsWithLibraries.zgapMasksFolder
+                    ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.zgapMasksFolder}`
+                    : null;
                 const library = {
                     lname: lname,
-                    lkey: `${libraryAlignmentSpace}${libraryFolder}`
+                    lkey: searchableMIPSFolder,
+                    gradientsFolder: gradientsFolder,
+                    zgapMasksFolder: zgapMasksFolder
                 };
                 console.log("Lookup library", library);
                 return library;
@@ -220,28 +230,39 @@ exports.searchDispatch = async (event) => {
     } else {
         // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
         subsegment = segment.addNewSubsegment('Get library keys');
-        const librariesWithKeysPromise =  await libraries
+        const searchableTargetsPromise =  await libraries
             .map(async l => {
                 return await {
                     ...l,
-                    lkeys: await getKeys(libraryBucket, l.lkey)
+                    searchableKeys: await getKeys(libraryBucket, l.lkey)
                 };
             });
-        const librariesWithKeys = await Promise.all(librariesWithKeysPromise);
-        const allKeys = librariesWithKeys
-            .map(l => l.lkeys)
-            .reduce((acc, lkeys) => acc.concat(lkeys), []);
-        const keys = allKeys.slice(startIndex, endIndex);
-        const batchPartitions = partition(keys, batchSize);
+        const searchableTargets = await Promise.all(searchableTargetsPromise);
+        const allTargets = searchableTargets
+            .flatMap(l => l.searchableKeys.map(key => {
+                const searchName = getSearchMaskId(key);
+                const gradientKey = l.gradientsFolder ? `${l.gradientsFolder}/${searchName}` : null;
+                const zgapMaskKey = l.zgapMasksFolder ? `${l.zgapMasksFolder}/${searchName}` : null;
+                return {
+                    lname: l.lname,
+                    searchKey: key,
+                    gradientKey: gradientKey,
+                    zgapMaskKey: zgapMaskKey,
+                    maskROIKey: l.maskROIKey
+                };
+            }));
+        const targets = allTargets.slice(startIndex, endIndex);
+        const batchPartitions = partition(targets, batchSize);
         let batchIndex = Math.ceil(startIndex / batchSize);
-        console.log(`Selected keys from ${startIndex} to ${endIndex} out of ${allKeys.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
+        console.log(`Selected targets from ${startIndex} to ${endIndex} out of ${allTargets.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
             libraries);
         subsegment.close();
 
         subsegment = segment.addNewSubsegment('Invoke batches');
-        for (const searchKeys of batchPartitions) {
+        for (const searchBatch of batchPartitions) {
             const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
+            const maskROIKey = searchBatch[0].maskROIKey;
             const searchParams = {
                 searchId: searchId,
                 outputURI: batchResultsURI,
@@ -249,11 +270,14 @@ exports.searchDispatch = async (event) => {
                 maskKeys: [`${searchInputFolder}/${searchInputName}`],
                 maskThresholds: [maskThreshold],
                 searchPrefix: libraryBucket,
-                searchKeys,
+                searchKeys: searchBatch.map(st => st.searchKey),
+                gradientKeys: searchBatch.filter(st => !!st.gradientKey).map(st => st.gradientKey),
+                zgapMaskKeys: searchBatch.filter(st => !!st.zgapMaskKey).map(st => st.zgapMaskKey),
+                maskROIKey: maskROIKey,
                 ...nextEvent
             };
             await invokeAsync(searchFunction, searchParams);
-            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchKeys.length} items)`);
+            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchBatch.length} items)`);
             batchIndex++;
         }
         subsegment.close();
@@ -289,20 +313,28 @@ const getSearchInputParams = async (event) => {
 const setSearchLibraries = (searchData)  => {
     switch (searchData.searchType) {
         case 'em2lm':
+        case 'lmTarget':
             return {
                 ...searchData,
                 libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',
                 searchableMIPSFolder: 'searchable_neurons',
+                gradientsFolder: 'gradient',
+                zgapMasksFolder: 'zgap',
+                maskROIKey: null,
                 libraries: [
                     'FlyLight_Split-GAL4_Drivers',
                     'FlyLight_Gen1_MCFO'
                 ]
             };
         case 'lm2em':
+        case 'emTarget':
             return {
                 ...searchData,
                 libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',
                 searchableMIPSFolder: 'searchable_neurons',
+                gradientsFolder: 'gradient',
+                zgapMasksFolder: 'zgap',
+                maskROIKey: maxHemibrainMask,
                 libraries: [
                     "FlyEM_Hemibrain_v1.1"
                 ]
