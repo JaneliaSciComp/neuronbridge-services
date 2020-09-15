@@ -7,7 +7,13 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.xray.AWSXRay;
 
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.janelia.colormipsearch.api.cdmips.MIPImage;
+import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
+import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithmProvider;
+import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithmProviderFactory;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPMatchScore;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
@@ -25,6 +31,7 @@ import software.amazon.awssdk.services.s3.S3Client;
 public class BatchSearch implements RequestHandler<BatchSearchParameters, Integer> {
 
     private static final Logger LOG = LoggerFactory.getLogger(BatchSearch.class);
+    private static final int DEFAULT_MASK_THRESHOLD = 100;
 
     @Override
     public Integer handleRequest(BatchSearchParameters params, Context context) {
@@ -58,16 +65,33 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
 
     private List<ColorMIPSearchResult> performColorDepthSearch(BatchSearchParameters params, S3Client s3) {
         AWSXRay.beginSubsegment("Run search");
+        AWSMIPLoader mipsLoader = new AWSMIPLoader(s3);
+        ColorDepthSearchAlgorithmProvider<ColorMIPMatchScore> cdsAlgorithmProvider;
+        if (!LambdaUtils.isEmpty(params.getGradientKeys())) {
+            cdsAlgorithmProvider = ColorDepthSearchAlgorithmProviderFactory.createPixMatchWithNegativeScoreCDSAlgorithmProvider(
+                    DEFAULT_MASK_THRESHOLD,
+                    params.isMirrorMask(),
+                    params.getDataThreshold(),
+                    params.getPixColorFluctuation(),
+                    params.getXyShift(),
+                    params.getNegativeRadius(),
+                    mipsLoader.readImage(params.getSearchPrefix(), LambdaUtils.getOptionalEnv("MAX_HEMIBRAIN_MASK_NAME", null))
+            );
+        } else {
+            cdsAlgorithmProvider = ColorDepthSearchAlgorithmProviderFactory.createPixMatchCDSAlgorithmProvider(
+                    DEFAULT_MASK_THRESHOLD,
+                    params.isMirrorMask(),
+                    params.getDataThreshold(),
+                    params.getPixColorFluctuation(),
+                    params.getXyShift()
+            );
+        }
 
         ColorMIPSearch colorMIPSearch = new ColorMIPSearch(
-                0,
-                params.getDataThreshold(),
-                params.getPixColorFluctuation(),
-                params.getXyShift(),
-                params.isMirrorMask(),
-                params.getMinMatchingPixRatio());
+                params.getMinMatchingPixRatio(),
+                cdsAlgorithmProvider);
         AWSLambdaColorMIPSearch awsColorMIPSearch = new AWSLambdaColorMIPSearch(
-                new AWSMIPLoader(s3),
+                mipsLoader,
                 colorMIPSearch,
                 params.getMaskPrefix(),
                 params.getSearchPrefix(),
@@ -78,7 +102,9 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         List<ColorMIPSearchResult> cdsResults = awsColorMIPSearch.findAllColorDepthMatches(
                 params.getMaskKeys(),
                 params.getMaskThresholds(),
-                params.getSearchKeys()
+                params.getSearchKeys(),
+                params.getGradientKeys(),
+                params.getZgapMaskKeys()
         );
         LOG.info("Found {} matches.", cdsResults.size());
         AWSXRay.endSubsegment();

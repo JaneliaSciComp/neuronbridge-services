@@ -8,17 +8,19 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import com.google.common.base.Splitter;
 import com.google.common.collect.Streams;
 
 import org.apache.commons.lang3.RegExUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
 import org.janelia.colormipsearch.api.cdmips.MIPsUtils;
-import org.janelia.colormipsearch.api.cdsearch.ColorMIPCompareOutput;
-import org.janelia.colormipsearch.api.cdsearch.ColorMIPMaskCompare;
+import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithm;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPMatchScore;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
 import org.slf4j.Logger;
@@ -48,45 +50,68 @@ class AWSLambdaColorMIPSearch {
 
     List<ColorMIPSearchResult> findAllColorDepthMatches(List<String> maskKeys,
                                                         List<Integer> maskThresholds,
-                                                        List<String> libraryKeys) {
+                                                        List<String> targetKeys,
+                                                        List<String> targetGradientKeys,
+                                                        List<String> targetZGapMaskKeys) {
         return Streams.zip(maskKeys.stream(), maskThresholds.stream(),
-                (maskKey, maskThreshold) -> runMaskSearches(maskKey, maskThreshold, libraryKeys))
+                (maskKey, maskThreshold) -> runMaskSearches(maskKey, maskThreshold, targetKeys, targetGradientKeys, targetZGapMaskKeys))
                 .flatMap(Collection::stream)
                 .collect(Collectors.toList());
     }
 
-    private List<ColorMIPSearchResult> runMaskSearches(String maskKey, int maskThreshold, List<String> libraryKeys) {
+    private List<ColorMIPSearchResult> runMaskSearches(String maskKey,
+                                                       int maskThreshold,
+                                                       List<String> targetKeys,
+                                                       List<String> targetGradientKeys,
+                                                       List<String> targetZGapMaskKeys) {
+        long startTime = System.currentTimeMillis();
         MIPMetadata maskMIP = createMaskMIP(maskKey);
         MIPImage maskImage = mipLoader.loadMIP(awsMasksBucket, maskMIP);
         if (maskImage == null) {
             return Collections.emptyList();
         }
-        ColorMIPMaskCompare maskComparator = colorMIPSearch.createMaskComparator(maskImage, maskThreshold);
-        return libraryKeys.stream()
-                .map(this::createLibraryMIP)
-                .map(libraryMIP -> mipLoader.loadMIP(awsLibrariesBucket, libraryMIP))
-                .filter(libraryImage -> libraryImage != null)
-                .map(libraryImage -> {
-                    LOG.trace("Compare {} with {}", maskImage, libraryImage);
-                    ColorMIPCompareOutput sr = maskComparator.runSearch(libraryImage.getImageArray());
-                    if (colorMIPSearch.isMatch(sr)) {
-                        return new ColorMIPSearchResult(
-                                maskMIP,
-                                libraryImage.getMipInfo(),
-                                sr.getMatchingPixNum(),
-                                sr.getMatchingPixNumToMaskRatio(),
-                                true,
-                                false
-                        );
-                    } else {
-                        return new ColorMIPSearchResult(
-                                maskMIP,
-                                libraryImage.getMipInfo(),
-                                0, 0, false, false);
-                    }
-                })
-                .filter(ColorMIPSearchResult::isMatch)
-                .collect(Collectors.toList());
+        ColorDepthSearchAlgorithm<ColorMIPMatchScore> maskColorDepthSearch = colorMIPSearch.createMaskColorDepthSearch(maskImage, maskThreshold);
+        try {
+            return Streams.zip(IntStream.range(0, targetKeys.size()).boxed(),
+                    targetKeys.stream(),
+                    (i, targetKey) -> ImmutablePair.of(i, mipLoader.loadMIP(awsLibrariesBucket, createLibraryMIP(targetKey))))
+                    .filter(indexedTargetMIP -> indexedTargetMIP.getRight() != null)
+                    .map(indexedTargetMIP -> {
+                        try {
+                            LOG.trace("Compare {} with {}", maskImage, indexedTargetMIP);
+                            String targetGradientKey = targetGradientKeys != null && indexedTargetMIP.getLeft() < targetGradientKeys.size()
+                                    ? targetGradientKeys.get(indexedTargetMIP.getLeft())
+                                    : null;
+                            String targetZGapMaskKey = targetZGapMaskKeys != null && indexedTargetMIP.getLeft() < targetZGapMaskKeys.size()
+                                    ? targetZGapMaskKeys.get(indexedTargetMIP.getLeft())
+                                    : null;
+                            ColorMIPMatchScore colorMIPMatchScore = maskColorDepthSearch.calculateMatchingScore(
+                                    indexedTargetMIP.getRight().getImageArray(),
+                                    mipLoader.readImage(awsLibrariesBucket, targetGradientKey),
+                                    mipLoader.readImage(awsLibrariesBucket, targetZGapMaskKey));
+                            boolean isMatch = colorMIPSearch.isMatch(colorMIPMatchScore);
+                            return new ColorMIPSearchResult(
+                                    maskMIP,
+                                    MIPsUtils.getMIPMetadata(indexedTargetMIP.getRight()),
+                                    colorMIPMatchScore,
+                                    isMatch,
+                                    false);
+                        } catch (Throwable e) {
+                            LOG.error("Error comparing mask {} with {}", maskMIP, indexedTargetMIP, e);
+                            return new ColorMIPSearchResult(
+                                    maskMIP,
+                                    MIPsUtils.getMIPMetadata(indexedTargetMIP.getRight()),
+                                    ColorMIPMatchScore.NO_MATCH,
+                                    false,
+                                    true);
+                        }
+                    })
+                    .filter(ColorMIPSearchResult::isMatch)
+                    .collect(Collectors.toList());
+        } finally {
+            LOG.info("Completed color depth search for {} vs {} target libraries in {}ms",
+                    maskKey, targetKeys.size(), System.currentTimeMillis()-startTime);
+        }
     }
 
     private MIPMetadata createMaskMIP(String mipKey) {

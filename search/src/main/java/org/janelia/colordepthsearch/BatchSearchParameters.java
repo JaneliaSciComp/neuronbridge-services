@@ -12,8 +12,11 @@ public class BatchSearchParameters {
     private String searchId;
     private String searchPrefix;
     private List<String> searchKeys;
+    private List<String> gradientKeys;
+    private List<String> zgapMaskKeys;
     private String maskPrefix;
     private List<String> maskKeys;
+    private String maskROIKey;
     private Integer dataThreshold = 100;
     private List<Integer> maskThresholds;
     private Double pixColorFluctuation = 2.0;
@@ -21,7 +24,7 @@ public class BatchSearchParameters {
     private boolean mirrorMask = false;
     private String outputURI;
     private Double minMatchingPixRatio = 2.;
-
+    private int negativeRadius;
 
     public String getSearchId() {
         return searchId;
@@ -55,6 +58,22 @@ public class BatchSearchParameters {
         this.searchKeys = searchKeys;
     }
 
+    public List<String> getGradientKeys() {
+        return gradientKeys;
+    }
+
+    public void setGradientKeys(List<String> gradientKeys) {
+        this.gradientKeys = gradientKeys;
+    }
+
+    public List<String> getZgapMaskKeys() {
+        return zgapMaskKeys;
+    }
+
+    public void setZgapMaskKeys(List<String> zgapMaskKeys) {
+        this.zgapMaskKeys = zgapMaskKeys;
+    }
+
     public String getMaskPrefix() {
         return maskPrefix;
     }
@@ -77,6 +96,14 @@ public class BatchSearchParameters {
      */
     public void setMaskKeys(List<String> maskKeys) {
         this.maskKeys = maskKeys;
+    }
+
+    public String getMaskROIKey() {
+        return maskROIKey;
+    }
+
+    public void setMaskROIKey(String maskROIKey) {
+        this.maskROIKey = maskROIKey;
     }
 
     public Integer getDataThreshold() {
@@ -141,6 +168,14 @@ public class BatchSearchParameters {
 
     public String getOutputURI() {
         return outputURI;
+    }
+
+    public int getNegativeRadius() {
+        return negativeRadius;
+    }
+
+    public void setNegativeRadius(int negativeRadius) {
+        this.negativeRadius = negativeRadius;
     }
 
     /**

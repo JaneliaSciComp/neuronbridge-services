@@ -7,12 +7,10 @@ import java.util.List;
 
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
-import org.janelia.colormipsearch.api.cdsearch.CDSMatches;
-import org.janelia.colormipsearch.api.cdsearch.ColorMIPCompareOutput;
-import org.janelia.colormipsearch.api.cdsearch.ColorMIPMaskCompare;
+import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithm;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPMatchScore;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
-import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.janelia.colormipsearch.api.imageprocessing.ImageArray;
 import org.janelia.colormipsearch.api.imageprocessing.ImageArrayUtils;
 import org.junit.Before;
@@ -22,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -34,14 +32,14 @@ public class AWSLambdaColorMIPSearchTest {
 
     private AWSMIPLoader mipLoader;
     private ColorMIPSearch colorMIPSearch;
-    private ColorMIPMaskCompare maskComparator;
+    private ColorDepthSearchAlgorithm<ColorMIPMatchScore> maskColorDepthSearch;
     private AWSLambdaColorMIPSearch awsLambdaColorMIPSearch;
 
     @Before
     public void setUp() {
         mipLoader = mock(AWSMIPLoader.class);
         colorMIPSearch = mock(ColorMIPSearch.class);
-        maskComparator = mock(ColorMIPMaskCompare.class);
+        maskColorDepthSearch = (ColorDepthSearchAlgorithm<ColorMIPMatchScore>) mock(ColorDepthSearchAlgorithm.class);
         awsLambdaColorMIPSearch = new AWSLambdaColorMIPSearch(
                 mipLoader,
                 colorMIPSearch,
@@ -71,7 +69,9 @@ public class AWSLambdaColorMIPSearchTest {
         List<ColorMIPSearchResult> searchResults = awsLambdaColorMIPSearch.findAllColorDepthMatches(
                 maskKeys,
                 Arrays.asList(100),
-                libraryKeys
+                libraryKeys,
+                null,
+                null
         );
         assertEquals(libraryKeys.size(), searchResults.size());
     }
@@ -86,13 +86,19 @@ public class AWSLambdaColorMIPSearchTest {
                                     "test.png",
                                     new FileInputStream("src/test/resources/mips/testMIP.png")));
                 });
-        when(colorMIPSearch.createMaskComparator(any(MIPImage.class), anyInt()))
-                .thenReturn(maskComparator);
-        ColorMIPCompareOutput sr = mock(ColorMIPCompareOutput.class);
-        when(maskComparator.runSearch(any(ImageArray.class))).thenReturn(sr);
+        when(colorMIPSearch.createMaskColorDepthSearch(any(MIPImage.class), anyInt()))
+                .thenReturn(maskColorDepthSearch);
+        ColorMIPMatchScore sr = mock(ColorMIPMatchScore.class);
+        when(maskColorDepthSearch.calculateMatchingScore(
+                any(ImageArray.class),
+                nullable(ImageArray.class),
+                nullable(ImageArray.class)))
+                .thenReturn(sr);
         when(colorMIPSearch.isMatch(sr)).thenReturn(true);
         when(sr.getMatchingPixNum()).thenReturn(100); // a random test value
         when(sr.getMatchingPixNumToMaskRatio()).thenReturn(0.1); // a random test value
+        when(sr.getGradientAreaGap()).thenReturn(-1L);
+        when(sr.getHighExpressionArea()).thenReturn(-1L);
     }
 
 }

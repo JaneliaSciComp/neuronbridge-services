@@ -81,11 +81,15 @@ class LambdaUtils {
 
     static InputStream getObject(S3Client s3, String bucket, String key) {
         try {
-            return s3.getObject(GetObjectRequest.builder()
-                            .bucket(bucket)
-                            .key(key)
-                            .build(),
-                    ResponseTransformer.toInputStream());
+            if (StringUtils.isBlank(bucket) || StringUtils.isBlank(key)) {
+                return null;
+            } else {
+                return s3.getObject(GetObjectRequest.builder()
+                                .bucket(bucket)
+                                .key(key)
+                                .build(),
+                        ResponseTransformer.toInputStream());
+            }
         } catch (Exception e) {
             LOG.error("Error reading object from {}:{}", bucket, key, e);
             throw new IllegalArgumentException(e);

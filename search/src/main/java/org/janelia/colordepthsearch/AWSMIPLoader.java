@@ -8,6 +8,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.RegExUtils;
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
+import org.janelia.colormipsearch.api.imageprocessing.ImageArray;
 import org.janelia.colormipsearch.api.imageprocessing.ImageArrayUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,33 @@ class AWSMIPLoader {
 
     AWSMIPLoader(S3Client s3) {
         this.s3 = s3;
+    }
+
+    ImageArray readImage(String bucketName, String imageKey) {
+        long startTime = System.currentTimeMillis();
+        LOG.trace("Load image {}:{}", bucketName, imageKey);
+        InputStream inputStream;
+        try {
+            inputStream = LambdaUtils.getObject(s3, bucketName, imageKey);
+            if (inputStream == null) {
+                return null;
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        try {
+            return ImageArrayUtils.readImageArray(imageKey, imageKey, inputStream);
+        } catch (Exception e) {
+            LOG.error("Error loading {}:{}", bucketName, imageKey, e);
+            throw new IllegalStateException(e);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException ignore) {
+            }
+            LOG.trace("Loaded image {}:{} in {}ms", bucketName, imageKey, System.currentTimeMillis() - startTime);
+        }
+
     }
 
     MIPImage loadMIP(String bucketName, MIPMetadata mip) {
