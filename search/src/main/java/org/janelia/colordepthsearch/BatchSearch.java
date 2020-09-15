@@ -76,7 +76,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                     params.getPixColorFluctuation(),
                     params.getXyShift(),
                     params.getNegativeRadius(),
-                    mipsLoader.readImage(params.getSearchPrefix(), params.getMaskROIKey())
+                    mipsLoader.readImageWithRetry(params.getSearchPrefix(), params.getMaskROIKey())
             );
         } else {
             cdsAlgorithmProvider = ColorDepthSearchAlgorithmProviderFactory.createPixMatchCDSAlgorithmProvider(

@@ -19,11 +19,28 @@ class AWSMIPLoader {
     private static final Logger LOG = LoggerFactory.getLogger(AWSMIPLoader.class);
 
     private final S3Client s3;
+    private final int defaultMaxRetries;
+    private final long defaultPauseBetweenRetries;
 
     AWSMIPLoader(S3Client s3) {
         this.s3 = s3;
+        this.defaultMaxRetries = 5;
+        this.defaultPauseBetweenRetries = 200;
     }
 
+    ImageArray readImageWithRetry(String bucketName, String imageKey) {
+        for (int retry = 0;  retry < defaultMaxRetries; retry++) {
+            try {
+                return readImage(bucketName, imageKey);
+            } catch (Exception ignore) {
+            }
+            try {
+                Thread.sleep(defaultPauseBetweenRetries);
+            } catch (Exception ignore) {
+            }
+        }
+        throw new IllegalStateException(String.format("Error retrieving %s:%s after %d retries", bucketName, imageKey, defaultMaxRetries));
+    }
     ImageArray readImage(String bucketName, String imageKey) {
         long startTime = System.currentTimeMillis();
         LOG.trace("Load image {}:{}", bucketName, imageKey);
@@ -51,29 +68,7 @@ class AWSMIPLoader {
     }
 
     MIPImage loadMIP(String bucketName, MIPMetadata mip) {
-        long startTime = System.currentTimeMillis();
-        LOG.trace("Load MIP {}", mip);
-        InputStream inputStream;
-        try {
-            inputStream = LambdaUtils.getObject(s3, bucketName, mip.getImagePath());
-            if (inputStream == null) {
-                return null;
-            }
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        }
-        try {
-            return new MIPImage(mip, ImageArrayUtils.readImageArray(mip.getId(), mip.getImageName(), inputStream));
-        } catch (Exception e) {
-            LOG.error("Error loading {}", mip, e);
-            throw new IllegalStateException(e);
-        } finally {
-            try {
-                inputStream.close();
-            } catch (IOException ignore) {
-            }
-            LOG.trace("Loaded MIP {} in {}ms", mip, System.currentTimeMillis() - startTime);
-        }
+        return new MIPImage(mip, readImageWithRetry(bucketName, mip.getImagePath()));
     }
 
     ImageArray loadFirstMatchingImage(String bucketName, String imageKey) {
@@ -88,7 +83,7 @@ class AWSMIPLoader {
             } else {
                 imageName = matchingImages.get(0).key();
                 LOG.info("Loading {} using first match from {}", imageName, matchingImages);
-                return readImage(bucketName, imageName);
+                return readImageWithRetry(bucketName, imageName);
             }
         } catch (Exception e) {
             throw new IllegalStateException(e);
