@@ -41,6 +41,7 @@ exports.getSearchMetadata = async (searchId) => {
                 voxelZ
                 nBatches
                 completedBatches
+                nTotalMatches
                 cdsStarted
                 cdsFinished
                 createdOn
@@ -94,6 +95,7 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     voxelZ
                     nBatches
                     completedBatches
+                    nTotalMatches
                     cdsStarted
                     cdsFinished
                     createdOn
@@ -134,6 +136,7 @@ exports.updateSearchMetadata = async (searchData) => {
                 algorithm
                 nBatches
                 completedBatches
+                nTotalMatches
                 cdsStarted
                 cdsFinished
                 createdOn

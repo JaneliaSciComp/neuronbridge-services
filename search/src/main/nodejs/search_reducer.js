@@ -53,6 +53,10 @@ exports.searchReducer = async (event, context) => {
         }
     }
 
+    const nTotalMatches = Object.values(allBatchResults).map(rsByMask => {
+        return rsByMask.results.length;
+    }).reduce((a, n) => a  + n, 0);
+
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
         console.log(`Sort ${rsByMask.results.length} for ${rsByMask.maskId}`);
         rsByMask.results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
@@ -79,6 +83,7 @@ exports.searchReducer = async (event, context) => {
     await updateSearchMetadata({
         id: searchId,
         step: SEARCH_COMPLETED,
+        nTotalMatches: nTotalMatches,
         cdsFinished: now.toISOString()
     });
 
