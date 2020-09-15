@@ -3,7 +3,8 @@
   "description": "Backend color depth search service for NeuronBridge",
   "version": "0.1.0",
   "scripts": {
-    "sls": "sls"
+    "sls": "sls",
+    "test": "jest"
   },
   "dependencies": {
     "aws-appsync": "^4.0.0",
@@ -17,6 +18,8 @@
     "uuid": "^8.2.0"
   },
   "devDependencies": {
+    "eslint": "^7.8.1",
+    "jest": "^26.4.2",
     "serverless": "^1.78.1",
     "serverless-appsync-plugin": "^1.3.1",
     "serverless-pseudo-parameters": "^2.5.0",
