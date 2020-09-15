@@ -39,7 +39,7 @@ class AWSMIPLoader {
             return new MIPImage(mip, ImageArrayUtils.readImageArray(mip.getId(), mip.getImageName(), inputStream));
         } catch (Exception e) {
             LOG.error("Error loading {}", mip, e);
-            throw new IllegalStateException(e);
+            return null;
         } finally {
             try {
                 inputStream.close();

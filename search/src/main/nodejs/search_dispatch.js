@@ -38,12 +38,13 @@ const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
 exports.searchDispatch = async (event) => {
 
-    if (DEBUG) console.log(event);
+    console.log(event);
 
     const segment = AWSXRay.getSegment();
     var subsegment = segment.addNewSubsegment('Read parameters');
 
     const searchInputParams = await getSearchInputParams(event);
+    console.log('Search input params:', searchInputParams);
 
     const searchId = searchInputParams.searchId;
     const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;
@@ -276,11 +277,10 @@ const getSearchInputParams = async (event) => {
     } else {
         searchMetadata = event;
     }
-    if (!!searchMetadata) {
+    if (!!searchMetadata && !!searchMetadata.searchMask) {
         // if a searchMask is set use that for search otherwise use the upload
-        searchMetadata.searchInputName = searchMetadata.searchMask
-            ? searchMetadata.searchMask
-            : searchMetadata.searchInputName;
+        console.log(`Use ${searchMetadata.searchMask} for searching instead of ${searchMetadata.searchInputName}`);
+        searchMetadata.searchInputName = searchMetadata.searchMask;
     }
     console.log("Searching params", searchMetadata);
     return searchMetadata;
