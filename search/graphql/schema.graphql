@@ -51,6 +51,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     mimeType: String
     nBatches: Int
     completedBatches: Int
+    nTotalMatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
     displayableMask: String
@@ -195,6 +196,7 @@ input UpdateSearchInput {
     step: Int
     nBatches: Int
     completedBatches: Int
+    nTotalMatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
     displayableMask: String
