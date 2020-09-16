@@ -4,7 +4,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -23,6 +27,7 @@ import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithm;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPMatchScore;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
+import org.janelia.colormipsearch.api.imageprocessing.ImageArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,8 +75,9 @@ class AWSLambdaColorMIPSearch {
         if (maskImage == null) {
             return Collections.emptyList();
         }
-        ColorDepthSearchAlgorithm<ColorMIPMatchScore> maskColorDepthSearch = colorMIPSearch.createMaskColorDepthSearch(maskImage, maskThreshold);
         try {
+            ColorDepthSearchAlgorithm<ColorMIPMatchScore> maskColorDepthSearch = colorMIPSearch.createMaskColorDepthSearch(maskImage, maskThreshold);
+            Set<String> requiredVariantTypes = maskColorDepthSearch.getRequiredTargetVariantTypes();
             return Streams.zip(IntStream.range(0, targetKeys.size()).boxed(),
                     targetKeys.stream(),
                     (i, targetKey) -> ImmutablePair.of(i, mipLoader.loadMIP(awsLibrariesBucket, createLibraryMIP(targetKey))))
@@ -79,16 +85,26 @@ class AWSLambdaColorMIPSearch {
                     .map(indexedTargetMIP -> {
                         try {
                             LOG.trace("Compare {} with {}", maskImage, indexedTargetMIP);
-                            String targetGradientKey = targetGradientKeys != null && indexedTargetMIP.getLeft() < targetGradientKeys.size()
-                                    ? targetGradientKeys.get(indexedTargetMIP.getLeft())
-                                    : null;
-                            String targetZGapMaskKey = targetZGapMaskKeys != null && indexedTargetMIP.getLeft() < targetZGapMaskKeys.size()
-                                    ? targetZGapMaskKeys.get(indexedTargetMIP.getLeft())
-                                    : null;
+                            Map<String, Supplier<ImageArray>> variantImageSuppliers = new HashMap<>();
+                            if (requiredVariantTypes.contains("gradient")) {
+                                variantImageSuppliers.put("gradient", () -> {
+                                    String targetGradientKey = targetGradientKeys != null && indexedTargetMIP.getLeft() < targetGradientKeys.size()
+                                            ? targetGradientKeys.get(indexedTargetMIP.getLeft())
+                                            : null;
+                                    return mipLoader.loadFirstMatchingImage(awsLibrariesBucket, targetGradientKey);
+                                });
+                            }
+                            if (requiredVariantTypes.contains("zgap")) {
+                                variantImageSuppliers.put("zgap", () -> {
+                                    String targetZGapMaskKey = targetZGapMaskKeys != null && indexedTargetMIP.getLeft() < targetZGapMaskKeys.size()
+                                            ? targetZGapMaskKeys.get(indexedTargetMIP.getLeft())
+                                            : null;
+                                    return mipLoader.loadFirstMatchingImage(awsLibrariesBucket, targetZGapMaskKey);
+                                });
+                            }
                             ColorMIPMatchScore colorMIPMatchScore = maskColorDepthSearch.calculateMatchingScore(
                                     indexedTargetMIP.getRight().getImageArray(),
-                                    mipLoader.loadFirstMatchingImage(awsLibrariesBucket, targetGradientKey),
-                                    mipLoader.loadFirstMatchingImage(awsLibrariesBucket, targetZGapMaskKey));
+                                    variantImageSuppliers);
                             boolean isMatch = colorMIPSearch.isMatch(colorMIPMatchScore);
                             return new ColorMIPSearchResult(
                                     maskMIP,

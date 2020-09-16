@@ -19,6 +19,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mock;
@@ -91,8 +92,7 @@ public class AWSLambdaColorMIPSearchTest {
         ColorMIPMatchScore sr = mock(ColorMIPMatchScore.class);
         when(maskColorDepthSearch.calculateMatchingScore(
                 any(ImageArray.class),
-                nullable(ImageArray.class),
-                nullable(ImageArray.class)))
+                anyMap()))
                 .thenReturn(sr);
         when(colorMIPSearch.isMatch(sr)).thenReturn(true);
         when(sr.getMatchingPixNum()).thenReturn(100); // a random test value

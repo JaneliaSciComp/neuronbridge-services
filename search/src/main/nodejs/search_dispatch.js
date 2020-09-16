@@ -46,6 +46,7 @@ exports.searchDispatch = async (event) => {
     var subsegment = segment.addNewSubsegment('Read parameters');
 
     const searchInputParams = await getSearchInputParams(event);
+    console.log('Search input params:', searchInputParams);
 
     const searchId = searchInputParams.searchId;
     const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;

@@ -63,9 +63,22 @@ const getNewRecords = async (e) => {
             .map(r => r.Keys.id.S)
             .map(async searchId => await getSearchMetadata(searchId));
         return await Promise.all(newRecordsPromises);
-    } else if (e.searchIds) {
-        const newSearchesPromises = await e.searchIds
-            .map(async searchId => await getSearchMetadata(searchId))
+    } else if (e.submittedSearches) {
+        // this branch retrieves the searches from the DB
+        // but if some fields are not yet set because of DynamoDB's eventual consistency
+        // it sets those fields from the submittedSearch instead
+        const newSearchesPromises = await e.submittedSearches
+            .map(async submittedSearch => {
+                let searchMetadata = await getSearchMetadata(submittedSearch.id || submittedSearch.searchId);
+                Object.entries(submittedSearch)
+                    .forEach(([key, value]) => {
+                        if (value !== null && (searchMetadata[key] === null || searchMetadata[key] === undefined)) {
+                            console.log(`Field ${key} not set`, searchMetadata, 'expected to be', value);
+                            searchMetadata[key] = value;
+                        }
+                    });
+                return searchMetadata;
+            });
         return await Promise.all(newSearchesPromises);
     } else if (e.searches) {
         return e.searches;
