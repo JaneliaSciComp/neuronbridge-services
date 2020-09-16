@@ -12,11 +12,11 @@ custom:
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
-  searchBatchSize: 50
+  searchBatchSize: 40
   searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
   neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
-  cdsTimeoutInSeconds: 360
+  cdsTimeoutInSeconds: 480
   version: 2.0.0
   tracing: true
   debug: true

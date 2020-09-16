@@ -19,6 +19,7 @@ const DEFAULTS = {
     minMatchingPixRatio: 2,
     negativeRadius: 10,
     maxResultsPerMask: -1,
+    withGradientScore: true,
 };
 
 const defaultBatchSize = () => {
@@ -67,6 +68,7 @@ exports.searchDispatch = async (event) => {
     const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold;
     const negativeRadius = searchInputParams.negativeRadius || DEFAULTS.negativeRadius;
     const maxResultsPerMask =  searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask;
+    const withGradientScore = searchInputParams.withGradientScore || DEFAULTS.withGradientScore;
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     let libraries = searchInputParams.libraries;
@@ -183,6 +185,7 @@ exports.searchDispatch = async (event) => {
             minMatchingPixRatio: minMatchingPixRatio,
             negativeRadius: negativeRadius,
             maxResultsPerMask: maxResultsPerMask,
+            withGradientScore: withGradientScore,
             nBatches: numBatches,
             completedBatches: 0,
             cdsStarted: now.toISOString()
@@ -221,6 +224,7 @@ exports.searchDispatch = async (event) => {
         minMatchingPixRatio: minMatchingPixRatio,
         negativeRadius: negativeRadius,
         maxResultsPerMask: maxResultsPerMask,
+        withGradientScore:  withGradientScore,
         batchSize: batchSize,
         numBatches: numBatches,
         branchingFactor: branchingFactor

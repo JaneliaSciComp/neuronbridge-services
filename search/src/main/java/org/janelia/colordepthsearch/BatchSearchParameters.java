@@ -25,6 +25,7 @@ public class BatchSearchParameters {
     private String outputURI;
     private Double minMatchingPixRatio = 2.;
     private int negativeRadius;
+    private boolean withGradientScore;
 
     public String getSearchId() {
         return searchId;
@@ -194,4 +195,11 @@ public class BatchSearchParameters {
         this.negativeRadius = negativeRadius;
     }
 
+    public boolean isWithGradientScore() {
+        return withGradientScore;
+    }
+
+    public void setWithGradientScore(boolean withGradientScore) {
+        this.withGradientScore = withGradientScore;
+    }
 }

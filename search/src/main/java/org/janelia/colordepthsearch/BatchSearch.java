@@ -68,7 +68,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         AWSXRay.beginSubsegment("Run search");
         AWSMIPLoader mipsLoader = new AWSMIPLoader(s3);
         ColorDepthSearchAlgorithmProvider<ColorMIPMatchScore> cdsAlgorithmProvider;
-        if (!LambdaUtils.isEmpty(params.getGradientKeys())) {
+        if (params.isWithGradientScore() && !LambdaUtils.isEmpty(params.getGradientKeys())) {
             cdsAlgorithmProvider = ColorDepthSearchAlgorithmProviderFactory.createPixMatchWithNegativeScoreCDSAlgorithmProvider(
                     DEFAULT_MASK_THRESHOLD,
                     params.isMirrorMask(),

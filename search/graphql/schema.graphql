@@ -50,6 +50,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     minMatchingPixRatio: Int
     negativeRadius: Int
     maxResultsPerMask: Int
+    withGradientScore: Boolean
     mimeType: String
     nBatches: Int
     completedBatches: Int
@@ -107,6 +108,7 @@ input CreateSearchInput {
     minMatchingPixRatio: Int
     negativeRadius: Int
     maxResultsPerMask: Int
+    withGradientScore: Boolean
     mimeType: String
     searchMask: String
     simulateMIPGeneration: Boolean
@@ -206,6 +208,7 @@ input UpdateSearchInput {
     minMatchingPixRatio: Int
     negativeRadius: Int
     maxResultsPerMask: Int
+    withGradientScore: Boolean
     nBatches: Int
     completedBatches: Int
     nTotalMatches: Int

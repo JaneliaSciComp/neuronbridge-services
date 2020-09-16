@@ -60,7 +60,7 @@ exports.searchReducer = async (event, context) => {
 
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
         const results = rsByMask.results;
-        console.log(`Sort ${results.length} for ${maskId}`);
+        console.log(`Sort ${results.length} for ${rsByMask.maskId}`);
         results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
         if (maxResultsPerMask && maxResultsPerMask > 0 && results.length > maxResultsPerMask) {
             rsByMask.results = results.slice(0, maxResultsPerMask);
