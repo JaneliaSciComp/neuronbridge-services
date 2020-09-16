@@ -28,8 +28,8 @@ class AWSMIPLoader {
         this.defaultPauseBetweenRetries = 200;
     }
 
-    ImageArray readImageWithRetry(String bucketName, String imageKey) {
-        for (int retry = 0;  retry < defaultMaxRetries; retry++) {
+    ImageArray readImageWithRetry(String bucketName, String imageKey, int nretries) {
+        for (int retry = 0;  retry < nretries; retry++) {
             try {
                 return readImage(bucketName, imageKey);
             } catch (Exception ignore) {
@@ -39,9 +39,10 @@ class AWSMIPLoader {
             } catch (Exception ignore) {
             }
         }
-        throw new IllegalStateException(String.format("Error retrieving %s:%s after %d retries", bucketName, imageKey, defaultMaxRetries));
+        throw new IllegalStateException(String.format("Error retrieving %s:%s after %d retries", bucketName, imageKey, nretries));
     }
-    ImageArray readImage(String bucketName, String imageKey) {
+
+    private ImageArray readImage(String bucketName, String imageKey) {
         long startTime = System.currentTimeMillis();
         LOG.trace("Load image {}:{}", bucketName, imageKey);
         InputStream inputStream;
@@ -68,7 +69,7 @@ class AWSMIPLoader {
     }
 
     MIPImage loadMIP(String bucketName, MIPMetadata mip) {
-        return new MIPImage(mip, readImageWithRetry(bucketName, mip.getImagePath()));
+        return new MIPImage(mip, readImageWithRetry(bucketName, mip.getImagePath(), defaultMaxRetries));
     }
 
     ImageArray loadFirstMatchingImage(String bucketName, String imageKey) {
@@ -83,7 +84,7 @@ class AWSMIPLoader {
             } else {
                 imageName = matchingImages.get(0).key();
                 LOG.info("Loading {} using first match from {}", imageName, matchingImages);
-                return readImageWithRetry(bucketName, imageName);
+                return readImageWithRetry(bucketName, imageName, defaultMaxRetries);
             }
         } catch (Exception e) {
             throw new IllegalStateException(e);

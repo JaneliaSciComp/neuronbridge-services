@@ -1,7 +1,7 @@
 'use strict';
 
 const {getIntermediateSearchResultsKey, getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getObjectWithRetry, putText, putObject, removeKey, DEBUG} = require('./utils');
+const {getObjectWithRetry, putObjectWithRetry, removeKey, DEBUG} = require('./utils');
 const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 const mergeResults = (rs1, rs2) => {
@@ -27,6 +27,7 @@ exports.searchReducer = async (event, context) => {
     const searchInputFolder = event.searchInputFolder;
     const searchInputName = event.searchInputName;
     const numBatches = event.numBatches;
+    const maxResultsPerMask =  event.maxResultsPerMask;
 
     const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
     let allBatchResults = {};
@@ -58,13 +59,17 @@ exports.searchReducer = async (event, context) => {
     }).reduce((a, n) => a  + n, 0);
 
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
-        console.log(`Sort ${rsByMask.results.length} for ${rsByMask.maskId}`);
-        rsByMask.results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
+        const results = rsByMask.results;
+        console.log(`Sort ${results.length} for ${maskId}`);
+        results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
+        if (maxResultsPerMask && maxResultsPerMask > 0 && results.length > maxResultsPerMask) {
+            rsByMask.results = results.slice(0, maxResultsPerMask);
+        }
         return rsByMask;
     });
 
     // write down the results
-    const outputUri = await putObject(
+    const outputUri = await putObjectWithRetry(
         bucket,
         getSearchResultsKey(fullSearchInputName),
         allMatches.length > 1
@@ -74,7 +79,8 @@ exports.searchReducer = async (event, context) => {
                 : {
                     maskId: getSearchMaskId(searchInputName),
                     results: []
-                  })
+                  }),
+        3
     );
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 

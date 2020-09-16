@@ -12,11 +12,11 @@ custom:
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
-  searchBatchSize: 40
+  searchBatchSize: 50
   searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
   neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
-  cdsTimeoutInSeconds: 300
+  cdsTimeoutInSeconds: 360
   version: 2.0.0
   tracing: true
   debug: true
@@ -231,8 +231,7 @@ functions:
     runtime: java8
     handler: org.janelia.colordepthsearch.BatchSearch
     memorySize: 384
-    # 5 minute timeout
-    timeout: 300
+    timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
@@ -241,8 +240,7 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/monitor.isSearchDone
     memorySize: 128
-    # 5 minute timeout because the last iteration also runs the reduce step
-    timeout: 300
+    timeout: 180
     environment:
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
@@ -251,9 +249,8 @@ functions:
   searchReduce:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_reducer.searchReducer
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
+    memorySize: 384
+    timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_BUCKET: ${self:custom.searchBucket}

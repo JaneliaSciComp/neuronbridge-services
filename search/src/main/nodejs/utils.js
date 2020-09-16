@@ -4,6 +4,7 @@ const AWS = require('aws-sdk');
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
+    s3: '2006-03-01',
 };
 
 const s3 = new AWS.S3();
@@ -96,19 +97,34 @@ exports.getS3ContentWithRetry = async (bucket, key, retries) => {
     }
 }
 
+exports.putObjectWithRetry = async (bucket, key, data, retries) => {
+    for(let retry = 0; retry < retries; retry++) {
+        try {
+            return await putObject(bucket, key, data);
+            await sleep(500);
+        } catch (e) {
+            if (retry + 1 >= retries) {
+                console.error(`Error putting content ${bucket}:${key} after ${retries} retries`, e);
+                throw e;
+            }
+        }
+    }
+}
+
 // Write an object into S3 as JSON
-exports.putObject = async (Bucket, Key, data) => {
+const putObject = async (Bucket, Key, data) => {
     try {
         if (DEBUG)
             console.log(`Putting object to ${Bucket}:${Key}`);
-        await s3.putObject({
+        const res =  await s3.putObject({
             Bucket,
             Key,
             Body: JSON.stringify(data),
             ContentType: 'application/json'
         }).promise();
-        if (DEBUG)
-            console.log(`Put object to ${Bucket}:${Key}:`, data);
+        if (DEBUG) {
+            console.log(`Put object to ${Bucket}:${Key}:`, data, res);
+        }
     } catch (e) {
         console.error('Error putting object', data, `to ${Bucket}:${Key}`, e);
         throw e;
@@ -116,17 +132,23 @@ exports.putObject = async (Bucket, Key, data) => {
     return `s3://${Bucket}/${Key}`
 };
 
+exports.putObject = putObject;
+
 // Write content to an S3 bucket
 exports.putS3Content = async (Bucket, Key, contentType, content) => {
     try {
-        if (DEBUG)
+        if (DEBUG) {
             console.log(`Putting content to ${Bucket}:${Key}`);
-        await s3.putObject({
+        }
+        const res = await s3.putObject({
             Bucket,
             Key,
             Body: content,
             ContentType: contentType
         }).promise();
+        if (DEBUG) {
+            console.log(`Put content to ${Bucket}:${Key}`, res);
+        }
     } catch (e) {
         console.error('Error putting content', `to ${Bucket}:${Key}`, e);
         throw e;
@@ -137,10 +159,10 @@ exports.putS3Content = async (Bucket, Key, contentType, content) => {
 // Remove key from an S3 bucket
 exports.removeKey = async (Bucket, Key) => {
     try {
-        await s3.deleteObject({
+        const res = await s3.deleteObject({
             Bucket,
             Key}).promise();
-        console.log(`DeleteObject ${Bucket}:${Key}`);
+        console.log(`DeleteObject ${Bucket}:${Key}`, res);
     } catch (e) {
         console.error(`Error deleting object ${Bucket}:${Key}`, e);
     }

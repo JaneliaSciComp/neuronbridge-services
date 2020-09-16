@@ -1,7 +1,7 @@
 'use strict';
 
 const AWS = require('aws-sdk');
-const AWSXRay = require('aws-xray-sdk-core')
+const AWSXRay = require('aws-xray-sdk-core');
 const { v1: uuidv1 } = require('uuid');
 
 const {getSearchMetadataKey, getIntermediateSearchResultsKey, getSearchMaskId} = require('./searchutils');
@@ -18,6 +18,7 @@ const DEFAULTS = {
     mirrorMask: true,
     minMatchingPixRatio: 2,
     negativeRadius: 10,
+    maxResultsPerMask: -1,
 };
 
 const defaultBatchSize = () => {
@@ -63,7 +64,9 @@ exports.searchDispatch = async (event) => {
     const xyShift = searchInputParams.xyShift || DEFAULTS.xyShift;
     const mirrorMask = searchInputParams.mirrorMask || DEFAULTS.mirrorMask;
     const minMatchingPixRatio = searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
-    const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold
+    const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold;
+    const negativeRadius = searchInputParams.negativeRadius || DEFAULTS.negativeRadius;
+    const maxResultsPerMask =  searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask;
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     let libraries = searchInputParams.libraries;
@@ -172,6 +175,14 @@ exports.searchDispatch = async (event) => {
         await updateSearchMetadata({
             id: searchId,
             step: SEARCH_IN_PROGRESS,
+            maskThreshold: maskThreshold,
+            dataThreshold: dataThreshold,
+            pixColorFluctuation: pixColorFluctuation,
+            xyShift: xyShift,
+            mirrorMask: mirrorMask,
+            minMatchingPixRatio: minMatchingPixRatio,
+            negativeRadius: negativeRadius,
+            maxResultsPerMask: maxResultsPerMask,
             nBatches: numBatches,
             completedBatches: 0,
             cdsStarted: now.toISOString()
@@ -208,6 +219,8 @@ exports.searchDispatch = async (event) => {
         xyShift: xyShift,
         mirrorMask: mirrorMask,
         minMatchingPixRatio: minMatchingPixRatio,
+        negativeRadius: negativeRadius,
+        maxResultsPerMask: maxResultsPerMask,
         batchSize: batchSize,
         numBatches: numBatches,
         branchingFactor: branchingFactor
