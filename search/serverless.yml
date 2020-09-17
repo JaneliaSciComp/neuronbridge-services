@@ -196,7 +196,7 @@ functions:
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
-      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-lowpriority
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
       ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
