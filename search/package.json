@@ -13,6 +13,7 @@
     "isomorphic-fetch": "^2.2.1",
     "jimp": "^0.16.1",
     "moment": "^2.25.3",
+    "stream": "0.0.2",
     "uuid": "^8.2.0"
   },
   "devDependencies": {

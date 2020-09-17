@@ -1,7 +1,7 @@
 'use strict';
 
 const {getIntermediateSearchResultsKey, getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getObjectWithRetry, putText, putObject, removeKey, DEBUG} = require('./utils');
+const {getObjectWithRetry, streamObject, removeKey, DEBUG} = require('./utils');
 const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 const mergeResults = (rs1, rs2) => {
@@ -64,7 +64,7 @@ exports.searchReducer = async (event, context) => {
     });
 
     // write down the results
-    const outputUri = await putObject(
+    const outputUri = await streamObject(
         bucket,
         getSearchResultsKey(fullSearchInputName),
         allMatches.length > 1

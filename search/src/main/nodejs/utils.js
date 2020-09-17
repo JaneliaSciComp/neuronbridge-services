@@ -1,9 +1,11 @@
 'use strict';
 
 const AWS = require('aws-sdk');
+const stream = require('stream');
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
+    s3: '2006-03-01',
 };
 
 const s3 = new AWS.S3();
@@ -12,10 +14,8 @@ const stepFunction = new AWS.StepFunctions();
 
 const DEBUG = !!process.env.DEBUG;
 
-exports.DEBUG = DEBUG;
-
 // Retrieve all the keys in a particular bucket
-exports.getAllKeys = async params => {
+const getAllKeys = async params => {
     const allKeys = [];
     var result;
     do {
@@ -47,13 +47,11 @@ const getObject = async (bucket, key, defaultValue) => {
     }
 };
 
-exports.getObject = getObject;
-
 const sleep = async (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-exports.getObjectWithRetry = async (bucket, key, retries) => {
+const getObjectWithRetry = async (bucket, key, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await getObject(bucket, key);
@@ -80,9 +78,7 @@ const getS3Content = async (bucket, key) => {
     }
 };
 
-exports.getS3Content = getS3Content;
-
-exports.getS3ContentWithRetry = async (bucket, key, retries) => {
+const getS3ContentWithRetry = async (bucket, key, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await getS3Content(bucket, key);
@@ -96,19 +92,34 @@ exports.getS3ContentWithRetry = async (bucket, key, retries) => {
     }
 }
 
+const putObjectWithRetry = async (bucket, key, data, retries) => {
+    for(let retry = 0; retry < retries; retry++) {
+        try {
+            return await putObject(bucket, key, data);
+            await sleep(500);
+        } catch (e) {
+            if (retry + 1 >= retries) {
+                console.error(`Error putting content ${bucket}:${key} after ${retries} retries`, e);
+                throw e;
+            }
+        }
+    }
+}
+
 // Write an object into S3 as JSON
-exports.putObject = async (Bucket, Key, data) => {
+const putObject = async (Bucket, Key, data) => {
     try {
         if (DEBUG)
             console.log(`Putting object to ${Bucket}:${Key}`);
-        await s3.putObject({
+        const res =  await s3.putObject({
             Bucket,
             Key,
             Body: JSON.stringify(data),
             ContentType: 'application/json'
         }).promise();
-        if (DEBUG)
-            console.log(`Put object to ${Bucket}:${Key}:`, data);
+        if (DEBUG) {
+            console.log(`Put object to ${Bucket}:${Key}:`, data, res);
+        }
     } catch (e) {
         console.error('Error putting object', data, `to ${Bucket}:${Key}`, e);
         throw e;
@@ -117,16 +128,20 @@ exports.putObject = async (Bucket, Key, data) => {
 };
 
 // Write content to an S3 bucket
-exports.putS3Content = async (Bucket, Key, contentType, content) => {
+const putS3Content = async (Bucket, Key, contentType, content) => {
     try {
-        if (DEBUG)
+        if (DEBUG) {
             console.log(`Putting content to ${Bucket}:${Key}`);
-        await s3.putObject({
+        }
+        const res = await s3.putObject({
             Bucket,
             Key,
             Body: content,
             ContentType: contentType
         }).promise();
+        if (DEBUG) {
+            console.log(`Put content to ${Bucket}:${Key}`, res);
+        }
     } catch (e) {
         console.error('Error putting content', `to ${Bucket}:${Key}`, e);
         throw e;
@@ -135,19 +150,66 @@ exports.putS3Content = async (Bucket, Key, contentType, content) => {
 };
 
 // Remove key from an S3 bucket
-exports.removeKey = async (Bucket, Key) => {
+const removeKey = async (Bucket, Key) => {
     try {
-        await s3.deleteObject({
+        const res = await s3.deleteObject({
             Bucket,
             Key}).promise();
-        console.log(`DeleteObject ${Bucket}:${Key}`);
+        console.log(`DeleteObject ${Bucket}:${Key}`, res);
     } catch (e) {
         console.error(`Error deleting object ${Bucket}:${Key}`, e);
     }
 };
 
+const streamObject = async (Bucket, Key, data) => {
+    try {
+        console.log(`Streaming object to ${Bucket}:${Key}`);
+        const writeStream = new stream.PassThrough();
+        const uploadPromise = s3.upload({
+            Bucket,
+            Key,
+            Body: writeStream,
+            ContentType: 'application/json'
+        });
+
+        const dataStream = new stream.Readable({objectMode: true});
+        dataStream.pipe(writeStream);
+        dataStream.on('end', () => {
+            console.log('Finished writing the data stream');
+        });
+        // json serialiaze the data
+        dataStream.push('{\n');
+        Object.entries(data).forEach(([key, value],  index) => {
+            if (index > 0)  {
+                dataStream.push(',\n');
+            }
+            dataStream.push(`"${key}": `);
+            if (Array.isArray(value)) {
+                dataStream.push('[');
+                value.forEach((arrayElem, arrayIndex) => {
+                    if (arrayIndex > 0) {
+                        dataStream.push(',\n');
+                    }
+                    dataStream.push(JSON.stringify(arrayElem));
+                })
+                dataStream.push(']');
+            } else {
+                dataStream.push(JSON.stringify(value));
+            }
+        });
+        dataStream.push('\n}');
+        dataStream.push(null);
+        await uploadPromise.promise();
+        console.log(`Finished streaming data to ${Bucket}:${Key}`);
+    } catch (e) {
+        console.error(`Error streaming data to ${Bucket}:${Key}`, e);
+        throw e;
+    }
+    return `s3://${Bucket}/${Key}`
+};
+
 // Returns consecutive sublists of a list, each of the same size (the final list may be smaller)
-exports.partition = (list, size) => {
+const partition = (list, size) => {
     const plist = [];
     for (var i = 0; i < list.length; i += size) {
         plist.push(list.slice(i, i + size));
@@ -156,7 +218,7 @@ exports.partition = (list, size) => {
 }
 
 // Invoke another Lambda function
-exports.invokeFunction = async (functionName, parameters) => {
+const invokeFunction = async (functionName, parameters) => {
     if (DEBUG)
         console.log(`Invoke function ${functionName} with`, parameters);
     const params = {
@@ -173,7 +235,7 @@ exports.invokeFunction = async (functionName, parameters) => {
 }
 
 // Invoke another Lambda function asynchronously
-exports.invokeAsync = async (functionName, parameters) => {
+const invokeAsync = async (functionName, parameters) => {
     if (DEBUG)
         console.log(`Invoke async ${functionName} with`, parameters);
     const params = {
@@ -189,7 +251,7 @@ exports.invokeAsync = async (functionName, parameters) => {
 }
 
 // Start state machine
-exports.startStepFunction = async (uniqueName, stateMachineParams, stateMachineArn) => {
+const startStepFunction = async (uniqueName, stateMachineParams, stateMachineArn) => {
     const params = {
         stateMachineArn: stateMachineArn,
         input: JSON.stringify(stateMachineParams),
@@ -201,7 +263,7 @@ exports.startStepFunction = async (uniqueName, stateMachineParams, stateMachineA
 }
 
 // Verify that key exists on S3
-exports.verifyKey = async (Bucket, Key) => {
+const verifyKey = async (Bucket, Key) => {
     try {
         const response = await s3.headObject({
             Bucket,
@@ -213,3 +275,22 @@ exports.verifyKey = async (Bucket, Key) => {
         return false;
     }
 }
+
+module.exports = {
+    DEBUG,
+    getAllKeys: getAllKeys,
+    getObject: getObject,
+    getObjectWithRetry: getObjectWithRetry,
+    getS3Content: getS3Content,
+    getS3ContentWithRetry: getS3ContentWithRetry,
+    putObjectWithRetry: putObjectWithRetry,
+    putObject: putObject,
+    putS3Content: putS3Content,
+    removeKey: removeKey,
+    streamObject: streamObject,
+    partition: partition,
+    invokeFunction: invokeFunction,
+    invokeAsync: invokeAsync,
+    startStepFunction: startStepFunction,
+    verifyKey: verifyKey
+};
