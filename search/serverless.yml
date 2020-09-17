@@ -16,7 +16,7 @@ custom:
   searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
   neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
-  cdsTimeoutInSeconds: 480
+  cdsTimeoutInSeconds: 600
   version: 2.0.0
   tracing: true
   debug: true
@@ -292,7 +292,7 @@ stepFunctions:
             Choices:
               - Variable: "$.timedOut"
                 BooleanEquals: true
-                Next: TimedOut
+                Next: Reduce
             Default: AreWeDoneYet
           AreWeDoneYet:
             Type: Choice
@@ -305,9 +305,6 @@ stepFunctions:
             Type: Wait
             Seconds: 30
             Next: Monitor
-          TimedOut:
-            Type: Fail
-            Cause: "Search timed out"
           Reduce:
             Type: Task
             Resource:

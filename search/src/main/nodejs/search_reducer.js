@@ -1,7 +1,7 @@
 'use strict';
 
 const {getIntermediateSearchResultsKey, getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getObjectWithRetry, streamObject, removeKey, DEBUG} = require('./utils');
+const {getAllKeys, getObjectWithRetry, streamObject, removeKey, DEBUG} = require('./utils');
 const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 const mergeResults = (rs1, rs2) => {
@@ -30,11 +30,24 @@ exports.searchReducer = async (event, context) => {
     const maxResultsPerMask =  event.maxResultsPerMask;
 
     const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
+    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
+
+    // Fetch all keys
+    const allKeys  = await getAllKeys({
+        Bucket: bucket,
+        Prefix: intermediateSearchResultsPrefix
+    });
+    const allBatchResultsKeys = new Set(allKeys);
+
     let allBatchResults = {};
     for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
         const batchResultsKey = getIntermediateSearchResultsKey(fullSearchInputName, batchIndex);
+        if (!allBatchResultsKeys.has(batchResultsKey)) {
+            console.log(`Skip ${batchResultsKey} because this batch may not have finished`);
+            // skip this batch if it has not completed
+            continue;
+        }
         const batchResults = await getObjectWithRetry(bucket, batchResultsKey, 3);
-        if (DEBUG) console.log(batchResults);
         try {
             batchResults.forEach(batchResult => {
                 if (allBatchResults[batchResult.maskId]) {
@@ -79,8 +92,7 @@ exports.searchReducer = async (event, context) => {
                 : {
                     maskId: getSearchMaskId(searchInputName),
                     results: []
-                  }),
-        3
+                  })
     );
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 

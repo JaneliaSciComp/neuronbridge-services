@@ -4,7 +4,7 @@ const AWS = require('aws-sdk');
 const moment = require('moment');
 
 const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getAllKeys, putText, DEBUG} = require('./utils');
+const {getAllKeys, DEBUG} = require('./utils');
 const {updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 
 const bc = new AWS.Batch({
