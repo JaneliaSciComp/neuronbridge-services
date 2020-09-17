@@ -23,6 +23,7 @@ import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.janelia.colormipsearch.api.gradienttools.GradientAreaGapUtils;
 import org.janelia.colormipsearch.api.gradienttools.MaskGradientAreaGapCalculator;
 import org.janelia.colormipsearch.api.gradienttools.MaskGradientAreaGapCalculatorProvider;
+import org.janelia.colormipsearch.api.gradienttools.NegativeGradientScores;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -152,18 +153,23 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                     MIPImage matchedGradientImage = mipLoader.loadMIP(gradientsBucket, getVariantMIP(matchedMIP, gradientSuffix));
                     MIPImage matchedZGapImage = mipLoader.loadFirstMatchingMIP(zgapsBucket, getVariantMIP(matchedMIP, zgapsSuffix));
                     long areaGap;
+                    long highExpressionArea;
                     if (matchedImage != null && matchedGradientImage != null) {
                         // only calculate the area gap if the gradient exist
                         LOG.info("Calculate area gap for {}", csr);
-                        areaGap = gradientGapCalculator.calculateMaskAreaGap(
+                        NegativeGradientScores negativeGradientScores = gradientGapCalculator.calculateMaskAreaGap(
                                 matchedImage.getImageArray(),
                                 matchedGradientImage.getImageArray(),
                                 matchedZGapImage != null ? matchedZGapImage.getImageArray() : null);
-                        LOG.info("Area gap for {} -> {}", csr, areaGap);
+                        LOG.info("Negative score for {} -> {}", csr, negativeGradientScores);
+                        areaGap = negativeGradientScores.gradientAreaGap;
+                        highExpressionArea = negativeGradientScores.highExpressionArea;
                     } else {
                         areaGap = -1;
+                        highExpressionArea = -1;
                     }
                     csr.setGradientAreaGap(areaGap);
+                    csr.setHighExpressionArea(highExpressionArea);
                     return areaGap;
                 }, executor))
                 .collect(Collectors.toList());
@@ -183,8 +189,9 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                     if (maxAreaGap >= 0 && maxMatchingPixels > 0) {
                         selectedCDSResultsForInputMIP.stream().filter(csr -> csr.getGradientAreaGap() >= 0)
                                 .forEach(csr -> {
-                                    csr.setNormalizedGapScore(GradientAreaGapUtils.calculateAreaGapScore(
+                                    csr.setNormalizedGapScore(GradientAreaGapUtils.calculateNormalizedScore(
                                             csr.getGradientAreaGap(),
+                                            csr.getHighExpressionArea(),
                                             maxAreaGap,
                                             csr.getMatchingPixels(),
                                             csr.getMatchingRatio(),
