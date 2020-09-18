@@ -158,12 +158,9 @@ const monitoCDSJob = async (cdsJobParams) => {
             timedOut: false
         };
     } else if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
-        console.log(`Search timed out after ${elapsedSecs} seconds`);
-        // update the error
-        await updateSearchMetadata({
-            id: searchId,
-            errorMessage: `Search timed out after ${elapsedSecs} seconds`
-        });
+        // we log the message but really not mark it as an error
+        // this will allow the work to continue but final results may not include all partial results
+        console.log(`Search timed out after ${elapsedSecs} seconds. Completed ${numComplete} of ${numBatches} jobs.`);
         return {
             ...cdsJobParams,
             elapsedSecs: elapsedSecs,

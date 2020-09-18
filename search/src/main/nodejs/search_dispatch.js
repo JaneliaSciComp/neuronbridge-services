@@ -17,6 +17,7 @@ const DEFAULTS = {
     xyShift: 2,
     mirrorMask: true,
     minMatchingPixRatio: 2,
+    maxResultsPerMask: -1,
 };
 
 const defaultBatchSize = () => {
@@ -62,6 +63,7 @@ exports.searchDispatch = async (event) => {
     const mirrorMask = searchInputParams.mirrorMask || DEFAULTS.mirrorMask;
     const minMatchingPixRatio = searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
     const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold
+    const maxResultsPerMask =  searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask;
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     let libraries = searchInputParams.libraries;
@@ -92,15 +94,15 @@ exports.searchDispatch = async (event) => {
         const librariesPromises = await searchInputParamsWithLibraries.libraries
             .map(lname => {
                 // for searching use MIPs from the searchableMIPs folder
-                const libraryFolder = searchInputParamsWithLibraries.searchableMIPSFolder
-                    ? `${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
-                    : lname;
                 const libraryAlignmentSpace = searchInputParamsWithLibraries.libraryAlignmentSpace
                     ? `${searchInputParamsWithLibraries.libraryAlignmentSpace}/`
                     : ''
+                const searchableMIPSFolder = searchInputParamsWithLibraries.searchableMIPSFolder
+                    ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
+                    : `${libraryAlignmentSpace}${lname}`;
                 const library = {
                     lname: lname,
-                    lkey: `${libraryAlignmentSpace}${libraryFolder}`
+                    lkey: searchableMIPSFolder
                 };
                 console.log("Lookup library", library);
                 return library;
@@ -162,6 +164,13 @@ exports.searchDispatch = async (event) => {
         await updateSearchMetadata({
             id: searchId,
             step: SEARCH_IN_PROGRESS,
+            maskThreshold: maskThreshold,
+            dataThreshold: dataThreshold,
+            pixColorFluctuation: pixColorFluctuation,
+            xyShift: xyShift,
+            mirrorMask: mirrorMask,
+            minMatchingPixRatio: minMatchingPixRatio,
+            maxResultsPerMask: maxResultsPerMask,
             nBatches: numBatches,
             completedBatches: 0,
             cdsStarted: now.toISOString()
@@ -198,6 +207,7 @@ exports.searchDispatch = async (event) => {
         xyShift: xyShift,
         mirrorMask: mirrorMask,
         minMatchingPixRatio: minMatchingPixRatio,
+        maxResultsPerMask: maxResultsPerMask,
         batchSize: batchSize,
         numBatches: numBatches,
         branchingFactor: branchingFactor
@@ -221,26 +231,25 @@ exports.searchDispatch = async (event) => {
     } else {
         // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
         subsegment = segment.addNewSubsegment('Get library keys');
-        const librariesWithKeysPromise =  await libraries
+        const searchableTargetsPromise =  await libraries
             .map(async l => {
                 return await {
                     ...l,
-                    lkeys: await getKeys(libraryBucket, l.lkey)
+                    searchableKeys: await getKeys(libraryBucket, l.lkey)
                 };
             });
-        const librariesWithKeys = await Promise.all(librariesWithKeysPromise);
-        const allKeys = librariesWithKeys
-            .map(l => l.lkeys)
-            .reduce((acc, lkeys) => acc.concat(lkeys), []);
-        const keys = allKeys.slice(startIndex, endIndex);
-        const batchPartitions = partition(keys, batchSize);
+        const searchableTargets = await Promise.all(searchableTargetsPromise);
+        const allTargets = searchableTargets
+            .flatMap(l => l.searchableKeys);
+        const targets = allTargets.slice(startIndex, endIndex);
+        const batchPartitions = partition(targets, batchSize);
         let batchIndex = Math.ceil(startIndex / batchSize);
-        console.log(`Selected keys from ${startIndex} to ${endIndex} out of ${allKeys.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
+        console.log(`Selected targets from ${startIndex} to ${endIndex} out of ${allTargets.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
             libraries);
         subsegment.close();
 
         subsegment = segment.addNewSubsegment('Invoke batches');
-        for (const searchKeys of batchPartitions) {
+        for (const searchBatch of batchPartitions) {
             const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
@@ -250,11 +259,11 @@ exports.searchDispatch = async (event) => {
                 maskKeys: [`${searchInputFolder}/${searchInputName}`],
                 maskThresholds: [maskThreshold],
                 searchPrefix: libraryBucket,
-                searchKeys,
+                searchKeys: searchBatch,
                 ...nextEvent
             };
             await invokeAsync(searchFunction, searchParams);
-            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchKeys.length} items)`);
+            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchBatch.length} items)`);
             batchIndex++;
         }
         subsegment.close();
@@ -289,6 +298,7 @@ const getSearchInputParams = async (event) => {
 const setSearchLibraries = (searchData)  => {
     switch (searchData.searchType) {
         case 'em2lm':
+        case 'lmTarget':
             return {
                 ...searchData,
                 libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',
@@ -299,6 +309,7 @@ const setSearchLibraries = (searchData)  => {
                 ]
             };
         case 'lm2em':
+        case 'emTarget':
             return {
                 ...searchData,
                 libraryAlignmentSpace: 'JRC2018_Unisex_20x_HR',

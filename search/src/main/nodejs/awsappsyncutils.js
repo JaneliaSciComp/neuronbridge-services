@@ -39,6 +39,13 @@ exports.getSearchMetadata = async (searchId) => {
                 voxelX
                 voxelY
                 voxelZ
+                maskThreshold
+                dataThreshold
+                pixColorFluctuation
+                xyShift
+                mirrorMask
+                minMatchingPixRatio
+                maxResultsPerMask
                 nBatches
                 completedBatches
                 nTotalMatches
@@ -93,6 +100,13 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     voxelX
                     voxelY
                     voxelZ
+                    maskThreshold
+                    dataThreshold
+                    pixColorFluctuation
+                    xyShift
+                    mirrorMask
+                    minMatchingPixRatio
+                    maxResultsPerMask
                     nBatches
                     completedBatches
                     nTotalMatches
@@ -134,6 +148,13 @@ exports.updateSearchMetadata = async (searchData) => {
                 upload
                 searchType
                 algorithm
+                maskThreshold
+                dataThreshold
+                pixColorFluctuation
+                xyShift
+                mirrorMask
+                minMatchingPixRatio
+                maxResultsPerMask
                 nBatches
                 completedBatches
                 nTotalMatches
