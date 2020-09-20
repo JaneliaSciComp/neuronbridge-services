@@ -353,7 +353,7 @@ const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) =
     const monitorUniqueName = `ColorDepthSearch_${uniqueMonitorId}_${timestamp}`;
     let subsegment = segment.addNewSubsegment('Start monitor');
     await startStepFunction(
-        name,
+        monitorUniqueName,
         monitorParams,
         stateMachineArn
     );
