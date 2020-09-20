@@ -8,8 +8,7 @@ const { mean, median, min, max, std } = require('mathjs')
 const cwLogs = new AWS.CloudWatchLogs()
 
 async function report (searchFunction, stateMachineName, monitorUniqueName) {
-  console.log('Reporting on ' + monitorUniqueName)
-
+  console.log('Waiting on ' + monitorUniqueName)
   // Find the state machine
 
   const stepFunctions = new AWS.StepFunctions()
@@ -38,6 +37,7 @@ async function report (searchFunction, stateMachineName, monitorUniqueName) {
   }
 
   // State machine (and thus search) is now complete
+  console.log('Reporting on ' + monitorUniqueName)
 
   let stateMachineStarted = null
   let stateMachineEnded = null
