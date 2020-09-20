@@ -220,11 +220,11 @@ const partition = (list, size) => {
 // Invoke another Lambda function
 const invokeFunction = async (functionName, parameters) => {
     if (DEBUG)
-        console.log(`Invoke function ${functionName} with`, parameters);
+        console.log(`Invoke sync ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
-        InvocationType: 'Event',
         Payload: JSON.stringify(parameters),
+        LogType: "Tail"
     };
     try {
         return await lambda.invoke(params).promise();

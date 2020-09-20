@@ -71,6 +71,7 @@ exports.searchDispatch = async (event) => {
     let branchingFactor = searchInputParams.branchingFactor;
     let startIndex = searchInputParams.startIndex;
     let endIndex = searchInputParams.endIndex;
+    let response = {};
 
     subsegment.close();
 
@@ -155,10 +156,12 @@ exports.searchDispatch = async (event) => {
             partitions: numBatches
         };
         // persist the search metadata on S3
+        const searchMetadataKey = getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`)
         await putObject(
             searchBucket,
-            getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`),
+            searchMetadataKey,
             searchMetadata);
+        response.searchResultUri = `s3://${searchBucket}/${searchMetadataKey}`
         // update search metadata if searchId is provided
         await updateSearchMetadata({
             id: searchId,
@@ -182,9 +185,10 @@ exports.searchDispatch = async (event) => {
                 searchInputFolder,
                 searchInputName,
                 startTime: now.toISOString(),
-                numBatches,
+                numBatches
             }
-            await startMonitor(searchId, monitorParams, stateMachineArn, segment);
+            response.monitorUniqueName = 
+                await startMonitor(searchId, monitorParams, stateMachineArn, segment);
         }
 
     }
@@ -268,16 +272,17 @@ exports.searchDispatch = async (event) => {
         subsegment.close();
     }
 
-    return searchInputName;
+    return response;
 }
 
 const getSearchInputParams = async (event) => {
-    const searchId = event.searchId;
     let searchMetadata;
+    // Both searchInputFolder and searchInputName must be provided because
+    // the full input path is `${searchInputFolder}/${searchInputName}`
     if (!event.searchInputName || !event.searchInputFolder) {
-        // if searchInputName or searchInutFolder is not given the searchId must be provided
-        // both searchInputFolder and searchInputName must be provided because
-        // the full input path is `${searchInputFolder}/${searchInputName}`
+        // If searchInputName or searchInputFolder is not given the searchId must be provided
+        // so that the searchInput path can be retrieved from the database.
+        const searchId = event.searchId;
         if (!searchId) {
             throw new Error('Missing required parameter: "searchId"');
         }
@@ -344,13 +349,15 @@ const getKeys = async (libraryBucket, libraryKey) => {
 }
 
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
-    let subsegment = segment.addNewSubsegment('Start monitor');
-    const now = new Date().getTime();
     const uniqueMonitorId = searchId || uuidv1();
+    const timestamp = new Date().getTime();
+    const monitorUniqueName = `ColorDepthSearch_${uniqueMonitorId}_${timestamp}`;
+    let subsegment = segment.addNewSubsegment('Start monitor');
     await startStepFunction(
-        `ColorDepthSearch_${uniqueMonitorId}_${now}`,
+        name,
         monitorParams,
         stateMachineArn
     );
     subsegment.close();
+    return monitorUniqueName;
 }
