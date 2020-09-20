@@ -1,5 +1,4 @@
 'use strict';
-/*global process*/
 
 const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
