@@ -210,9 +210,12 @@ const streamObject = async (Bucket, Key, data) => {
 
 // Returns consecutive sublists of a list, each of the same size (the final list may be smaller)
 const partition = (list, size) => {
+    // If the size was passed in as a string, concatenation would happen instead of addition.
+    const sublistSize = parseInt(size);
     const plist = [];
-    for (var i = 0; i < list.length; i += size) {
-        plist.push(list.slice(i, i + size));
+    for (var i = 0; i < list.length; i += sublistSize) {
+        let arr = list.slice(i, i + sublistSize);
+        plist.push(arr);
     }
     return plist;
 }
