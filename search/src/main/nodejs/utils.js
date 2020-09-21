@@ -226,8 +226,8 @@ const invokeFunction = async (functionName, parameters) => {
         console.log(`Invoke sync ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
-        Payload: JSON.stringify(parameters),
-        LogType: "Tail"
+        Payload: JSON.stringify(parameters)
+        //LogType: "Tail"
     };
     try {
         return await lambda.invoke(params).promise();
