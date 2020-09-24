@@ -19,6 +19,26 @@ const mergeResults = (rs1, rs2) => {
     }
 }
 
+const reduceResults = async (searchId, allBatchResults, batchResults) => {
+    try {
+        batchResults.forEach(batchResult => {
+            if (allBatchResults[batchResult.maskId]) {
+                allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+            } else {
+                allBatchResults[batchResult.maskId] = batchResult;
+            }
+        });
+    } catch (e) {
+        // write down the error
+        await updateSearchMetadata({
+            id: searchId,
+            errorMessage: e.name + ': ' + e.message
+        });
+        // rethrow the error
+        throw e;
+    }
+}
+
 exports.searchReducer = async (event, context) => {
     // Parameters
     if (DEBUG) console.log(event);
@@ -39,123 +59,36 @@ exports.searchReducer = async (event, context) => {
             continue;
         }
         if (DEBUG) console.log(batchResults);
-        try {
-            batchResults.forEach(batchResult => {
-                if (allBatchResults[batchResult.maskId]) {
-                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
-                } else {
-                    allBatchResults[batchResult.maskId] = batchResult;
-                }
-            });
-        } catch (e) {
-            // write down the error
-            await updateSearchMetadata({
-                id: searchId,
-                errorMessage: e.name + ': ' + e.message
-            });
-            // rethrow the error
-            throw e;
+        await reduceResults(searchId, allBatchResults, batchResults);
+    }
+
+    const numRetry = 5;
+    let retry_interval = 500;
+    for (let i = 0; i < numRetry; i++)
+    {
+        if (fail.length > 0) {
+            await sleep(retry_interval);
+            console.log(`Retry: `, fail.length);
+            retry_interval *= 2;
         }
+        else
+            break;
+
+        let fail_tmp = [];
+        for(let i = 0; i < fail.length; i++) {
+            const batchResults = await getObject(bucket, fail[i], null);
+            if (batchResults == null) {
+                fail_tmp.push(fail[i]);
+                continue;
+            }
+            if (DEBUG) console.log(batchResults);
+            await reduceResults(searchId, allBatchResults, batchResults);
+        }
+        fail = fail_tmp;
     }
 
     if (fail.length > 0) {
-        await sleep(500);
-        console.log(`SecondTry: `, fail.length);
-    }
-
-    let fail2 = [];
-    for(let i = 0; i < fail.length; i++) {
-        const batchResults = await getObject(bucket, fail[i], null);
-        if (batchResults == null) {
-            fail2.push(fail[i]);
-            continue;
-        }
-        if (DEBUG) console.log(batchResults);
-        try {
-            batchResults.forEach(batchResult => {
-                if (allBatchResults[batchResult.maskId]) {
-                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
-                } else {
-                    allBatchResults[batchResult.maskId] = batchResult;
-                }
-            });
-        } catch (e) {
-            // write down the error
-            await updateSearchMetadata({
-                id: searchId,
-                errorMessage: e.name + ': ' + e.message
-            });
-            // rethrow the error
-            throw e;
-        }
-    }
-
-    if (fail2.length > 0) {
-        await sleep(1000);
-        console.log(`ThirdTry: `, fail.length);
-    }
-
-    let fail3 = [];
-    for(let i = 0; i < fail2.length; i++) {
-        const batchResults = await getObject(bucket, fail2[i], null);
-        if (batchResults == null) {
-            fail3.push(fail2[i]);
-            continue;
-        }
-        if (DEBUG) console.log(batchResults);
-        try {
-            batchResults.forEach(batchResult => {
-                if (allBatchResults[batchResult.maskId]) {
-                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
-                } else {
-                    allBatchResults[batchResult.maskId] = batchResult;
-                }
-            });
-        } catch (e) {
-            // write down the error
-            await updateSearchMetadata({
-                id: searchId,
-                errorMessage: e.name + ': ' + e.message
-            });
-            // rethrow the error
-            throw e;
-        }
-    }
-
-    if (fail3.length > 0) {
-        await sleep(2000);
-        console.log(`FourthTry: `, fail3.length);
-    }
-
-    let fail4 = [];
-    for(let i = 0; i < fail3.length; i++) {
-        const batchResults = await getObject(bucket, fail3[i], null);
-        if (batchResults == null) {
-            fail4.push(fail3[i]);
-            continue;
-        }
-        if (DEBUG) console.log(batchResults);
-        try {
-            batchResults.forEach(batchResult => {
-                if (allBatchResults[batchResult.maskId]) {
-                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
-                } else {
-                    allBatchResults[batchResult.maskId] = batchResult;
-                }
-            });
-        } catch (e) {
-            // write down the error
-            await updateSearchMetadata({
-                id: searchId,
-                errorMessage: e.name + ': ' + e.message
-            });
-            // rethrow the error
-            throw e;
-        }
-    }
-
-    if (fail4.length > 0) {
-        const e = `Error getting object: ${fail4}`;
+        const e = `Error getting object: ${fail}`;
         console.error(e);
         throw new Error(e);
     }
