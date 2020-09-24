@@ -68,7 +68,7 @@ custom:
 provider:
   name: aws
   region: ${opt:region, "us-east-1"}
-  stage: ${opt:stage, "cgdev"}
+  stage: ${opt:stage, "dev"}
   tags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}

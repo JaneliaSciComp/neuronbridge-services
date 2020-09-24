@@ -18,8 +18,8 @@ const DEFAULTS = {
     mirrorMask: true,
     minMatchingPixRatio: 2,
     negativeRadius: 10,
-    maxResultsPerMask: -1,
     withGradientScore: true,
+    maxResultsPerMask: -1,
 };
 
 const defaultBatchSize = () => {
@@ -67,8 +67,8 @@ exports.searchDispatch = async (event) => {
     const minMatchingPixRatio = searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
     const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold;
     const negativeRadius = searchInputParams.negativeRadius || DEFAULTS.negativeRadius;
-    const maxResultsPerMask =  searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask;
     const withGradientScore = searchInputParams.withGradientScore || DEFAULTS.withGradientScore;
+    const maxResultsPerMask =  searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask;
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     let libraries = searchInputParams.libraries;
@@ -184,8 +184,8 @@ exports.searchDispatch = async (event) => {
             mirrorMask: mirrorMask,
             minMatchingPixRatio: minMatchingPixRatio,
             negativeRadius: negativeRadius,
-            maxResultsPerMask: maxResultsPerMask,
             withGradientScore: withGradientScore,
+            maxResultsPerMask: maxResultsPerMask,
             nBatches: numBatches,
             completedBatches: 0,
             cdsStarted: now.toISOString()
@@ -223,8 +223,8 @@ exports.searchDispatch = async (event) => {
         mirrorMask: mirrorMask,
         minMatchingPixRatio: minMatchingPixRatio,
         negativeRadius: negativeRadius,
-        maxResultsPerMask: maxResultsPerMask,
         withGradientScore:  withGradientScore,
+        maxResultsPerMask: maxResultsPerMask,
         batchSize: batchSize,
         numBatches: numBatches,
         branchingFactor: branchingFactor
@@ -318,11 +318,10 @@ const getSearchInputParams = async (event) => {
     } else {
         searchMetadata = event;
     }
-    if (!!searchMetadata) {
+    if (!!searchMetadata && !!searchMetadata.searchMask) {
         // if a searchMask is set use that for search otherwise use the upload
-        searchMetadata.searchInputName = searchMetadata.searchMask
-            ? searchMetadata.searchMask
-            : searchMetadata.searchInputName;
+        console.log(`Use ${searchMetadata.searchMask} for searching instead of ${searchMetadata.searchInputName}`);
+        searchMetadata.searchInputName = searchMetadata.searchMask;
     }
     console.log("Searching params", searchMetadata);
     return searchMetadata;

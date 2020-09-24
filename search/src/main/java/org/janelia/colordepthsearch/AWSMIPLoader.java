@@ -52,13 +52,14 @@ class AWSMIPLoader {
                 return null;
             }
         } catch (Exception e) {
-            throw new IllegalStateException(e);
+            LOG.error("Error loading {}:{}", bucketName, imageKey, e);
+            return null;
         }
         try {
             return ImageArrayUtils.readImageArray(imageKey, imageKey, inputStream);
         } catch (Exception e) {
             LOG.error("Error loading {}:{}", bucketName, imageKey, e);
-            throw new IllegalStateException(e);
+            return null;
         } finally {
             try {
                 inputStream.close();
@@ -73,24 +74,22 @@ class AWSMIPLoader {
     }
 
     ImageArray loadFirstMatchingImage(String bucketName, String imageKey) {
-        long startTime = System.currentTimeMillis();
         String imageKeyPrefix = RegExUtils.replacePattern(imageKey, "\\..*$", "");
         String imageName;
         try {
-            LOG.trace("List candidates for: {}", imageKeyPrefix);
+            LOG.trace("List candidates for: '{}'", imageKeyPrefix);
             List<S3Object> matchingImages = LambdaUtils.listObjects(s3, bucketName, imageKeyPrefix);
             if (CollectionUtils.isEmpty(matchingImages)) {
                 return null;
             } else {
                 imageName = matchingImages.get(0).key();
-                LOG.info("Loading {} using first match from {}", imageName, matchingImages);
-                return readImageWithRetry(bucketName, imageName, defaultMaxRetries);
+                LOG.info("Load '{}' - first match from {}", imageName, matchingImages);
             }
         } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            LOG.trace("Loaded image matching {} in {}ms", imageKey, System.currentTimeMillis() - startTime);
+            LOG.error("Error looking up {}:{}", bucketName, imageKey, e);
+            return null;
         }
+        return readImageWithRetry(bucketName, imageName, defaultMaxRetries);
     }
 
 }

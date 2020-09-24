@@ -46,8 +46,8 @@ exports.getSearchMetadata = async (searchId) => {
                 mirrorMask
                 minMatchingPixRatio
                 negativeRadius
-                maxResultsPerMask
                 withGradientScore
+                maxResultsPerMask
                 nBatches
                 completedBatches
                 nTotalMatches
@@ -109,8 +109,8 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     mirrorMask
                     minMatchingPixRatio
                     negativeRadius
-                    maxResultsPerMask
                     withGradientScore                 
+                    maxResultsPerMask
                     nBatches
                     completedBatches
                     nTotalMatches
@@ -159,8 +159,8 @@ exports.updateSearchMetadata = async (searchData) => {
                 mirrorMask
                 minMatchingPixRatio
                 negativeRadius
-                maxResultsPerMask
                 withGradientScore
+                maxResultsPerMask
                 nBatches
                 completedBatches
                 nTotalMatches

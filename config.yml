@@ -1,11 +1,11 @@
 config:
   project: NeuronBridge
-  stage: ${opt:stage, "cgdev"}
+  stage: ${opt:stage, dev}
   version: 2.0.0
-  libraryBucket: janelia-flylight-color-depth-dev
-  libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-dev
-  alignmentTemplatesBucket: janelia-flylight-color-depth-dev
-  searchBucket: janelia-neuronbridge-searches-dev
+  libraryBucket: janelia-flylight-color-depth-${env:IMAGE_DATA_LEVEL, 'dev'}
+  libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-${env:IMAGE_DATA_LEVEL, 'dev'}
+  alignmentTemplatesBucket: janelia-flylight-color-depth-${env:IMAGE_DATA_LEVEL, 'dev'}
+  searchBucket: janelia-neuronbridge-searches-${env:SEARCH_DATA_LEVEL, 'dev'}
   perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
   concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 10}
   tracing: true
