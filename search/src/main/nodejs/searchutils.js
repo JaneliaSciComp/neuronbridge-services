@@ -23,13 +23,8 @@ exports.getSearchKey = (searchInputName, ext) => {
 exports.getSearchMaskId = (searchInputName, extParam) => {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     const searchInputPathComps = searchInputKey.split('/');
-    if (!searchInputPathComps.length) {
-        // This is never true, why is it here?
-        return null;
-    } else {
-        const ext = extParam ? extParam : '';
-        return searchInputPathComps[searchInputPathComps.length-1] + ext;
-    }
+    const ext = extParam ? extParam : '';
+    return searchInputPathComps[searchInputPathComps.length-1] + ext;
 }
 
 // Replaces searchInputName's extension (if any) with ".metadata"
@@ -49,12 +44,13 @@ exports.getSearchResultsKey = (searchInputName) => {
 const getSearchSubFolder = (searchInputName, folderName) => {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     const searchInputPathComps = searchInputKey.split('/');
-    if (!searchInputPathComps.length) {
-        // This is never true, why is it here?
-        return `results`;
-    } else {
+    if (searchInputPathComps.length > 1) {
         return searchInputPathComps.slice(0, -1).join('/')+`/${folderName}`;
+    } else {
+        // this happens if the key is in the root folder considering that aws root folder does not start with '/'
+        return folderName;
     }
+
 }
 
 // Get the key to results folder relative to the search input
