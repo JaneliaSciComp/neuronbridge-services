@@ -303,7 +303,7 @@ stepFunctions:
             Default: Wait
           Wait:
             Type: Wait
-            Seconds: 30
+            Seconds: 5
             Next: Monitor
           Reduce:
             Type: Task

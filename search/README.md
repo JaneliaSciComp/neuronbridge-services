@@ -34,3 +34,19 @@ as below:
   "mirrorMask": true
 }
 ```
+
+## Unit testing
+
+Simply run:
+```
+npm test
+```
+
+## Integration testing
+
+This runs a local client which invokes the search dispatch, waits for the search to run, and then analyzes the search performance in various ways.
+
+```
+npm run-script search janelia-neuronbridge-cds-dev src/test/resources/test1.json
+```
+

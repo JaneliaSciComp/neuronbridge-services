@@ -20,14 +20,14 @@ jobs:
 
       - restore_cache:
           keys: 
-            - neuronbridge-{{ checksum "pom.xml" }}
+            - neuronbridge-{{ checksum "search/pom.xml" }}
             # fallback to using the latest cache if no exact match is found
             - neuronbridge
       
       - run: mvn clean install -f search/pom.xml
       
       - save_cache:
-          key: neuronbridge-{{ checksum "pom.xml" }}
+          key: neuronbridge-{{ checksum "search/pom.xml" }}
           paths:
             - ~/.m2
 

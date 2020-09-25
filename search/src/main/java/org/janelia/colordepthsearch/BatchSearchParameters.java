@@ -9,6 +9,7 @@ import java.util.List;
  */
 public class BatchSearchParameters {
 
+    private String monitorName;
     private String searchId;
     private String searchPrefix;
     private List<String> searchKeys;
@@ -26,6 +27,14 @@ public class BatchSearchParameters {
     private Double minMatchingPixRatio = 2.;
     private int negativeRadius;
     private boolean withGradientScore;
+
+    public String getMonitorName() {
+        return monitorName;
+    }
+
+    public void setMonitorName(String monitorName) {
+        this.monitorName = monitorName;
+    }
 
     public String getSearchId() {
         return searchId;

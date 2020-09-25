@@ -1,0 +1,12 @@
+{
+  "libraries": [
+    "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/searchable_neurons"
+  ],
+  "searchInputFolder": "colorDepthTestData/test3",
+  "searchInputName": "mask5470161559274474264.png",
+  "dataThreshold": 100,
+  "maskThreshold": 100,
+  "pixColorFluctuation": 2,
+  "xyShift": 2,
+  "mirrorMask": true
+}

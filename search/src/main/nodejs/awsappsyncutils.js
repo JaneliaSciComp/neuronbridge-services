@@ -36,6 +36,7 @@ exports.getSearchMetadata = async (searchId) => {
                 searchType
                 algorithm
                 channel
+                referenceChannel
                 voxelX
                 voxelY
                 voxelZ
@@ -99,6 +100,7 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     searchType
                     algorithm
                     channel
+                    referenceChannel
                     voxelX
                     voxelY
                     voxelZ
