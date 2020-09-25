@@ -1,6 +1,5 @@
 'use strict';
 
-const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
 
@@ -30,7 +29,6 @@ const defaultBatchSize = () => {
 }
 
 const MAX_PARALLELISM = process.env.MAX_PARALLELISM || 3000;
-const region = process.env.AWS_REGION;
 const defaultLibraryBucket = process.env.LIBRARY_BUCKET;
 const defaultSearchBucket = process.env.SEARCH_BUCKET;
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
@@ -55,23 +53,29 @@ exports.searchDispatch = async (event) => {
     const searchInputName = searchInputParams.searchInputName;
 
     // Parameters which have defaults
-    const level = searchInputParams.level || DEFAULTS.level;
-    const numLevels = searchInputParams.numLevels || DEFAULTS.numLevels;
-    const dataThreshold = searchInputParams.dataThreshold || DEFAULTS.dataThreshold;
-    const pixColorFluctuation = searchInputParams.pixColorFluctuation || DEFAULTS.pixColorFluctuation;
-    const xyShift = searchInputParams.xyShift || DEFAULTS.xyShift;
+    const level = parseInt(searchInputParams.level) || DEFAULTS.level;
+    const numLevels = parseInt(searchInputParams.numLevels) || DEFAULTS.numLevels;
+    const dataThreshold = parseInt(searchInputParams.dataThreshold) || DEFAULTS.dataThreshold;
+    const pixColorFluctuation = parseFloat(searchInputParams.pixColorFluctuation) || DEFAULTS.pixColorFluctuation;
+    const xyShift = parseInt(searchInputParams.xyShift) || DEFAULTS.xyShift;
     const mirrorMask = searchInputParams.mirrorMask || DEFAULTS.mirrorMask;
     const minMatchingPixRatio = searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio;
-    const maskThreshold = searchInputParams.maskThreshold || DEFAULTS.maskThreshold
+    const maskThreshold = parseInt(searchInputParams.maskThreshold) || DEFAULTS.maskThreshold
     const maxResultsPerMask =  searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask;
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
     let libraries = searchInputParams.libraries;
-    let batchSize = searchInputParams.batchSize || defaultBatchSize();
-    let numBatches = searchInputParams.numBatches;
-    let branchingFactor = searchInputParams.branchingFactor;
-    let startIndex = searchInputParams.startIndex;
-    let endIndex = searchInputParams.endIndex;
+    let monitorName = searchInputParams.monitorName;
+    let batchSize = parseInt(searchInputParams.batchSize) || defaultBatchSize();
+    let numBatches = parseInt(searchInputParams.numBatches);
+    let branchingFactor = parseInt(searchInputParams.branchingFactor);
+    let startIndex = parseInt(searchInputParams.startIndex);
+    let endIndex = parseInt(searchInputParams.endIndex);
+    let response = {};
+
+    if (monitorName) {
+        console.log(`Monitor: ${monitorName}`);
+    }
 
     subsegment.close();
 
@@ -79,14 +83,14 @@ exports.searchDispatch = async (event) => {
         const maskKey = `${searchInputFolder}/${searchInputName}`;
         const checkMask = await verifyKey(searchBucket, maskKey);
         if (checkMask === false) {
-            console.log(`Mask s3://${searchBucket}/${maskKey} not found`);
+            const errMsg = `Mask s3://${searchBucket}/${maskKey} not found`;
             // set the error
             await updateSearchMetadata({
                 id: searchId,
                 step: SEARCH_IN_PROGRESS,
-                errorMessage: `Mask s3://${searchBucket}/${maskKey} not found`
+                errorMessage: errMsg
             });
-            return searchInputName;
+            throw new Error(errMsg);
         }
         subsegment = segment.addNewSubsegment('Prepare batch parallelization parameters');
         const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
@@ -121,14 +125,14 @@ exports.searchDispatch = async (event) => {
             .reduce((acc, lsize) => acc + lsize, 0);
         console.log(`Found ${totalSearches} MIPs in libraries: `, libraries);
         if (totalSearches === 0) {
-            console.log(`No libraries found for searching ${searchInputName}`);
+            const errMsg = `No libraries found for searching ${searchInputName}`;
             // set the error
             await updateSearchMetadata({
                 id: searchId,
                 step: SEARCH_IN_PROGRESS,
-                errorMessage: `No libraries found for searching ${searchInputName}`
+                errorMessage: errMsg
             });
-            return searchInputName;
+            throw new Error(errMsg);
         }
         numBatches = Math.ceil(totalSearches / batchSize);
         console.log(`Partition ${totalSearches} searches into ${numBatches} of size ${batchSize}`);
@@ -156,10 +160,12 @@ exports.searchDispatch = async (event) => {
             partitions: numBatches
         };
         // persist the search metadata on S3
+        const searchMetadataKey = getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`)
         await putObject(
             searchBucket,
-            getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`),
+            searchMetadataKey,
             searchMetadata);
+        response.searchResultUri = `s3://${searchBucket}/${searchMetadataKey}`
         // update search metadata if searchId is provided
         await updateSearchMetadata({
             id: searchId,
@@ -183,9 +189,10 @@ exports.searchDispatch = async (event) => {
                 searchInputFolder,
                 searchInputName,
                 startTime: now.toISOString(),
-                numBatches,
+                numBatches
             }
-            await startMonitor(searchId, monitorParams, stateMachineArn, segment);
+            monitorName = await startMonitor(searchId, monitorParams, stateMachineArn, segment);
+            response.monitorUniqueName = monitorName       
         }
 
     }
@@ -210,7 +217,8 @@ exports.searchDispatch = async (event) => {
         maxResultsPerMask: maxResultsPerMask,
         batchSize: batchSize,
         numBatches: numBatches,
-        branchingFactor: branchingFactor
+        branchingFactor: branchingFactor,
+        monitorName: monitorName
     }
 
     if (level + 1 < numLevels) {
@@ -219,13 +227,13 @@ exports.searchDispatch = async (event) => {
         for(let i = startIndex; i < endIndex; i += nextLevelManagerRange) {
             const workerStart = i;
             const workerEnd = i+nextLevelManagerRange > endIndex ? endIndex : i+nextLevelManagerRange;
-            await invokeAsync(
+            const invokeResponse = await invokeAsync(
                 dispatchFunction, {
                     startIndex: workerStart,
                     endIndex: workerEnd,
                     ...nextEvent
                 });
-            console.log(`Dispatched sub-manager ${workerStart} - ${workerEnd}`);
+            console.log(`Dispatched sub-manager ${workerStart} - ${workerEnd} [status=${invokeResponse.status}]`);
         }
         subsegment.close();
     } else {
@@ -253,6 +261,7 @@ exports.searchDispatch = async (event) => {
             const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
+                monitorName: monitorName,
                 searchId: searchId,
                 outputURI: batchResultsURI,
                 maskPrefix: searchBucket,
@@ -262,23 +271,24 @@ exports.searchDispatch = async (event) => {
                 searchKeys: searchBatch,
                 ...nextEvent
             };
-            await invokeAsync(searchFunction, searchParams);
-            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchBatch.length} items)`);
+            const invokeResponse = await invokeAsync(searchFunction, searchParams);
+            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchKeys.length} items) [status=${invokeResponse.status}]`);
             batchIndex++;
         }
         subsegment.close();
     }
 
-    return searchInputName;
+    return response;
 }
 
 const getSearchInputParams = async (event) => {
-    const searchId = event.searchId;
     let searchMetadata;
+    // Both searchInputFolder and searchInputName must be provided because
+    // the full input path is `${searchInputFolder}/${searchInputName}`
     if (!event.searchInputName || !event.searchInputFolder) {
-        // if searchInputName or searchInutFolder is not given the searchId must be provided
-        // both searchInputFolder and searchInputName must be provided because
-        // the full input path is `${searchInputFolder}/${searchInputName}`
+        // If searchInputName or searchInputFolder is not given the searchId must be provided
+        // so that the searchInput path can be retrieved from the database.
+        const searchId = event.searchId;
         if (!searchId) {
             throw new Error('Missing required parameter: "searchId"');
         }
@@ -345,13 +355,15 @@ const getKeys = async (libraryBucket, libraryKey) => {
 }
 
 const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
-    let subsegment = segment.addNewSubsegment('Start monitor');
-    const now = new Date().getTime();
     const uniqueMonitorId = searchId || uuidv1();
+    const timestamp = new Date().getTime();
+    const monitorUniqueName = `ColorDepthSearch_${uniqueMonitorId}_${timestamp}`;
+    let subsegment = segment.addNewSubsegment('Start monitor');
     await startStepFunction(
-        `ColorDepthSearch_${uniqueMonitorId}_${now}`,
+        monitorUniqueName,
         monitorParams,
         stateMachineArn
     );
     subsegment.close();
+    return monitorUniqueName;
 }
