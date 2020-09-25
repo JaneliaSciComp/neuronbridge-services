@@ -10,10 +10,10 @@ As a prerequisite, you need to have the [AWS CLI](https://aws.amazon.com/cli/) i
 NeuronBridge compute alignment requires an AMI instance preconfigured with ECS and with all required volumes mounted as expected by the alignment batch job.
 
 To create the AMI use these steps:
-* start an [Amazon ECS-optimized Amazon Linux AMI](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Amazon+ECS-Optimized+Amazon+Linux+AMI&page=1&ref_=nav_search_box). 
+* start an [Amazon ECS-optimized Amazon Linux AMI](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Amazon+ECS-Optimized+Amazon+Linux+AMI&page=1&ref_=nav_search_box).
 
-* tart the EC2 instance 
-* run the following commands that mount the expected volumes: 
+* start the EC2 instance
+* run the following commands that mount the expected volumes:
 
 ```
 sudo yum -y update
