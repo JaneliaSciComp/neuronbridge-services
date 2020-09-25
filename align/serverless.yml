@@ -131,7 +131,7 @@ resources:
           templates_dir: ${self:custom.alignmentTemplatesFolder}
           xy_resolution: ""
           z_resolution: ""
-          nchannels: 2
+          reference_channel: "Signal_amount"
           force_voxel_size: false
           nslots: ${self:custom.defaultAlignmentThreads}
         ContainerProperties:
@@ -157,8 +157,8 @@ resources:
             - "Ref::xy_resolution"
             - "--zres"
             - "Ref::z_resolution"
-            - "--nchannels"
-            - "Ref::nchannels"
+            - "--reference-channel"
+            - "Ref::reference_channel"
             - "--forceVxSize"
             - "Ref::force_voxel_size"
             - "--nslots"

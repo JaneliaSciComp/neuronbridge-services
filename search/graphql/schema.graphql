@@ -39,6 +39,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     algorithm: Algorithm
     anatomicalRegion: String
     channel: Int
+    referenceChannel: String
     voxelX: Int
     voxelY: Int
     voxelZ: Int
@@ -95,6 +96,7 @@ input CreateSearchInput {
     algorithm: Algorithm
     anatomicalRegion: String
     channel: Int
+    referenceChannel: String
     voxelX: Int
     voxelY: Int
     voxelZ: Int

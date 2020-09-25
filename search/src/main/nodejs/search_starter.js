@@ -185,7 +185,7 @@ const submitAlignmentJob = async (searchParams) => {
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const jobName = `align-${searchParams.id}`;
     const jobParameters = {
-        nchannels: searchParams.channel + '',
+        reference_channel: searchParams.referenceChannel,
         xy_resolution: searchParams.voxelX + '',
         z_resolution: searchParams.voxelZ + '',
         search_id: searchParams.id,
