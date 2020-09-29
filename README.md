@@ -39,6 +39,13 @@ The command above will create the compute environment, the job definition and th
 
 ### Deploy NeuronBridge¸ color depth search stack
 
+Make sure you have built all the java packages with jdk 1.8 and maven:
+
+```
+mvn clean package
+```
+
+
 In order to create the color depth search lambdas run:
 
 ```
@@ -52,3 +59,9 @@ To deploy with different search limits:
 PER_DAY_SEARCH_LIMITS=2 CONCURRENT_SEARCH_LIMITS=2 npm run sls -- deploy -s cgdev
 ```
 Note: a negative value for a limit means unlimited.
+
+To update a single function, once you have a seployed stack
+
+```
+npm run sls -- deploy function -f <function_name> -s dev
+```

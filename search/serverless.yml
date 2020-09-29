@@ -225,6 +225,26 @@ functions:
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
       DEBUG: ${self:custom.debug}
 
+  searchCopy:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_copy.searchCopy
+    memorySize: 128
+    timeout: 10
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+    events:
+      - httpApi:
+          method: POST
+          path: /copy
+          cors: true
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+
   search:
     package:
       artifact: target/neuronbridge-search-${self:custom.version}.jar

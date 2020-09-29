@@ -149,6 +149,27 @@ const putS3Content = async (Bucket, Key, contentType, content) => {
     return `s3://${Bucket}/${Key}`
 };
 
+const copyS3Content = async (Bucket, Source, Key) => {
+   try {
+        if (DEBUG) {
+            console.log(`Copying content to ${Bucket}:${Key} from ${Source}`);
+        }
+        const res = await s3.copyObject({
+            Bucket,
+            CopySource: Source,
+            Key,
+        }).promise();
+        if (DEBUG) {
+            console.log(`Copied content to ${Bucket}:${Key} from ${Source}`, res);
+        }
+    } catch (e) {
+        console.error(`Error copying content to ${Bucket}:${Key} from ${Source}`, e);
+        throw e;
+    }
+    return `s3://${Bucket}/${Key}`
+
+};
+
 // Remove key from an S3 bucket
 const removeKey = async (Bucket, Key) => {
     try {
@@ -295,5 +316,6 @@ module.exports = {
     invokeFunction: invokeFunction,
     invokeAsync: invokeAsync,
     startStepFunction: startStepFunction,
-    verifyKey: verifyKey
+    verifyKey: verifyKey,
+    copyS3Content
 };
