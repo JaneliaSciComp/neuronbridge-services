@@ -203,21 +203,23 @@ const submitAlignmentJob = async (searchParams) => {
     try {
         // submit batch job
         const job = await bc.submitJob(params).promise();
+        const now = new Date();
         console.log('Submitted', job);
         console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
             step: ALIGNMENT_JOB_SUBMITTED,
+            alignStarted: now.toISOString()
         });
         if (alignMonitorStateMachineArn != null) {
             // start the state machine
-            const now = new Date().getTime();
+            const timestamp = now.getTime();
             await startStepFunction(
-                `Align_${job.jobId}_${now}`,
+                `Align_${job.jobId}_${timestamp}`,
                 {
                     searchId: searchParams.id || null,
                     jobId: job.jobId,
-                    startTime: now
+                    startTime: timestamp
                 },
                 alignMonitorStateMachineArn
             );

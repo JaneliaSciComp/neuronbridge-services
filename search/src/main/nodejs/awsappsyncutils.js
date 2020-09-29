@@ -52,6 +52,8 @@ exports.getSearchMetadata = async (searchId) => {
                 nTotalMatches
                 cdsStarted
                 cdsFinished
+                alignStarted
+                alignFinished
                 createdOn
                 updatedOn
                 displayableMask
@@ -114,6 +116,8 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     nTotalMatches
                     cdsStarted
                     cdsFinished
+                    alignStarted
+                    alignFinished
                     createdOn
                     updatedOn
                     displayableMask
@@ -162,6 +166,8 @@ exports.updateSearchMetadata = async (searchData) => {
                 nTotalMatches
                 cdsStarted
                 cdsFinished
+                alignStarted
+                alignFinished
                 createdOn
                 updatedOn
                 displayableMask
