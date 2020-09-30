@@ -92,6 +92,7 @@ enum SearchType {
 
 input CreateSearchInput {
     step: Int!
+    owner: String
     identityId: String!
     searchType: SearchType!
     searchDir: String!
@@ -202,6 +203,7 @@ input TableStringFilterInput {
 input UpdateSearchInput {
     id: ID!
     step: Int
+    owner: String
     maskThreshold: Int
     dataThreshold: Int
     pixColorFluctuation: Float

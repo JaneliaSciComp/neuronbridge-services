@@ -5,12 +5,15 @@ const { v1: uuidv1 } = require("uuid");
 const {
   getS3ContentWithRetry,
   copyS3Content,
-  putS3Content
+  putS3Content,
+  getAllKeys
 } = require("./utils");
 const { getSearchKey, getSearchMaskId } = require("./searchutils");
 const {
   updateSearchMetadata,
-  getSearchMetadata
+  createSearchMetadata,
+  getSearchMetadata,
+  ALIGNMENT_JOB_COMPLETED
 } = require("./awsappsyncutils");
 
 const searchBucket = process.env.SEARCH_BUCKET;
@@ -36,11 +39,11 @@ async function createDefaultChannel(searchData) {
   );
 
   let sourceImage = fullSearchInputImage;
-  let channelName = upload.replace(/\.([^.]*)$/,'_1.$1');
+  let channelName = upload.replace(/\.([^.]*)$/, "_1.$1");
 
   const searchMetaData = {
     id,
-    step: 2
+    step: ALIGNMENT_JOB_COMPLETED
   };
 
   // if tiff, transform to png
@@ -51,27 +54,77 @@ async function createDefaultChannel(searchData) {
     const imageBuffer = await image.getBufferAsync(pngMime);
     const pngImageName = getSearchKey(fullSearchInputImage, pngExt);
     sourceImage = pngImageName;
-    channelName = upload.replace(/\.([^.]*)$/,'_1.png');
+    channelName = upload.replace(/\.([^.]*)$/, "_1.png");
     await putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
     searchMetaData.displayableMask = getSearchMaskId(pngImageName, pngExt);
   }
   // create new file in generatedMIPS directory as channel_1.png
   const channelPath = `private/${identityId}/${searchDir}/generatedMIPS/${channelName}`;
-  await copyS3Content(searchBucket, `/${searchBucket}/${sourceImage}`, channelPath);
+  await copyS3Content(
+    searchBucket,
+    `/${searchBucket}/${sourceImage}`,
+    channelPath
+  );
   await updateSearchMetadata(searchMetaData);
   return { id };
 }
 
 async function copyAlignment(searchData) {
-  // generate a new id for the search
-  const newSearchId = uuidv1();
-  console.log({ searchData, newSearchId });
-  // copy masks and uploaded image to new location in bucket
-  // set search step to 2 -> alignment completed
-  // set mask selection to null
-  // save new search in dynamoDB
-  throw Error("Not implimented");
-  // return { searchData, searchId: newSearchId };
+  const {
+    identityId,
+    searchDir,
+    searchInputFolder,
+    upload,
+    searchMask
+  } = searchData;
+  // generate a new id for the search directory
+  const newSearchDir = uuidv1();
+  const newSearchInputFolder = `private/${identityId}/${newSearchDir}`;
+
+  // copy uploaded image
+  await copyS3Content(
+    searchBucket,
+    `/${searchBucket}/${searchInputFolder}/${upload}`,
+    `${newSearchInputFolder}/${upload}`
+  );
+  // copy display image
+  await copyS3Content(
+    searchBucket,
+    `/${searchBucket}/${searchInputFolder}/${searchMask}`,
+    `${newSearchInputFolder}/${searchMask}`
+  );
+
+// copy MIP channels
+  const channelsPath = `private/${identityId}/${searchDir}/generatedMIPS`;
+  const channelsList = await getAllKeys({
+    Bucket: searchBucket,
+    Prefix: channelsPath
+  });
+
+  const newChannelsPath = `${newSearchInputFolder}/generatedMIPS`;
+  await Promise.all(
+    channelsList.map(async channel => {
+      const newChannel = channel.split("/").pop();
+      const newChannelPath = `${newChannelsPath}/${newChannel}`;
+      await copyS3Content(searchBucket, `${searchBucket}/${channel}`, newChannelPath);
+    })
+  );
+
+
+
+  // create new data object to store in dynamoDB
+  const newSearchData = {
+    step: ALIGNMENT_JOB_COMPLETED,
+    searchType: searchData.searchType,
+    owner: searchData.owner,
+    identityId: searchData.identityId,
+    searchDir: newSearchDir,
+    upload: searchData.upload,
+    simulateMIPGeneration: false
+  };
+  // save new data object- in dynamoDB
+  const newSearchMeta = await createSearchMetadata(newSearchData);
+  return { searchData, newSearchData, newSearchMeta, channelsList };
 }
 
 exports.searchCopy = async event => {
