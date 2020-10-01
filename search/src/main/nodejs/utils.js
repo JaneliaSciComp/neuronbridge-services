@@ -13,6 +13,7 @@ const lambda = new AWS.Lambda();
 const stepFunction = new AWS.StepFunctions();
 
 const DEBUG = !!process.env.DEBUG;
+const RETRY_DELAY = 500;
 
 // Retrieve all the keys in a particular bucket
 const getAllKeys = async params => {
@@ -55,12 +56,12 @@ const getObjectWithRetry = async (bucket, key, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await getObject(bucket, key);
-            await sleep(500);
         } catch (e) {
             if (retry + 1 >= retries) {
                 console.error(`Error getting object ${bucket}:${key} after ${retries} retries`, e);
                 throw e;
             }
+            await sleep(RETRY_DELAY);
         }
     }
 }
@@ -82,12 +83,12 @@ const getS3ContentWithRetry = async (bucket, key, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await getS3Content(bucket, key);
-            await sleep(500);
         } catch (e) {
             if (retry + 1 >= retries) {
                 console.error(`Error getting content ${bucket}:${key} after ${retries} retries`, e);
                 throw e;
             }
+            await sleep(RETRY_DELAY);
         }
     }
 }
@@ -96,12 +97,12 @@ const putObjectWithRetry = async (bucket, key, data, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await putObject(bucket, key, data);
-            await sleep(500);
         } catch (e) {
             if (retry + 1 >= retries) {
                 console.error(`Error putting content ${bucket}:${key} after ${retries} retries`, e);
                 throw e;
             }
+            await sleep(RETRY_DELAY);
         }
     }
 }
