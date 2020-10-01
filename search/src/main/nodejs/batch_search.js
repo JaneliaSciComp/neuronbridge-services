@@ -1,5 +1,7 @@
 'use strict';
 
+//ported from https://github.com/JaneliaSciComp/neuronbridge-services/commit/61266d14196dfc63ec739b257bda2bbcd193474b
+
 const AWS = require('aws-sdk');
 const AWSXRay = require('aws-xray-sdk-core');
 const tiff = require('geotiff');

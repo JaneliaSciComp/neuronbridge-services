@@ -1,5 +1,7 @@
 'use strict'
 
+// ported from https://github.com/JaneliaSciComp/colormipsearch/commit/d3adf7eab305edcd9dddedcae409ba822351920e
+
 const arrayForType = (format, bitsPerSample, size) => {
     switch (format) {
         case 1: // unsigned integer data
