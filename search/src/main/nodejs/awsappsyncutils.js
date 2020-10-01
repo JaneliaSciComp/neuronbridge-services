@@ -35,6 +35,7 @@ exports.getSearchMetadata = async (searchId) => {
                 upload
                 searchType
                 algorithm
+                userDefinedImageParams
                 channel
                 referenceChannel
                 voxelX
@@ -63,7 +64,8 @@ exports.getSearchMetadata = async (searchId) => {
                 simulateMIPGeneration
             }
         }`),
-        variables: { searchId: searchId}
+        variables: { searchId: searchId},
+        fetchPolicy: 'no-cache'
     });
     console.log("Search data for", searchId, result);
     const searchResult = toSearchResult(result.data.getSearch);
@@ -99,6 +101,7 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     upload
                     searchType
                     algorithm
+                    userDefinedImageParams
                     channel
                     referenceChannel
                     voxelX

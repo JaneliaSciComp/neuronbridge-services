@@ -38,6 +38,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchType: SearchType
     algorithm: Algorithm
     anatomicalRegion: String
+    userDefinedImageParams: Boolean
     channel: Int
     referenceChannel: String
     voxelX: Int
@@ -97,6 +98,7 @@ input CreateSearchInput {
     upload: String!
     algorithm: Algorithm
     anatomicalRegion: String
+    userDefinedImageParams: Boolean
     channel: Int
     referenceChannel: String
     voxelX: Int

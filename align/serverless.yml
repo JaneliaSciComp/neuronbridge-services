@@ -129,8 +129,8 @@ resources:
           inputs_bucket: ${self:custom.alignInputBucket}
           outputs_bucket: ${self:custom.alignOutputBucket}
           templates_dir: ${self:custom.alignmentTemplatesFolder}
-          xy_resolution: ""
-          z_resolution: ""
+          xy_resolution: "0"
+          z_resolution: "0"
           reference_channel: "Signal_amount"
           force_voxel_size: false
           nslots: ${self:custom.defaultAlignmentThreads}
@@ -188,6 +188,8 @@ resources:
               Value: xvfb
             - Name: SEARCH_UPDATE_FUNCTION
               Value: ${file(../search/serverless.yml):service}-${self:provider.stage}-searchUpdate
+            - Name: ALIGNMENT_MEMORY
+              Value: 8G
           ReadonlyRootFilesystem: true
           Privileged: true
           LinuxParameters:

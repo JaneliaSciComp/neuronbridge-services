@@ -35,11 +35,14 @@ exports.searchStarter = async (event) => {
         .filter(r => !!r)
         .map(async r => {
             if (r.step === 0) {
+                console.log('Start alignment for', r);
                 return await startAlignment(r);
             } else if (r.step === 2) {
+                console.log('Start color depth search for', r);
                 return await startColorDepthSearch(r);
             } else {
                 // do nothing
+                console.log('No processing for', r);
                 return r;
             }
         });
@@ -180,18 +183,28 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
 const submitAlignmentJob = async (searchParams) => {
     const jobResources = {
         'vcpus': 16,
-        'memory': 8192
+        'memory': 8192,
+        'environment': [{
+            name: 'ALIGNMENT_MEMORY',
+            value: '8G'
+        }]
     };
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const jobName = `align-${searchParams.id}`;
-    const jobParameters = {
-        reference_channel: searchParams.referenceChannel,
-        xy_resolution: searchParams.voxelX + '',
-        z_resolution: searchParams.voxelZ + '',
+    let jobParameters = {
         search_id: searchParams.id,
         input_filename: fullSearchInputImage,
         output_folder: searchParams.searchInputFolder
     };
+    if (searchParams.userDefinedImageParams) {
+        const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '1';
+        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '1'
+        const refChannel = searchParams.referenceChannel;
+        jobParameters.force_voxel_size = 'true';
+        jobParameters.xy_resolution = xyRes;
+        jobParameters.z_resolution = zRes;
+        jobParameters.reference_channel = refChannel;
+    }
     const params = {
         jobDefinition: jobDefinition,
         jobQueue: jobQueue,
