@@ -94,7 +94,7 @@ input CreateSearchInput {
     step: Int!
     owner: String
     identityId: String!
-    searchType: SearchType!
+    searchType: SearchType
     searchDir: String!
     upload: String!
     algorithm: Algorithm
@@ -203,6 +203,7 @@ input TableStringFilterInput {
 input UpdateSearchInput {
     id: ID!
     step: Int
+    searchType: SearchType
     owner: String
     maskThreshold: Int
     dataThreshold: Int
