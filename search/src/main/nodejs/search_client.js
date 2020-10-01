@@ -12,12 +12,12 @@ const sleep = util.promisify(setTimeout)
 const AWS = require('aws-sdk')
 const cwLogs = new AWS.CloudWatchLogs()
 const { mean, median, min, max, std } = require('mathjs')
-const { invokeSync } = require('./utils')
+const { invokeFunction } = require('./utils')
 
-async function waitFor(stateMachineName, monitorUniqueName) {
+// Wait until the given monitor is done, then return the final execution
+async function waitForMonitor(stateMachineName, monitorUniqueName) {
 
   // Find the state machine
-
   console.log('Finding ' + monitorUniqueName)
   const stepFunctions = new AWS.StepFunctions()
   const stateMachinesResponse = await stepFunctions.listStateMachines().promise()
@@ -30,7 +30,6 @@ async function waitFor(stateMachineName, monitorUniqueName) {
   }
 
   // Wait for the monitor state machine to finish, and then analyze its step history
-
   console.log('Waiting on ' + stateMachine.stateMachineArn)
   let execution = null
   let status = ''
@@ -49,9 +48,86 @@ async function waitFor(stateMachineName, monitorUniqueName) {
   return execution
 }
 
-async function report(searchFunction, stateMachineName, monitorUniqueName) {
+// Iterate over the  history for the given state machine execution, and run the provided function for each event.
+async function forExecutionHistory(executionArn, func) {
+  const stepFunctions = new AWS.StepFunctions()
+  const historyParams = { executionArn: executionArn }
+  do {
+    const historyResponse = await stepFunctions.getExecutionHistory(historyParams).promise()
+    historyParams.nextToken = historyResponse.nextToken
+    for (const event of historyResponse.events) {
+      if (!func(event)) {
+        historyParams.nextToken = null
+        break
+      }
+    }
+    await sleep(200) // try to avoid rate limiting
+  } while (historyParams.nextToken)
+}
 
-  const execution = await waitFor(stateMachineName, monitorUniqueName)
+// Fetch and return all the CloudWatch log streams for the given Lambda, with time constraints.
+async function getStreams(functionName, startTime, endTime) {
+  const streamsParams = {
+    logGroupName: `/aws/lambda/${functionName}`,
+    orderBy: 'LastEventTime',
+    descending: true
+  }
+  const logStreams = []
+  var streamsResponse
+  do {
+    streamsResponse = await cwLogs.describeLogStreams(streamsParams).promise()
+    for (const logStream of streamsResponse.logStreams) {
+      if (logStream.lastEventTimestamp < startTime) {
+        // Nothing returned after this event is relevant, so let's stop before we get rate limited
+        streamsResponse.nextToken = null
+        break
+      }
+      if (logStream.firstEventTimestamp >= startTime && logStream.firstEventTimestamp < endTime) {
+        logStreams.push(logStream)
+      }
+    }
+    streamsParams.nextToken = streamsResponse.nextToken
+    await sleep(50) // try to avoid rate limiting
+  } while (streamsParams.nextToken)
+  return logStreams
+}
+
+// Parse the given worker log and extract its true start time
+async function getWorkerStartTime(logGroupName, logStreamName) {
+  const logEventsParams = {
+    logGroupName: logGroupName,
+    logStreamName: logStreamName,
+  };
+  //console.log(`Getting events for ${logStreamName}`)
+  const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
+  for(const logEvent of eventsResponse.events) {
+    const batchIdSplit = logEvent.message.split('Batch Id: ');
+    if (batchIdSplit.length>1) {
+      const batchStr = batchIdSplit[1].trim()
+      const batchId = parseInt(batchStr);
+      return [batchId,logEvent.timestamp];
+    }
+  }
+  // It's much slower to do filter on the server side (?!)
+  // const logEventsParams = {
+  //   logGroupName: logGroupName,
+  //   logStreamNames: [logStreamName],
+  //   filterPattern: "Batch Id"
+  // };
+  // const filterResponse = await cwLogs.filterLogEvents(logEventsParams).promise()
+  // for(const logEvent of filterResponse.events) {
+  //   const batchIdSplit = logEvent.message.split('Batch Id: ');
+  //   const batchStr = batchIdSplit[1].trim()
+  //   const batchId = parseInt(batchStr);
+  //   return [batchId,logEvent.timestamp];
+  // }
+  // return [null,null];
+}
+
+// Generate a complete performance report for a burst-parallel execution
+async function report(dispatchFunction, searchFunction, stateMachineName, monitorUniqueName) {
+
+  const execution = await waitForMonitor(stateMachineName, monitorUniqueName)
 
   if (execution.status!=='SUCCEEDED') {
     console.log(`Search status is ${execution.status}`)
@@ -61,128 +137,279 @@ async function report(searchFunction, stateMachineName, monitorUniqueName) {
   // State machine (and thus search) is now complete
   console.log('Reporting on ' + monitorUniqueName)
 
+  const stages = []
+
   let searchStarted = null;
   let stateMachineStarted = null
   let stateMachineEnded = null
   let reduceStarted = null
   let reduceEnded = null
   let totalTasks = null
-  
+  let currState = null
+  let monitorStarted = null
+  let monitorName = null
+
   // Analyze state machine step history
 
-  const stepFunctions = new AWS.StepFunctions()
-  const historyParams = { executionArn: execution.executionArn }
-  do {
-    const historyResponse = await stepFunctions.getExecutionHistory(historyParams).promise()
-    for (const event of historyResponse.events) {
-      if (event.type === 'ExecutionStarted') {
-        stateMachineStarted = event.timestamp
-      } else if (event.type === 'ExecutionSucceeded') {
-        stateMachineEnded = event.timestamp
-      } else if (event.type === 'LambdaFunctionSucceeded') {
-        if (reduceStarted && !reduceEnded) {
-          reduceEnded = event.timestamp
-        } else {
-          const output = JSON.parse(event.lambdaFunctionSucceededEventDetails.output)
-          if (searchStarted==null) {
-            searchStarted = new Date(output.startTime);
-          }
-          console.log(`${event.timestamp.toISOString()} ${output.numRemaining}/${output.numBatches} remaining (${output.elapsedSecs} secs elapsed)`)
-          if (!totalTasks) {
-            totalTasks = output.numBatches
-          }
+  console.log("Step function history:");
+  await forExecutionHistory(execution.executionArn, event => {
+    if (event.type === 'ExecutionStarted') {
+      stateMachineStarted = event.timestamp
+    } else if (event.type === 'ExecutionSucceeded') {
+      stateMachineEnded = event.timestamp
+    } else if (event.type === 'LambdaFunctionScheduled') {
+      if (currState=='Monitor') {
+        monitorStarted = event.timestamp
+      }
+    } else if (event.type === 'LambdaFunctionSucceeded') {
+      if (currState=='Monitor') {
+        const output = JSON.parse(event.lambdaFunctionSucceededEventDetails.output)
+        monitorName = `Monitor (${output.numRemaining})`
+        stages.push({
+          category: "Overview",
+          name: monitorName,
+          start: monitorStarted,
+          end: event.timestamp
+        })
+      }
+      if (reduceStarted && !reduceEnded) {
+        reduceEnded = event.timestamp
+      } else {
+        const output = JSON.parse(event.lambdaFunctionSucceededEventDetails.output)
+        if (searchStarted==null) {
+          searchStarted = new Date(output.startTime);
         }
-      } else if (event.type === 'TaskStateEntered') {
-        if (event.stateEnteredEventDetails.name === 'Reduce') {
-          reduceStarted = event.timestamp
+        console.log(`${event.timestamp.toISOString()} ${output.numRemaining}/${output.numBatches} remaining (${output.elapsedSecs} secs elapsed)`)
+        if (!totalTasks) {
+          totalTasks = output.numBatches
         }
+      }
+    } else if (event.type === 'TaskStateEntered') {
+      currState = event.stateEnteredEventDetails.name
+      if (currState === 'Reduce') {
+        reduceStarted = event.timestamp
       }
     }
-    historyParams.nextToken = historyResponse.nextToken
-    await sleep(200) // try to avoid rate limiting
-  } while (historyParams.nextToken)
+    return true
+  })
 
-  const totalElapsed = stateMachineEnded.getTime() - searchStarted.getTime()
-  const totalStateMachineElapsed = stateMachineEnded.getTime() - stateMachineStarted.getTime()
-  const totalSearchElapsed = reduceStarted.getTime() - stateMachineStarted.getTime()
-  const totalReducerElapsed = reduceEnded.getTime() - reduceStarted.getTime()
+  stages.push({
+    category: "Overview",
+    name: "State Machine",
+    start: stateMachineStarted,
+    end: stateMachineEnded
+  })
 
-  console.log('Fetching search worker log streams...')
+  stages.push({
+    category: "Overview",
+    name: "Reducer",
+    start: reduceStarted,
+    end: reduceEnded
+  })
 
-  const streamsParams = {
-    logGroupName: `/aws/lambda/${searchFunction}`,
-    orderBy: 'LastEventTime',
-    descending: true
-  }
+  console.log('Fetching dispatcher log streams...')
+  const dispatcherLogStreams = await getStreams(dispatchFunction, stateMachineStarted, stateMachineEnded)
 
-  const logStreams = []
-  var streamsResponse
-  do {
-    //console.log("---------------------------------------------------------------------")
-    streamsResponse = await cwLogs.describeLogStreams(streamsParams).promise()
-    for (const logStream of streamsResponse.logStreams) {
-      //let startDate = new Date(logStream.firstEventTimestamp);
-      //let endDate = new Date(logStream.lastEventTimestamp);
-
-      if (logStream.lastEventTimestamp < stateMachineStarted) {
-        // Nothing returned after this event is relevant, so let's stop before we get rate limited
-        //break
-        //console.log(`<<<<< ${startDate.toISOString()} - ${endDate.toISOString()}`)
-        streamsResponse.nextToken = null
-      }
-      else {
-        //console.log(`      ${startDate.toISOString()} - ${endDate.toISOString()}`)
-      }
-      if (logStream.firstEventTimestamp >= stateMachineStarted) {
-        logStreams.push(logStream)
-      }
+  console.log('Fetching dispatcher log events...')
+  let firstDispatcherTime = Number.MAX_SAFE_INTEGER
+  let lastDispatcherTime = 0
+  const dispatchTimes = {}
+  const dispatchElapsedTimes = []
+  for (const logStream of dispatcherLogStreams) {
+    
+    if (logStream.firstEventTimestamp < firstDispatcherTime) {
+      firstDispatcherTime = logStream.firstEventTimestamp
     }
-    streamsParams.nextToken = streamsResponse.nextToken
-    await sleep(100) // try to avoid rate limiting
-  } while (streamsParams.nextToken)
+    if (logStream.lastEventTimestamp > lastDispatcherTime) {
+      lastDispatcherTime = logStream.lastEventTimestamp
+    }
+    
+    const elapsedMs = logStream.lastEventTimestamp - logStream.firstEventTimestamp
+    dispatchElapsedTimes.push(elapsedMs)
 
-  let minTime = Number.MAX_SAFE_INTEGER
-  let maxTime = 0
+    const logGroupName = `/aws/lambda/${dispatchFunction}`
+    const logEventsParams = {
+      logGroupName: logGroupName,
+      logStreamNames: [logStream.logStreamName],
+      filterPattern: "Dispatching Batch Id"
+    }
 
-  if (totalTasks !== logStreams.length) {
-    console.log(`WARNING: Number of worker logs (${logStreams.length}) does not match number of workers (${totalTasks}). Subsequent analysis will not be valid.`)
+    do {
+      const filterResponse = await cwLogs.filterLogEvents(logEventsParams).promise()
+      logEventsParams.nextToken = filterResponse.nextToken
+      for(const logEvent of filterResponse.events) {
+        const dispatchSplit = logEvent.message.split('Batch Id: ');
+        const batchStr = dispatchSplit[1].trim()
+        const batchId = parseInt(batchStr);
+        dispatchTimes[batchId] = logEvent.timestamp
+      }
+      await sleep(200) // try to avoid rate limiting
+    } while (logEventsParams.nextToken)
+
+    stages.push({
+      category: "Dispatchers",
+      name: "Dispatcher",
+      logGroupName: logGroupName,
+      logStreamName: logStream.logStreamName,
+      start: new Date(logStream.firstEventTimestamp),
+      end: new Date(logStream.lastEventTimestamp)
+    })
+
   }
 
   console.log(`Search ran with ${totalTasks} workers`)
+  console.log(`Parsed ${Object.keys(dispatchTimes).length} dispatch times`)
 
-  const workerTimes = []
-  for (const logStream of logStreams) {
-    if (logStream.firstEventTimestamp < minTime) {
-      minTime = logStream.firstEventTimestamp
-    }
-    if (logStream.lastEventTimestamp > maxTime) {
-      maxTime = logStream.lastEventTimestamp
-    }
-    const elapsedMs = logStream.lastEventTimestamp - logStream.firstEventTimestamp
-    workerTimes.push(elapsedMs)
-    // console.log(`${logStream.logStreamName} - ${elapsedMs} ms`);
+  console.log('Fetching worker log streams...')
+  const workerLogStreams = await getStreams(searchFunction, stateMachineStarted, stateMachineEnded)
+  
+  if (totalTasks !== workerLogStreams.length) {
+    console.log(`WARNING: Number of worker logs (${workerLogStreams.length}) does not match number of workers (${totalTasks}). Subsequent analysis will not be valid.`)
   }
 
-  const searchWorkerElapsed = maxTime - minTime
-  const totalReducerDelay = reduceStarted.getTime() - maxTime
+  console.log('Fetching worker log events...')
+  let firstWorkerTime = Number.MAX_SAFE_INTEGER
+  let lastWorkerTime = 0
+  const workerElapsedTimes = []
+  const workerStartTimes = []
+  for (const logStream of workerLogStreams) {
+    
+    const elapsedMs = logStream.lastEventTimestamp - logStream.firstEventTimestamp
+    workerElapsedTimes.push(elapsedMs)
+
+    const logGroupName = `/aws/lambda/${searchFunction}`
+    const logEventsParams = {
+      logGroupName: logGroupName,
+      logStreamName: logStream.logStreamName,
+      startFromHead: true
+    };
+    let batchId = null
+    let batchStartTime = null
+    let firstEventTime = Number.MAX_SAFE_INTEGER
+    let lastEventTime = 0
+    
+    const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
+    for(const logEvent of eventsResponse.events) {
+      if (logEvent.timestamp < firstEventTime) {
+        firstEventTime = logEvent.timestamp
+      }
+      if (logEvent.timestamp > lastEventTime) {
+        lastEventTime = logEvent.timestamp
+      }
+      batchStartTime = logEvent.timestamp
+      const batchIdSplit = logEvent.message.split('Batch Id: ');
+      if (batchIdSplit.length>1) {
+        const batchStr = batchIdSplit[1].trim()
+        batchId = parseInt(batchStr);
+      }
+    }
+
+    if (firstEventTime < firstWorkerTime) {
+      firstWorkerTime = firstEventTime
+    }
+    if (lastEventTime > lastWorkerTime) {
+      lastWorkerTime = lastEventTime
+    }
+
+    if (!batchId || !batchStartTime) {
+      console.log("WARNING: could not find metadata in log for "+logStream.logStreamName);
+    }
+    else if (dispatchTimes[batchId]) {
+      const startupTime = batchStartTime - dispatchTimes[batchId]
+      workerStartTimes.push(startupTime)
+    }
+    else {
+      console.log("WARNING: missing dispatch time for batch "+batchId);
+    }
+
+    stages.push({
+      category: "Workers",
+      name: "Worker "+batchId,
+      logGroupName: logGroupName,
+      logStreamName: logStream.logStreamName,
+      start: new Date(logStream.firstEventTimestamp),
+      end: new Date(logStream.lastEventTimestamp)
+    })
+  }
+
+  const totalElapsed = stateMachineEnded.getTime() - searchStarted.getTime()
+  const totalStateMachineElapsed = stateMachineEnded.getTime() - stateMachineStarted.getTime()
+  const totalSearchElapsed = reduceStarted.getTime() - firstDispatcherTime
+  const totalReducerElapsed = reduceEnded.getTime() - reduceStarted.getTime()
+  const dispatcherElapsed = lastDispatcherTime - firstDispatcherTime
+  const searchWorkerElapsed = lastWorkerTime - firstWorkerTime
+  const totalReducerDelay = reduceStarted.getTime() - lastWorkerTime
   const userTimeElapsed = reduceEnded.getTime() - stateMachineStarted.getTime()
 
-  function pad (n) {
-    return Math.round(n).toString().padStart(6, ' ') + ' ms'
+  stages.push({
+    category: "Overview",
+    name: "Dispatchers",
+    start: new Date(firstDispatcherTime),
+    end: new Date(lastDispatcherTime),
+    stats: {
+      mean: mean(dispatchElapsedTimes),
+      median: median(dispatchElapsedTimes),
+      std: std(dispatchElapsedTimes),
+      min: min(dispatchElapsedTimes),
+      max: max(dispatchElapsedTimes),
+    }
+  })
+
+  stages.push({
+    category: "Overview",
+    name: "Workers",
+    start: new Date(firstWorkerTime),
+    end: new Date(lastWorkerTime),
+    stats: {
+      mean: mean(workerElapsedTimes),
+      median: median(workerElapsedTimes),
+      std: std(workerElapsedTimes),
+      min: min(workerElapsedTimes),
+      max: max(workerElapsedTimes),
+    }
+  })
+
+  if (totalReducerDelay > 0) {
+    stages.push({
+      category: "Overview",
+      name: "Reducer Delay",
+      start: new Date(lastWorkerTime),
+      end: reduceStarted
+    })
   }
 
-  console.log(`totalElapsed:                  ${pad(totalElapsed)}`)
-  console.log(`  totalStateMachineElapsed:    ${pad(totalStateMachineElapsed)}`)
-  console.log(`    userTimeElapsed:           ${pad(userTimeElapsed)}`)
-  console.log(`      totalSearchElapsed:      ${pad(totalSearchElapsed)}`)
-  console.log(`        searchWorkerElapsed:   ${pad(searchWorkerElapsed)}`)
-  console.log(`          searchWorkerMean:    ${pad(mean(workerTimes))}`)
-  console.log(`          searchWorkerMedian:  ${pad(median(workerTimes))}`)
-  console.log(`          searchWorkerStd:     ${pad(std(workerTimes))}`)
-  console.log(`          searchWorkerMin:     ${pad(min(workerTimes))}`)
-  console.log(`          searchWorkerMax:     ${pad(max(workerTimes))}`)
-  console.log(`        totalReducerDelay:     ${pad(totalReducerDelay)}`)
-  console.log(`      totalReducerElapsed:     ${pad(totalReducerElapsed)}`)
+  function pad (n) {
+    return Math.round(n).toString().padStart(7, ' ') + ' ms'
+  }
+
+  console.log(`totalElapsed:                 ${pad(totalElapsed)}`)
+  console.log(`  totalStateMachineElapsed:   ${pad(totalStateMachineElapsed)}`)
+  console.log(`    userTimeElapsed:          ${pad(userTimeElapsed)}`)
+  console.log(`      totalSearchElapsed:     ${pad(totalSearchElapsed)}`)
+  console.log(`        dispatcherElapsed:    ${pad(dispatcherElapsed)}`)
+  console.log(``)
+  console.log(`        workerStartMean:      ${pad(mean(workerStartTimes))}`)
+  console.log(`        workerStartMedian:    ${pad(median(workerStartTimes))}`)
+  console.log(`        workerStartStd:       ${pad(std(workerStartTimes))}`)
+  console.log(`        workerStartMin:       ${pad(min(workerStartTimes))}`)
+  console.log(`        workerStartMax:       ${pad(max(workerStartTimes))}`)
+  console.log(``)
+  console.log(`        searchWorkerElapsed:  ${pad(searchWorkerElapsed)}`)
+  console.log(`          searchWorkerMean:   ${pad(mean(workerElapsedTimes))}`)
+  console.log(`          searchWorkerMedian: ${pad(median(workerElapsedTimes))}`)
+  console.log(`          searchWorkerStd:    ${pad(std(workerElapsedTimes))}`)
+  console.log(`          searchWorkerMin:    ${pad(min(workerElapsedTimes))}`)
+  console.log(`          searchWorkerMax:    ${pad(max(workerElapsedTimes))}`)
+  console.log(``)
+  if (totalReducerDelay > 0) {
+    console.log(`        totalReducerDelay:    ${pad(totalReducerDelay)}`)
+  }
+  console.log(`      totalReducerElapsed:    ${pad(totalReducerElapsed)}`)
+  
+  return {
+    aggregate: ["Dispatcher", "Workers"],
+    stages: stages
+  }
 }
 
 async function main () {
@@ -195,20 +422,26 @@ async function main () {
   const stateMachineName = 'searchMonitorStateMachine-' + identifier
 
   if (infile==="report") {
-    await report(searchFunction, stateMachineName, args[2])
+    
+    const monitorName = args[2]
+    const reportObj = await report(dispatchFunction, searchFunction, stateMachineName, monitorName)
+    let reportStr = JSON.stringify(reportObj, null, 2)
+    
+    const outfile = monitorName+".json"
+    fs.writeFileSync(outfile, reportStr)
+    console.log(`Wrote report to ${outfile}`)
+    console.log(`To analyze, open timeline.html and load the JSON data file.`)
   }
   else {
     const searchParamsJson = await readFile(infile, 'utf8')
     const searchParams = JSON.parse(searchParamsJson)
 
     if (args.length==4) {
-      const batchSize = args[2]
-      const numLevels = args[3]
-      searchParams["batchSize"] = batchSize
-      searchParams["numLevels"] = numLevels
+      searchParams["batchSize"] = Number.parseInt(args[2])
+      searchParams["numLevels"] = Number.parseInt(args[3])
     }
 
-    const cdsInvocationResult = await invokeSync(dispatchFunction, searchParams)
+    const cdsInvocationResult = await invokeFunction(dispatchFunction, searchParams)
 
     if (cdsInvocationResult.FunctionError) {
       console.log('Error:', cdsInvocationResult.FunctionError)
@@ -226,16 +459,23 @@ async function main () {
     }
 
     const response = JSON.parse(cdsInvocationResult.Payload)
-    const execution = await waitFor(stateMachineName, response.monitorUniqueName)
+    const execution = await waitForMonitor(stateMachineName, response.monitorUniqueName)
       
-    if (execution.status!=='SUCCEEDED') {
-      console.log(`Search status is ${execution.status}`)
-      return    
-    }
-    else {
+    if (execution.status==='SUCCEEDED') {
       console.log("Search complete.")
       console.log("Results may lag due to eventual consistency. To attempt analysis, run:")
       console.log(`npm run-script search ${identifier} report ${response.monitorUniqueName}`)
+    }
+    else {
+      // Search failed, try to find out why...
+      console.log(`Search status is ${execution.status}`)
+      await forExecutionHistory(execution.executionArn, event => {
+        if (event.type === 'ExecutionFailed') {
+          console.log(event)
+          return false
+        }
+        return true
+      })
     }
   }
 }

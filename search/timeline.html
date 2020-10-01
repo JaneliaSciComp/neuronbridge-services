@@ -1,0 +1,142 @@
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=utf-8" />
+<style>
+body {
+  font-family: Arial, sans-serif; 
+  font-size: 13;
+}
+.tooltip {
+  padding: 5px;
+  font-size: 1.2em;
+}
+</style>
+<script src="https://code.jquery.com/jquery-3.5.1.slim.js"
+        integrity="sha256-DrT5NfxfbHvMHux31Lkhxg42LY6of8TaYyK50jnxRnM="
+        crossorigin="anonymous"></script>
+
+<script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+
+<script type="text/javascript">
+  google.charts.load("current", {packages:["timeline"]});
+  google.charts.setOnLoadCallback(init);
+ 
+  function init() {
+    document.getElementById('files').addEventListener('change', handleFileSelect, false);
+  }
+
+  function handleFileSelect(evt) {
+    var files = evt.target.files;
+    if (files == null || files.length == 0) return;
+    var file = files[0];
+    var reader = new FileReader();
+    reader.onload = (function (theFile) {
+      return function (e) {
+        var data = JSON.parse(e.target.result)
+        drawChart(data)
+      };
+    })(file);
+    reader.readAsText(file);
+  }
+
+  function drawChart(data) {
+	
+    var container = document.getElementById('timeline');
+    var chart = new google.visualization.Timeline(container);
+    var dataTable = new google.visualization.DataTable();
+    dataTable.addColumn({ type: 'string', id: 'Category' });
+    dataTable.addColumn({ type: 'string', id: 'Name' });
+    dataTable.addColumn({ type: 'string', id: 'style', role: 'style' });
+    dataTable.addColumn({ type: 'string', role: 'tooltip' });
+    dataTable.addColumn({ type: 'string', role: 'ignore' });
+    dataTable.addColumn({ type: 'date', id: 'Start' });
+    dataTable.addColumn({ type: 'date', id: 'End' });
+
+    let statsMap = {}
+    let stateMachineEnd = null
+    for(const stage of data.stages) {
+      if (stage.name==="State Machine") {
+        stateMachineEnd = stage.end
+      }
+      else if (stage.stats) {
+        statsMap[stage.name] = stage.stats
+      }
+    }
+    // Clamp times to the state machine to avoid CloudWatch reporting inconsistencies
+    for(const stage of data.stages) {
+      if (stage.end > stateMachineEnd) {
+        stage.end = stateMachineEnd
+      }
+    }
+
+    const rows = []
+    for(const stage of data.stages) {
+      var start = new Date(stage.start)
+      var end = new Date(stage.end)
+      var durationMs = end.getTime() - start.getTime()
+
+      var color = '#7dc2ff' // Neutral blue
+      if (statsMap[stage.category]) {
+        stats = statsMap[stage.category]
+        let residual = Math.abs(durationMs - stats.median)
+        if (residual < stats.std) {
+          color = '#71d46c' // Green
+        }
+        else if (residual < 2*stats.std) {
+          color = '#d4d46c' // Yellow
+        }
+        else {
+          color = '#d4766c' // Red
+        }
+      }
+
+      var statsHtml = ""
+      if (stage.stats) {
+        mean = Math.round(stage.stats.mean)
+        median = Math.round(stage.stats.median)
+        min = Math.round(stage.stats.min)
+        max = Math.round(stage.stats.max)
+        std = Math.round(stage.stats.std)
+        statsHtml += '<br><b>Mean</b>: '+mean+' ms'
+        statsHtml += '<br><b>Median</b>: '+median+' ms'
+        statsHtml += '<br><b>Min</b>: '+min+' ms'
+        statsHtml += '<br><b>Max</b>: '+max+' ms'
+        statsHtml += '<br><b>Std</b>: '+std+' ms'
+      }
+
+      // Construct CloudWatch link
+      // Example URL: "https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/$252Faws$252Flambda$252Fjanelia-neuronbridge-cds-krdev-monitor/log-events/2020$252F10$252F01$252F$255B$2524LATEST$255Db4345037df7147d3abeab90d93801f3b"
+      var link = "https://console.aws.amazon.com/cloudwatch/home?region=us-east-1#logsV2:log-groups/log-group/"+encodeURIComponent(stage.logGroupName)+"/log-events/"+encodeURIComponent(stage.logStreamName)
+
+      // Construct tooltip
+      var tooltip = '<div class="tooltip">'+stage.name+'<br><b>Duration</b>: '+durationMs+' ms'+statsHtml+'</div>'
+      
+      rows.push([stage.category, stage.name, color, tooltip, link, start, end])
+    }
+
+    dataTable.addRows(rows)
+
+    var options = {
+      backgroundColor: '#fff',
+      //colors: ['#cce1ff', '#b0d1ff', '#8fbeff', '#74adfc', '#4e97fc'],
+      avoidOverlappingGridLines: true,
+    };
+
+    chart.draw(dataTable, options)
+
+    function selectHandler(e) {
+      const selected = chart.getSelection()[0]
+      const row = rows[selected.row]
+      console.log(row)
+    }
+    google.visualization.events.addListener(chart, 'select', selectHandler);
+  }
+</script>
+</head>
+<body>
+<form>
+Input JSON: <input type="file" id="files" accept=".json"/>
+</form>
+<div id="timeline" style="height: 95%"></div>
+</body>
+</html>

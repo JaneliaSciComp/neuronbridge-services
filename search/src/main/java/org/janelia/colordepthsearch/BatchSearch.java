@@ -42,6 +42,8 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         AWSXRay.beginSubsegment("Read parameters");
         LOG.debug("Received color depth search request: {}", LambdaUtils.toJson(params));
         LOG.info("Monitor: {}", params.getMonitorName());
+        // This next log statement is parsed by the analyzer. DO NOT CHANGE.
+        LOG.info("Batch Id: {}", params.getBatchId());
         LOG.info("Searching {} images using {} masks", params.getSearchKeys().size(), params.getMaskKeys().size());
         if (LambdaUtils.isEmpty(params.getSearchKeys())) {
             throw new IllegalArgumentException("No images to search");

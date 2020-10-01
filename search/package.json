@@ -5,7 +5,7 @@
   "scripts": {
     "sls": "sls",
     "test": "jest",
-    "search": "AWS_SDK_LOAD_CONFIG=true node src/main/nodejs/search_client.js"
+    "search": "AWS_SDK_LOAD_CONFIG=true DISABLE_XRAY=true node src/main/nodejs/search_client.js"
   },
   "dependencies": {
     "aws-appsync": "^4.0.0",

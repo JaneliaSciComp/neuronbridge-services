@@ -1,5 +1,7 @@
 'use strict';
 
+const AWSXRay = require('aws-xray-sdk-core');
+// const AWS = process.env.DISABLE_XRAY ? require('aws-sdk') : AWSXRay.captureAWS(require('aws-sdk'));
 const AWS = require('aws-sdk');
 const stream = require('stream');
 
@@ -9,7 +11,7 @@ AWS.config.apiVersions = {
 };
 
 const s3 = new AWS.S3();
-const lambda = new AWS.Lambda();
+const lambda = process.env.DISABLE_XRAY ? new AWS.Lambda() : AWSXRay.captureAWSClient(new AWS.Lambda());
 const stepFunction = new AWS.StepFunctions();
 
 const DEBUG = !!process.env.DEBUG;

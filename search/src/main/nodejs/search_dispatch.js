@@ -1,6 +1,5 @@
 'use strict';
 
-const AWSXRay = require('aws-xray-sdk-core')
 const { v1: uuidv1 } = require('uuid');
 
 const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
@@ -37,13 +36,11 @@ const stateMachineArn = process.env.STATE_MACHINE_ARN;
 
 exports.searchDispatch = async (event) => {
 
-    console.log(event);
-
-    const segment = AWSXRay.getSegment();
-    var subsegment = segment.addNewSubsegment('Read parameters');
+    // This next log statement is parsed by the analyzer. DO NOT CHANGE.
+    console.log('Input event:',event);
 
     const searchInputParams = await getSearchInputParams(event);
-    console.log('Search input params:', searchInputParams);
+    if (DEBUG) console.log('Input params:', searchInputParams);
 
     const searchId = searchInputParams.searchId;
     const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;
@@ -77,8 +74,6 @@ exports.searchDispatch = async (event) => {
         console.log(`Monitor: ${monitorName}`);
     }
 
-    subsegment.close();
-
     if (level === 0) {
         const maskKey = `${searchInputFolder}/${searchInputName}`;
         const checkMask = await verifyKey(searchBucket, maskKey);
@@ -92,7 +87,6 @@ exports.searchDispatch = async (event) => {
             });
             throw new Error(errMsg);
         }
-        subsegment = segment.addNewSubsegment('Prepare batch parallelization parameters');
         const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
         console.log("Search input params with libraries", searchInputParamsWithLibraries);
         const librariesPromises = await searchInputParamsWithLibraries.libraries
@@ -147,7 +141,6 @@ exports.searchDispatch = async (event) => {
         branchingFactor = Math.ceil(Math.pow(numBatches, 1/numLevels)); // e.g. ceil(695^(1/3)) = ceil(8.86) = 9
         startIndex = 0
         endIndex = totalSearches;
-        subsegment.close();
 
         const now = new Date();
         const searchMetadata = {
@@ -191,7 +184,7 @@ exports.searchDispatch = async (event) => {
                 startTime: now.toISOString(),
                 numBatches
             }
-            monitorName = await startMonitor(searchId, monitorParams, stateMachineArn, segment);
+            monitorName = await startMonitor(searchId, monitorParams, stateMachineArn);
             response.monitorUniqueName = monitorName       
         }
 
@@ -222,7 +215,6 @@ exports.searchDispatch = async (event) => {
     }
 
     if (level + 1 < numLevels) {
-        subsegment = segment.addNewSubsegment('Start intermediate level dispatchers');
         // start more intermediate dispatchers
         for(let i = startIndex; i < endIndex; i += nextLevelManagerRange) {
             const workerStart = i;
@@ -233,12 +225,10 @@ exports.searchDispatch = async (event) => {
                     endIndex: workerEnd,
                     ...nextEvent
                 });
-            console.log(`Dispatched sub-manager ${workerStart} - ${workerEnd} [status=${invokeResponse.status}]`);
+            console.log(`Dispatched sub-manager ${workerStart} - ${workerEnd} [status=${invokeResponse.Status}]`);
         }
-        subsegment.close();
     } else {
         // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
-        subsegment = segment.addNewSubsegment('Get library keys');
         const searchableTargetsPromise =  await libraries
             .map(async l => {
                 return await {
@@ -254,14 +244,15 @@ exports.searchDispatch = async (event) => {
         let batchIndex = Math.ceil(startIndex / batchSize);
         console.log(`Selected targets from ${startIndex} to ${endIndex} out of ${allTargets.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
             libraries);
-        subsegment.close();
-
-        subsegment = segment.addNewSubsegment('Invoke batches');
+            
         for (const searchBatch of batchPartitions) {
+            // This next log statement is parsed by the analyzer. DO NOT CHANGE.
+            console.log(`Dispatching Batch Id: ${batchIndex}`)
             const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
                 monitorName: monitorName,
+                batchId: batchIndex,
                 searchId: searchId,
                 outputURI: batchResultsURI,
                 maskPrefix: searchBucket,
@@ -272,10 +263,9 @@ exports.searchDispatch = async (event) => {
                 ...nextEvent
             };
             const invokeResponse = await invokeAsync(searchFunction, searchParams);
-            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchKeys.length} items) [status=${invokeResponse.status}]`);
+            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchBatch.length} items) [status=${invokeResponse.Status}]`);
             batchIndex++;
         }
-        subsegment.close();
     }
 
     return response;
@@ -301,7 +291,6 @@ const getSearchInputParams = async (event) => {
         console.log(`Use ${searchMetadata.searchMask} for searching instead of ${searchMetadata.searchInputName}`);
         searchMetadata.searchInputName = searchMetadata.searchMask;
     }
-    console.log("Searching params", searchMetadata);
     return searchMetadata;
 }
 
@@ -354,16 +343,14 @@ const getKeys = async (libraryBucket, libraryKey) => {
         []);
 }
 
-const startMonitor = async (searchId, monitorParams, stateMachineArn, segment) => {
+const startMonitor = async (searchId, monitorParams, stateMachineArn) => {
     const uniqueMonitorId = searchId || uuidv1();
     const timestamp = new Date().getTime();
     const monitorUniqueName = `ColorDepthSearch_${uniqueMonitorId}_${timestamp}`;
-    let subsegment = segment.addNewSubsegment('Start monitor');
     await startStepFunction(
         monitorUniqueName,
         monitorParams,
         stateMachineArn
     );
-    subsegment.close();
     return monitorUniqueName;
 }

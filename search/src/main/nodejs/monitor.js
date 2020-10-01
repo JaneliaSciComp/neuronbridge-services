@@ -123,7 +123,8 @@ const monitoCDSJob = async (cdsJobParams) => {
     const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
 
     // Fetch all keys
-    const allKeys  = await getAllKeys({
+    console.log(`Fetching all keys in bucket ${bucket} with prefix ${intermediateSearchResultsPrefix}`)
+    const allKeys = await getAllKeys({
         Bucket: bucket,
         Prefix: intermediateSearchResultsPrefix
     });
