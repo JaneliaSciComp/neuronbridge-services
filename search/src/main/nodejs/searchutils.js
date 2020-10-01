@@ -41,7 +41,7 @@ exports.getSearchResultsKey = (searchInputName) => {
 
 // If searchInputName contains no path elements, this returns folderName.
 // Otherwise, it replaces searchInputName's last path element with folderName.
-const getSearchSubFolder = (searchInputName, folderName) => {
+function getSearchSubFolder(searchInputName, folderName) {
     const searchInputKey = getKeyWithNoExt(searchInputName);
     const searchInputPathComps = searchInputKey.split('/');
     if (searchInputPathComps.length > 1) {
@@ -52,6 +52,7 @@ const getSearchSubFolder = (searchInputName, folderName) => {
     }
 
 }
+exports.getSearchSubFolder = getSearchSubFolder;
 
 // Get the key to results folder relative to the search input
 exports.getIntermediateSearchResultsPrefix = (searchInputName) => getSearchSubFolder(searchInputName, 'results');
