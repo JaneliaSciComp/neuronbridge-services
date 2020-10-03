@@ -37,7 +37,7 @@ const stateMachineArn = process.env.STATE_MACHINE_ARN;
 exports.searchDispatch = async (event) => {
 
     // This next log statement is parsed by the analyzer. DO NOT CHANGE.
-    console.log('Input event:',event);
+    console.log('Input event:', JSON.stringify(event));
 
     const searchInputParams = await getSearchInputParams(event);
     if (DEBUG) console.log('Input params:', searchInputParams);
@@ -75,6 +75,9 @@ exports.searchDispatch = async (event) => {
     }
 
     if (level === 0) {
+        // This next log statement is parsed by the analyzer. DO NOT CHANGE.
+        console.log("Root Dispatcher");
+
         const maskKey = `${searchInputFolder}/${searchInputName}`;
         const checkMask = await verifyKey(searchBucket, maskKey);
         if (checkMask === false) {

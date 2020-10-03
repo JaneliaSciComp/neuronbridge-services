@@ -250,7 +250,7 @@ const invokeFunction = async (functionName, parameters) => {
         console.log(`Invoke sync ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
-        Payload: JSON.stringify(parameters)
+        Payload: JSON.stringify(parameters),
         //LogType: "Tail"
     };
     try {

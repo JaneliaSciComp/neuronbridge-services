@@ -14,6 +14,10 @@ const cwLogs = new AWS.CloudWatchLogs()
 const { mean, median, min, max, std } = require('mathjs')
 const { invokeFunction } = require('./utils')
 
+// This is a guess about how long the first dispatcher took in order to start the state machine. 
+// If this is not large enough, we may not find all the dispatchers. 
+const STATE_MACHINE_START_TIME_ESTIMATE = 30000
+
 // Wait until the given monitor is done, then return the final execution
 async function waitForMonitor(stateMachineName, monitorUniqueName) {
 
@@ -42,13 +46,14 @@ async function waitForMonitor(stateMachineName, monitorUniqueName) {
       return
     }
     status = execution.status
-    await sleep(2000) // try to avoid rate limiting
+    await sleep(1000) // try to avoid rate limiting
   } while (status === 'RUNNING')
 
   return execution
 }
 
 // Iterate over the  history for the given state machine execution, and run the provided function for each event.
+// If func returns false then the for loop exits with a break
 async function forExecutionHistory(executionArn, func) {
   const stepFunctions = new AWS.StepFunctions()
   const historyParams = { executionArn: executionArn }
@@ -85,43 +90,17 @@ async function getStreams(functionName, startTime, endTime) {
       if (logStream.firstEventTimestamp >= startTime && logStream.firstEventTimestamp < endTime) {
         logStreams.push(logStream)
       }
+      else {
+        if (logStream.firstEventTimestamp < startTime)
+          console.log('Omit event before start time:', new Date(logStream.firstEventTimestamp))
+        else
+          console.log('Omit event after end time:', new Date(logStream.firstEventTimestamp))
+      }
     }
     streamsParams.nextToken = streamsResponse.nextToken
     await sleep(50) // try to avoid rate limiting
   } while (streamsParams.nextToken)
   return logStreams
-}
-
-// Parse the given worker log and extract its true start time
-async function getWorkerStartTime(logGroupName, logStreamName) {
-  const logEventsParams = {
-    logGroupName: logGroupName,
-    logStreamName: logStreamName,
-  };
-  //console.log(`Getting events for ${logStreamName}`)
-  const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
-  for(const logEvent of eventsResponse.events) {
-    const batchIdSplit = logEvent.message.split('Batch Id: ');
-    if (batchIdSplit.length>1) {
-      const batchStr = batchIdSplit[1].trim()
-      const batchId = parseInt(batchStr);
-      return [batchId,logEvent.timestamp];
-    }
-  }
-  // It's much slower to do filter on the server side (?!)
-  // const logEventsParams = {
-  //   logGroupName: logGroupName,
-  //   logStreamNames: [logStreamName],
-  //   filterPattern: "Batch Id"
-  // };
-  // const filterResponse = await cwLogs.filterLogEvents(logEventsParams).promise()
-  // for(const logEvent of filterResponse.events) {
-  //   const batchIdSplit = logEvent.message.split('Batch Id: ');
-  //   const batchStr = batchIdSplit[1].trim()
-  //   const batchId = parseInt(batchStr);
-  //   return [batchId,logEvent.timestamp];
-  // }
-  // return [null,null];
 }
 
 // Generate a complete performance report for a burst-parallel execution
@@ -137,8 +116,10 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   // State machine (and thus search) is now complete
   console.log('Reporting on ' + monitorUniqueName)
 
+  let input = null
   const stages = []
 
+  // Analyze state machine step history
   let searchStarted = null;
   let stateMachineStarted = null
   let stateMachineEnded = null
@@ -148,9 +129,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   let currState = null
   let monitorStarted = null
   let monitorName = null
-
-  // Analyze state machine step history
-
+  let reducerLogGroupName = null
   console.log("Step function history:");
   await forExecutionHistory(execution.executionArn, event => {
     if (event.type === 'ExecutionStarted') {
@@ -160,6 +139,9 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
     } else if (event.type === 'LambdaFunctionScheduled') {
       if (currState=='Monitor') {
         monitorStarted = event.timestamp
+      }
+      else if (currState=='Reduce') {
+        reducerLogGroupName = '/aws/lambda/'+event.lambdaFunctionScheduledEventDetails.resource.split(':').pop()
       }
     } else if (event.type === 'LambdaFunctionSucceeded') {
       if (currState=='Monitor') {
@@ -203,12 +185,110 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   stages.push({
     category: "Overview",
     name: "Reducer",
+    logGroupName: reducerLogGroupName,
     start: reduceStarted,
     end: reduceEnded
   })
+  
+  function isStart(logEvent) {
+    return logEvent.message.startsWith('START ')
+  }
+
+  function isEnd(logEvent) {
+    return logEvent.message.startsWith('END ')
+  }
+
+  function isReport(logEvent) {
+    return logEvent.message.startsWith('REPORT ')
+  }
+
+  function getRequestId(logEvent, requests) {
+    // First check for a START message where the request id is easily parsed
+    //START RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Version: $LATEST 
+    const match = logEvent.message.match(/RequestId: (\S+) /);
+    if (match) {
+      return match[1]
+    }
+    else if (requests) {
+      // Are any of the known request ids present in the log line?
+      for(let requestId of Object.keys(requests)) {
+        if (logEvent.message.indexOf(requestId) > 0) {
+          return requestId
+        }
+      }
+    }
+    else {
+      console.log('WARNING: no valid request id found in:', logEvent)
+      return null
+    }
+  }
+
+  function parseReport(logEvent) {
+    //REPORT RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Duration: 28823.03 ms Billed Duration: 28900 ms Memory Size: 384 MB Max Memory Used: 181 MB Init Duration: 601.37 ms 
+    const match = logEvent.message.match(/.*?Duration: ([\d.]+ \w+)\s+Billed Duration: ([\d.]+ \w+)\s+Memory Size: (\d+ \w+)\s+Max Memory Used: (\d+ \w+)(\s+Init Duration: ([\d.]+ \w+))?/);
+    if (!match) {
+      console.log('Could not parse report: ', logEvent.message)
+      return {}
+    }
+    const report = {
+      duration: match[1],
+      billedBuration: match[2],
+      memorySize: match[3],
+      maxMemoryUsed: match[4]
+    }
+    if (match.length > 6) {
+      report.initDuration = match[6]
+    }
+    return report
+  }
+
+  async function getRequestLogs(logGroupName, logStreamName) {
+    const requests = {}
+    const logEventsParams = {
+      logGroupName: logGroupName,
+      logStreamName: logStreamName,
+      startFromHead: true
+    }
+    do {
+      const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
+      logEventsParams.nextToken = eventsResponse.nextToken
+      for(const logEvent of eventsResponse.events) {
+        if (isStart(logEvent)) {
+          const requestId = getRequestId(logEvent)
+          requests[requestId] = {
+            firstEventTime: Number.MAX_SAFE_INTEGER,
+            lastEventTime: 0,
+            logEvents: []
+          }
+        }
+        else if (isEnd(logEvent)) {
+          // Ignore
+        }
+        else if (isReport(logEvent)) {
+          const requestId = getRequestId(logEvent, requests)
+          const report = parseReport(logEvent)
+          requests[requestId].report = report
+        }
+        else {
+          const requestId = getRequestId(logEvent, requests)
+          const r = requests[requestId]
+          if (logEvent.timestamp < r.firstEventTime) {
+            r.firstEventTime = logEvent.timestamp
+          }
+          if (logEvent.timestamp > r.lastEventTime) {
+            r.lastEventTime = logEvent.timestamp
+          }
+          r.logEvents.push(logEvent)
+        }
+      }
+      await sleep(50) // try to avoid rate limiting
+    } while (logEventsParams.nextToken)
+
+    return requests
+  }
 
   console.log('Fetching dispatcher log streams...')
-  const dispatcherLogStreams = await getStreams(dispatchFunction, stateMachineStarted, stateMachineEnded)
+  const dispatcherLogStreams = await getStreams(dispatchFunction, new Date(stateMachineStarted.getTime() - STATE_MACHINE_START_TIME_ESTIMATE), stateMachineEnded)
 
   console.log('Fetching dispatcher log events...')
   let firstDispatcherTime = Number.MAX_SAFE_INTEGER
@@ -217,44 +297,73 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   const dispatchElapsedTimes = []
   for (const logStream of dispatcherLogStreams) {
     
-    if (logStream.firstEventTimestamp < firstDispatcherTime) {
-      firstDispatcherTime = logStream.firstEventTimestamp
-    }
-    if (logStream.lastEventTimestamp > lastDispatcherTime) {
-      lastDispatcherTime = logStream.lastEventTimestamp
-    }
-    
     const elapsedMs = logStream.lastEventTimestamp - logStream.firstEventTimestamp
     dispatchElapsedTimes.push(elapsedMs)
 
     const logGroupName = `/aws/lambda/${dispatchFunction}`
-    const logEventsParams = {
-      logGroupName: logGroupName,
-      logStreamNames: [logStream.logStreamName],
-      filterPattern: "Dispatching Batch Id"
-    }
+    const logStreamName = logStream.logStreamName
+    const requests = await getRequestLogs(logGroupName, logStreamName)
 
-    do {
-      const filterResponse = await cwLogs.filterLogEvents(logEventsParams).promise()
-      logEventsParams.nextToken = filterResponse.nextToken
-      for(const logEvent of filterResponse.events) {
-        const dispatchSplit = logEvent.message.split('Batch Id: ');
-        const batchStr = dispatchSplit[1].trim()
-        const batchId = parseInt(batchStr);
-        dispatchTimes[batchId] = logEvent.timestamp
+    for(const requestId of Object.keys(requests)) {
+      const r = requests[requestId]
+
+      let rootDispatcher = false
+      let inputEvent = null
+      let monitorId = null
+
+      for(const logEvent of r.logEvents) {
+
+        if (logEvent.message.indexOf('Root Dispatcher')>0) {
+          rootDispatcher = true
+        }
+
+        const monitorSplit = logEvent.message.split('Monitor: ');
+        if (monitorSplit.length>1) {
+          monitorId = monitorSplit[1].trim()
+        }
+
+        const dispatchSplit = logEvent.message.split('Dispatching Batch Id: ');
+        if (dispatchSplit.length>1) {
+          const batchStr = dispatchSplit[1].trim()
+          const batchId = parseInt(batchStr);
+          dispatchTimes[batchId] = logEvent.timestamp
+        }
+        const eventSplit = logEvent.message.split('Input event: ');
+        if (eventSplit.length>1) {
+          inputEvent = eventSplit[1].trim()
+        }
       }
-      await sleep(200) // try to avoid rate limiting
-    } while (logEventsParams.nextToken)
 
-    stages.push({
-      category: "Dispatchers",
-      name: "Dispatcher",
-      logGroupName: logGroupName,
-      logStreamName: logStream.logStreamName,
-      start: new Date(logStream.firstEventTimestamp),
-      end: new Date(logStream.lastEventTimestamp)
-    })
+      if (monitorId && monitorId!==monitorUniqueName) {
+        console.log("WARNING: rejecting request with wrong monitor name: ", monitorId)
+        continue
+      }
 
+      if (r.firstEventTime < firstDispatcherTime) {
+        firstDispatcherTime = r.firstEventTime
+      }
+      if (r.lastEventTime > lastDispatcherTime) {
+        lastDispatcherTime = r.lastEventTime
+      }
+  
+      if (rootDispatcher && inputEvent) {
+        input = JSON.parse(inputEvent)
+      }
+
+      stages.push({
+        category: "Dispatchers",
+        name: rootDispatcher ? "Root Dispatcher" : "Dispatcher",
+        logGroupName: logGroupName,
+        logStreamName: logStream.logStreamName,
+        start: new Date(r.firstEventTime),
+        end: new Date(r.lastEventTime),
+        report: r.report
+      })
+    }
+  }
+
+  if (!input) {
+    console.log('WARNING: Could not find original input event in root dispatcher')
   }
 
   console.log(`Search ran with ${totalTasks} workers`)
@@ -284,19 +393,23 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       startFromHead: true
     };
     let batchId = null
-    let batchStartTime = null
     let firstEventTime = Number.MAX_SAFE_INTEGER
     let lastEventTime = 0
     
     const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
     for(const logEvent of eventsResponse.events) {
+
+      if (logEvent.message.startsWith('END ') || logEvent.message.startsWith('REPORT ')) {
+        continue
+      }
+
       if (logEvent.timestamp < firstEventTime) {
         firstEventTime = logEvent.timestamp
       }
       if (logEvent.timestamp > lastEventTime) {
         lastEventTime = logEvent.timestamp
       }
-      batchStartTime = logEvent.timestamp
+      
       const batchIdSplit = logEvent.message.split('Batch Id: ');
       if (batchIdSplit.length>1) {
         const batchStr = batchIdSplit[1].trim()
@@ -311,11 +424,11 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       lastWorkerTime = lastEventTime
     }
 
-    if (!batchId || !batchStartTime) {
+    if (batchId==null) {
       console.log("WARNING: could not find metadata in log for "+logStream.logStreamName);
     }
     else if (dispatchTimes[batchId]) {
-      const startupTime = batchStartTime - dispatchTimes[batchId]
+      const startupTime = firstEventTime - dispatchTimes[batchId]
       workerStartTimes.push(startupTime)
     }
     else {
@@ -327,8 +440,8 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       name: "Worker "+batchId,
       logGroupName: logGroupName,
       logStreamName: logStream.logStreamName,
-      start: new Date(logStream.firstEventTimestamp),
-      end: new Date(logStream.lastEventTimestamp)
+      start: new Date(firstEventTime),
+      end: new Date(lastEventTime)
     })
   }
 
@@ -340,6 +453,13 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   const searchWorkerElapsed = lastWorkerTime - firstWorkerTime
   const totalReducerDelay = reduceStarted.getTime() - lastWorkerTime
   const userTimeElapsed = reduceEnded.getTime() - stateMachineStarted.getTime()
+
+  stages.push({
+    category: "Overview",
+    name: "Process",
+    start: new Date(firstDispatcherTime),
+    end: stateMachineEnded
+  })
 
   stages.push({
     category: "Overview",
@@ -407,6 +527,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   console.log(`      totalReducerElapsed:    ${pad(totalReducerElapsed)}`)
   
   return {
+    input: input,
     aggregate: ["Dispatcher", "Workers"],
     stages: stages
   }
@@ -425,12 +546,12 @@ async function main () {
     
     const monitorName = args[2]
     const reportObj = await report(dispatchFunction, searchFunction, stateMachineName, monitorName)
-    let reportStr = JSON.stringify(reportObj, null, 2)
-    
-    const outfile = monitorName+".json"
-    fs.writeFileSync(outfile, reportStr)
-    console.log(`Wrote report to ${outfile}`)
-    console.log(`To analyze, open timeline.html and load the JSON data file.`)
+    if (reportObj) {
+      const outfile = monitorName+".json"
+      fs.writeFileSync(outfile, JSON.stringify(reportObj, null, 2))
+      console.log(`Wrote report to ${outfile}`)
+      console.log(`To analyze, open timeline.html and load the JSON data file.`)
+    }
   }
   else {
     const searchParamsJson = await readFile(infile, 'utf8')
