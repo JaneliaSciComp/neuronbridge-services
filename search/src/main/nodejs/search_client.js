@@ -14,6 +14,9 @@ const cwLogs = new AWS.CloudWatchLogs()
 const { mean, median, min, max, std } = require('mathjs')
 const { invokeFunction } = require('./utils')
 
+const TRACE = false
+const DEBUG = false
+
 // This is a guess about how long the first dispatcher took in order to start the state machine. 
 // If this is not large enough, we may not find all the dispatchers. 
 const STATE_MACHINE_START_TIME_ESTIMATE = 30000
@@ -85,16 +88,15 @@ async function getStreams(functionName, startTime, endTime) {
       if (logStream.lastEventTimestamp < startTime) {
         // Nothing returned after this event is relevant, so let's stop before we get rate limited
         streamsResponse.nextToken = null
+        if (DEBUG) console.log('DEBUG: Next stream has last event before start time: ', new Date(logStream.lastEventTimestamp))
         break
       }
-      if (logStream.firstEventTimestamp >= startTime && logStream.firstEventTimestamp < endTime) {
+      if (logStream.firstEventTimestamp >= startTime || logStream.firstEventTimestamp < endTime) {
+        if (DEBUG) console.log(`DEBUG: Including ${logStream.logStreamName}`)
         logStreams.push(logStream)
       }
       else {
-        if (logStream.firstEventTimestamp < startTime)
-          console.log('Omit event before start time:', new Date(logStream.firstEventTimestamp))
-        else
-          console.log('Omit event after end time:', new Date(logStream.firstEventTimestamp))
+        if (DEBUG) console.log(`DEBUG: Omitting ${logStream.logStreamName} because last event out of range:`, new Date(logStream.lastEventTimestamp))
       }
     }
     streamsParams.nextToken = streamsResponse.nextToken
@@ -334,9 +336,14 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
         }
       }
 
-      if (monitorId && monitorId!==monitorUniqueName) {
-        console.log("WARNING: rejecting request with wrong monitor name: ", monitorId)
-        continue
+      if (monitorId) {
+        if (monitorId!==monitorUniqueName) {
+          if (TRACE) console.log(`DEBUG: wrong monitor name ${monitorId} in ${logStreamName}/${requestId}`)
+          continue
+        }
+      }
+      else {
+        console.log(`No monitor id found in ${logStreamName}/${requestId}`)
       }
 
       if (r.firstEventTime < firstDispatcherTime) {
@@ -354,7 +361,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
         category: "Dispatchers",
         name: rootDispatcher ? "Root Dispatcher" : "Dispatcher",
         logGroupName: logGroupName,
-        logStreamName: logStream.logStreamName,
+        logStreamName: logStreamName,
         start: new Date(r.firstEventTime),
         end: new Date(r.lastEventTime),
         report: r.report
@@ -370,10 +377,10 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   console.log(`Parsed ${Object.keys(dispatchTimes).length} dispatch times`)
 
   console.log('Fetching worker log streams...')
-  const workerLogStreams = await getStreams(searchFunction, stateMachineStarted, stateMachineEnded)
+  const workerLogStreams = await getStreams(searchFunction, firstDispatcherTime, stateMachineEnded)
   
   if (totalTasks !== workerLogStreams.length) {
-    console.log(`WARNING: Number of worker logs (${workerLogStreams.length}) does not match number of workers (${totalTasks}). Subsequent analysis will not be valid.`)
+    console.log(`WARNING: Number of worker logs (${workerLogStreams.length}) does not match number of workers (${totalTasks}).`)
   }
 
   console.log('Fetching worker log events...')
@@ -381,68 +388,74 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   let lastWorkerTime = 0
   const workerElapsedTimes = []
   const workerStartTimes = []
+
   for (const logStream of workerLogStreams) {
-    
+
+    const logGroupName = `/aws/lambda/${searchFunction}`
+    const logStreamName = logStream.logStreamName
+    const requests = await getRequestLogs(logGroupName, logStreamName)
+
     const elapsedMs = logStream.lastEventTimestamp - logStream.firstEventTimestamp
     workerElapsedTimes.push(elapsedMs)
 
-    const logGroupName = `/aws/lambda/${searchFunction}`
-    const logEventsParams = {
-      logGroupName: logGroupName,
-      logStreamName: logStream.logStreamName,
-      startFromHead: true
-    };
     let batchId = null
-    let firstEventTime = Number.MAX_SAFE_INTEGER
-    let lastEventTime = 0
-    
-    const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
-    for(const logEvent of eventsResponse.events) {
+    let monitorId = null
 
-      if (logEvent.message.startsWith('END ') || logEvent.message.startsWith('REPORT ')) {
-        continue
+    for(const requestId of Object.keys(requests)) {
+      const r = requests[requestId]
+
+      for(const logEvent of r.logEvents) {
+
+        const monitorSplit = logEvent.message.split('Monitor: ');
+        if (monitorSplit.length>1) {
+          monitorId = monitorSplit[1].trim()
+        }
+
+        const batchIdSplit = logEvent.message.split('Batch Id: ');
+        if (batchIdSplit.length>1) {
+          const batchStr = batchIdSplit[1].trim()
+          batchId = parseInt(batchStr);
+        }
       }
 
-      if (logEvent.timestamp < firstEventTime) {
-        firstEventTime = logEvent.timestamp
+      if (monitorId) {
+        if (monitorId!==monitorUniqueName) {
+          if (TRACE) console.log(`DEBUG: wrong monitor name ${monitorId} in ${logStreamName}/${requestId}`)
+          continue
+        }
       }
-      if (logEvent.timestamp > lastEventTime) {
-        lastEventTime = logEvent.timestamp
+      else {
+        console.log(`No monitor id found in ${logStreamName}/${requestId}`)
       }
-      
-      const batchIdSplit = logEvent.message.split('Batch Id: ');
-      if (batchIdSplit.length>1) {
-        const batchStr = batchIdSplit[1].trim()
-        batchId = parseInt(batchStr);
+
+
+      if (r.firstEventTime < firstWorkerTime) {
+        firstWorkerTime = r.firstEventTime
       }
+      if (r.lastEventTime > lastWorkerTime) {
+        lastWorkerTime = r.lastEventTime
+      }
+  
+      if (batchId==null) {
+        console.log(`WARNING: could not find batch id in ${logStreamName}/${requestId}`);
+      }
+      else if (dispatchTimes[batchId]) {
+        const startupTime = r.firstEventTime - dispatchTimes[batchId]
+        workerStartTimes.push(startupTime)
+      }
+      else {
+        console.log(`WARNING: missing dispatch time for batch ${batchId}`);
+      }
+  
+      stages.push({
+        category: "Workers",
+        name: "Worker "+batchId,
+        logGroupName: logGroupName,
+        logStreamName: logStream.logStreamName,
+        start: new Date(r.firstEventTime),
+        end: new Date(r.lastEventTime)
+      })
     }
-
-    if (firstEventTime < firstWorkerTime) {
-      firstWorkerTime = firstEventTime
-    }
-    if (lastEventTime > lastWorkerTime) {
-      lastWorkerTime = lastEventTime
-    }
-
-    if (batchId==null) {
-      console.log("WARNING: could not find metadata in log for "+logStream.logStreamName);
-    }
-    else if (dispatchTimes[batchId]) {
-      const startupTime = firstEventTime - dispatchTimes[batchId]
-      workerStartTimes.push(startupTime)
-    }
-    else {
-      console.log("WARNING: missing dispatch time for batch "+batchId);
-    }
-
-    stages.push({
-      category: "Workers",
-      name: "Worker "+batchId,
-      logGroupName: logGroupName,
-      logStreamName: logStream.logStreamName,
-      start: new Date(firstEventTime),
-      end: new Date(lastEventTime)
-    })
   }
 
   const totalElapsed = stateMachineEnded.getTime() - searchStarted.getTime()

@@ -70,10 +70,6 @@ exports.searchDispatch = async (event) => {
     let endIndex = parseInt(searchInputParams.endIndex);
     let response = {};
 
-    if (monitorName) {
-        console.log(`Monitor: ${monitorName}`);
-    }
-
     if (level === 0) {
         // This next log statement is parsed by the analyzer. DO NOT CHANGE.
         console.log("Root Dispatcher");
@@ -192,6 +188,12 @@ exports.searchDispatch = async (event) => {
         }
 
     }
+
+    if (monitorName) {
+        // This next log statement is parsed by the analyzer. DO NOT CHANGE.
+        console.log(`Monitor: ${monitorName}`);
+    }
+    
     const nextLevelManagerRange = Math.pow(branchingFactor, numLevels-level-1) * batchSize;
     console.log(`Level ${level} -> next range: ${nextLevelManagerRange}`);
     const nextEvent = {

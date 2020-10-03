@@ -146,6 +146,9 @@ function drawChart(data) {
     // Construct tooltip
     var tooltip = '<div class="tooltip">'+stage.name+'<br><b>Duration</b>: '+durationMs+' ms'+statsHtml+'</div>'
 
+    if (start > end) {
+      console.log('Invalid event: ',stage)
+    }
     rows.push([stage.category, stage.name, color, tooltip, link, start, end])
   }
 
@@ -178,7 +181,7 @@ $(window).resize(function() {
     }, 500);
 });
 $(window).on('resizeEnd', function() {
-    drawChart(data);
+    if (data) drawChart(data);
 });
 
 </script>
