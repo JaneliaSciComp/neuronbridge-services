@@ -1,12 +1,7 @@
 package org.janelia.colordepthsearch;
 
-import java.net.URI;
-import java.util.List;
-
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
-import com.amazonaws.xray.AWSXRay;
-
 import org.apache.commons.lang3.StringUtils;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
@@ -15,6 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
 import software.amazon.awssdk.services.s3.S3Client;
+
+import java.net.URI;
+import java.util.List;
 
 /**
  * AWS Lambda Handler that performs a pairwise color depth search between all provided MIPs to be searched and all provided masks.
@@ -39,7 +37,6 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
     }
 
     private void verifyCDSParams(BatchSearchParameters params) {
-        AWSXRay.beginSubsegment("Read parameters");
         LOG.debug("Received color depth search request: {}", LambdaUtils.toJson(params));
         LOG.info("Monitor: {}", params.getMonitorName());
         // This next log statement is parsed by the analyzer. DO NOT CHANGE.
@@ -57,11 +54,9 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         if (params.getMaskThresholds().size() != params.getMaskKeys().size()) {
             throw new IllegalArgumentException("Number of mask thresholds does not match number of masks");
         }
-        AWSXRay.endSubsegment();
     }
 
     private List<ColorMIPSearchResult> performColorDepthSearch(BatchSearchParameters params, S3Client s3) {
-        AWSXRay.beginSubsegment("Run search");
 
         ColorMIPSearch colorMIPSearch = new ColorMIPSearch(
                 0,
@@ -85,13 +80,12 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                 params.getSearchKeys()
         );
         LOG.info("Found {} matches.", cdsResults.size());
-        AWSXRay.endSubsegment();
+
         return cdsResults;
     }
 
     private void writeCDSResults(List<ColorMIPSearchResult> cdsResults, S3Client s3, String outputLocation) {
         if (outputLocation != null) {
-            AWSXRay.beginSubsegment("Sort and save results");
             try {
                 LambdaUtils.putObject(
                         s3,
@@ -101,7 +95,6 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
             } catch (Exception e) {
                 throw new IllegalStateException("Error writing results", e);
             }
-            AWSXRay.endSubsegment();
         }
     }
 }
