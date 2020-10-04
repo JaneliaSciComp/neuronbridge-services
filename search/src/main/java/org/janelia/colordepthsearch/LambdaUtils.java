@@ -10,8 +10,6 @@ import java.util.List;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
-//import com.amazonaws.xray.interceptors.TracingInterceptor;
-//import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,12 +41,6 @@ class LambdaUtils {
         final Region region = Region.of(LambdaUtils.getMandatoryEnv("AWS_REGION"));
         LOG.debug("Environment:\n  region: {}", region);
         return S3Client.builder().region(region).build();
-        // return S3Client.builder()
-        //         .region(region)
-        //         .overrideConfiguration(ClientOverrideConfiguration.builder()
-        //             .addExecutionInterceptor(new TracingInterceptor())
-        //             .build()
-        // ).build();
     }
 
     static String getMandatoryEnv(String name) {
