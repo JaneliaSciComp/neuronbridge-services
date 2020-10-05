@@ -9,6 +9,7 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -69,8 +70,14 @@ class LambdaUtils {
     }
 
     static String toJson(Object object) {
+        boolean prettyPrint = "true".equals(LambdaUtils.getOptionalEnv("PRETTY_JSON", null));
+        return toJson(object, prettyPrint);
+    }
+
+    static private String toJson(Object object, boolean prettyPrint) {
         try {
-            return JSON_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(object);
+            ObjectWriter writer = prettyPrint ? JSON_MAPPER.writerWithDefaultPrettyPrinter() : JSON_MAPPER.writer();
+            return writer.writeValueAsString(object);
         } catch (Exception e) {
             LOG.error("Serialization error", e);
             return "{\"error\":\"Could not serialize object\"}";

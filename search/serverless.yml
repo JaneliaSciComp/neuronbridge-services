@@ -85,7 +85,6 @@ provider:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
     DISABLE_XRAY: true
-    JOB_TABLE_NAME: ${self:custom.jobTable}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -269,6 +268,7 @@ functions:
     environment:
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
+      JOB_TABLE_NAME: ${self:custom.jobTable}
 
   monitor:
     runtime: nodejs12.x
@@ -278,16 +278,18 @@ functions:
     environment:
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      JOB_TABLE_NAME: ${self:custom.jobTable}
       DEBUG: ${self:custom.debug}
 
   searchReduce:
     runtime: nodejs12.x
-    handler: src/main/nodejs/search_reducer.searchReducer
+    handler: src/main/nodejs/search_reducer_dynamodb.searchReducer
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      JOB_TABLE_NAME: ${self:custom.jobTable}
       DEBUG: ${self:custom.debug}
 
   searchUpdate:
