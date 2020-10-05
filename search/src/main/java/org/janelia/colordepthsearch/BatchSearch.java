@@ -19,7 +19,6 @@ import java.net.URI;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Date;
 
 /**
  * AWS Lambda Handler that performs a pairwise color depth search between all provided MIPs to be searched and all provided masks.
@@ -62,7 +61,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
 
         // The next three log statements are parsed by the analyzer. DO NOT CHANGE.
         LOG.info("Monitor: {}", params.getMonitorName());
-        LOG.info("Search Id: {}", params.getBatchId());
+        LOG.info("Job Id: {}", params.getJobId());
         LOG.info("Batch Id: {}", params.getBatchId());
 
         LOG.info("Searching {} images using {} masks", params.getSearchKeys().size(), params.getMaskKeys().size());
