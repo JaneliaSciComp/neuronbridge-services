@@ -12,6 +12,7 @@ custom:
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+  jobTable: janelia-neuronbridge-job-batches-table-${self:provider.stage}
   searchBatchSize: 40
   searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
@@ -84,6 +85,7 @@ provider:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
     DISABLE_XRAY: true
+    JOB_TABLE_NAME: ${self:custom.jobTable}
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -116,6 +118,18 @@ provider:
         - dynamodb:UpdateItem
         - dynamodb:UpdateTable
       Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:DescribeStream
+        - dynamodb:DescribeTable
+        - dynamodb:GetRecords
+        - dynamodb:ListStreams
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:UpdateTable
+        - dynamodb:Query
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.jobTable}"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
@@ -245,7 +259,6 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-
   search:
     package:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
@@ -332,7 +345,7 @@ stepFunctions:
             Default: Wait
           Wait:
             Type: Wait
-            Seconds: 7
+            Seconds: 1
             Next: Monitor
           Reduce:
             Type: Task
@@ -409,5 +422,18 @@ resources:
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.searchTable}
 
-
-
+    JobTable:
+      Type: "AWS::DynamoDB::Table"
+      Properties:
+        KeySchema:
+          - AttributeName: id
+            KeyType: HASH
+          - AttributeName: batchId
+            KeyType: RANGE
+        AttributeDefinitions:
+          - AttributeName: id
+            AttributeType: S
+          - AttributeName: batchId
+            AttributeType: N
+        BillingMode: PAY_PER_REQUEST
+        TableName: ${self:custom.jobTable}

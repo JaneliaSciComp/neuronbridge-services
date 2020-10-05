@@ -88,7 +88,7 @@ function drawChart(data) {
   }
   // Clamp times to the state machine to avoid CloudWatch reporting inconsistencies
   for(const stage of data.stages) {
-    if (stage.end > stateMachineEnd) {
+    if (stage.start < stateMachineEnd && stage.end > stateMachineEnd) {
       stage.end = stateMachineEnd
     }
   }
@@ -121,6 +121,16 @@ function drawChart(data) {
     }
 
     var statsHtml = ""
+
+    if (stage.report) {
+      if (stage.report.initDuration) 
+        statsHtml += '<br><b>Init Duration</b>: '+stage.report.initDuration
+      statsHtml += '<br><b>Duration</b>: '+stage.report.duration
+      statsHtml += '<br><b>Billed Duration</b>: '+stage.report.billedBuration
+      statsHtml += '<br><b>Memory Size</b>: '+stage.report.memorySize
+      statsHtml += '<br><b>Max Memory Used</b>: '+stage.report.maxMemoryUsed
+    }
+
     if (stage.stats) {
       mean = Math.round(stage.stats.mean)
       median = Math.round(stage.stats.median)
@@ -144,7 +154,7 @@ function drawChart(data) {
     }
 
     // Construct tooltip
-    var tooltip = '<div class="tooltip">'+stage.name+'<br><b>Duration</b>: '+durationMs+' ms'+statsHtml+'</div>'
+    var tooltip = '<div class="tooltip">'+stage.name+'<br><b>CloudWatch Duration</b>: '+durationMs+' ms'+statsHtml+'</div>'
 
     if (start > end) {
       console.log('Invalid event: ',stage)

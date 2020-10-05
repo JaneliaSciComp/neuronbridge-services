@@ -16,6 +16,7 @@ import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
@@ -41,6 +42,16 @@ class LambdaUtils {
         final Region region = Region.of(LambdaUtils.getMandatoryEnv("AWS_REGION"));
         LOG.debug("Environment:\n  region: {}", region);
         return S3Client.builder().region(region).build();
+    }
+
+    static DynamoDbClient createDynamoDB() {
+        final Region region = Region.of(LambdaUtils.getMandatoryEnv("AWS_REGION"));
+        LOG.debug("Environment:\n  region: {}", region);
+        return DynamoDbClient.builder()
+                .region(region)
+                //.endpointOverride(URI.create(endpoint))
+                .build();
+
     }
 
     static String getMandatoryEnv(String name) {

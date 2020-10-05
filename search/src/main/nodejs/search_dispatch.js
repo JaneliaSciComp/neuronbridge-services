@@ -61,6 +61,7 @@ exports.searchDispatch = async (event) => {
     const maxResultsPerMask =  searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask;
 
     // Programmatic parameters. In the case of the root manager, these will be null initially and then generated for later invocations.
+    let jobId = searchInputParams.jobId;
     let libraries = searchInputParams.libraries;
     let monitorName = searchInputParams.monitorName;
     let batchSize = parseInt(searchInputParams.batchSize) || defaultBatchSize();
@@ -73,6 +74,9 @@ exports.searchDispatch = async (event) => {
     if (level === 0) {
         // This next log statement is parsed by the analyzer. DO NOT CHANGE.
         console.log("Root Dispatcher");
+        
+        // Generate new job id
+        jobId = uuidv1();
 
         const maskKey = `${searchInputFolder}/${searchInputName}`;
         const checkMask = await verifyKey(searchBucket, maskKey);
@@ -177,13 +181,14 @@ exports.searchDispatch = async (event) => {
             // if monitoring then start it right away
             const monitorParams = {
                 bucket: searchBucket,
+                jobId: jobId,
                 searchId: searchId || null,
                 searchInputFolder,
                 searchInputName,
                 startTime: now.toISOString(),
                 numBatches
             }
-            monitorName = await startMonitor(searchId, monitorParams, stateMachineArn);
+            monitorName = await startMonitor(jobId, monitorParams, stateMachineArn);
             response.monitorUniqueName = monitorName       
         }
 
@@ -193,7 +198,7 @@ exports.searchDispatch = async (event) => {
         // This next log statement is parsed by the analyzer. DO NOT CHANGE.
         console.log(`Monitor: ${monitorName}`);
     }
-    
+
     const nextLevelManagerRange = Math.pow(branchingFactor, numLevels-level-1) * batchSize;
     console.log(`Level ${level} -> next range: ${nextLevelManagerRange}`);
     const nextEvent = {
@@ -202,6 +207,7 @@ exports.searchDispatch = async (event) => {
         searchBucket: searchBucket,
         libraryBucket: libraryBucket,
         libraries: libraries,
+        jobId: jobId,
         searchId: searchId,
         searchType: searchType,
         searchInputFolder: searchInputFolder,
@@ -246,18 +252,19 @@ exports.searchDispatch = async (event) => {
             .flatMap(l => l.searchableKeys);
         const targets = allTargets.slice(startIndex, endIndex);
         const batchPartitions = partition(targets, batchSize);
-        let batchIndex = Math.ceil(startIndex / batchSize);
-        console.log(`Selected targets from ${startIndex} to ${endIndex} out of ${allTargets.length} keys for ${batchPartitions.length} batches starting with ${batchIndex} from`,
+        let batchId = Math.ceil(startIndex / batchSize);
+        console.log(`Selected targets from ${startIndex} to ${endIndex} out of ${allTargets.length} keys for ${batchPartitions.length} batches starting with ${batchId} from`,
             libraries);
             
         for (const searchBatch of batchPartitions) {
             // This next log statement is parsed by the analyzer. DO NOT CHANGE.
-            console.log(`Dispatching Batch Id: ${batchIndex}`)
-            const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchIndex);
+            console.log(`Dispatching Batch Id: ${batchId}`)
+            const batchResultsKey = getIntermediateSearchResultsKey(`${searchInputFolder}/${searchInputName}`, batchId);
             const batchResultsURI = `s3://${searchBucket}/${batchResultsKey}`;
             const searchParams = {
                 monitorName: monitorName,
-                batchId: batchIndex,
+                jobId: jobId,
+                batchId: batchId,
                 searchId: searchId,
                 outputURI: batchResultsURI,
                 maskPrefix: searchBucket,
@@ -268,8 +275,8 @@ exports.searchDispatch = async (event) => {
                 ...nextEvent
             };
             const invokeResponse = await invokeAsync(searchFunction, searchParams);
-            console.log(`Dispatched batch #${batchIndex} (${searchInputName} with ${searchBatch.length} items) [status=${invokeResponse.Status}]`);
-            batchIndex++;
+            console.log(`Dispatched batch #${batchId} (${searchInputName} with ${searchBatch.length} items) [status=${invokeResponse.Status}]`);
+            batchId++;
         }
     }
 
@@ -348,10 +355,9 @@ const getKeys = async (libraryBucket, libraryKey) => {
         []);
 }
 
-const startMonitor = async (searchId, monitorParams, stateMachineArn) => {
-    const uniqueMonitorId = searchId || uuidv1();
+const startMonitor = async (jobId, monitorParams, stateMachineArn) => {
     const timestamp = new Date().getTime();
-    const monitorUniqueName = `ColorDepthSearch_${uniqueMonitorId}_${timestamp}`;
+    const monitorUniqueName = `Job_${jobId}_${timestamp}`;
     await startStepFunction(
         monitorUniqueName,
         monitorParams,

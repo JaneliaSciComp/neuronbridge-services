@@ -10,8 +10,8 @@ import java.util.List;
 public class BatchSearchParameters {
 
     private String monitorName;
+    private String jobId;
     private Integer batchId;
-    private String searchId;
     private String searchPrefix;
     private List<String> searchKeys;
     private String maskPrefix;
@@ -32,20 +32,20 @@ public class BatchSearchParameters {
         this.monitorName = monitorName;
     }
 
+    public String getJobId() {
+        return jobId;
+    }
+
+    public void setJobId(String jobId) {
+        this.jobId = jobId;
+    }
+
     public Integer getBatchId() {
         return batchId;
     }
 
     public void setBatchId(Integer batchId) {
         this.batchId = batchId;
-    }
-
-    public String getSearchId() {
-        return searchId;
-    }
-
-    public void setSearchId(String searchId) {
-        this.searchId = searchId;
     }
 
     public String getSearchPrefix() {
