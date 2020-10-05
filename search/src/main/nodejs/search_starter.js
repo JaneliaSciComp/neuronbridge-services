@@ -35,11 +35,14 @@ exports.searchStarter = async (event) => {
         .filter(r => !!r)
         .map(async r => {
             if (r.step === 0) {
+                console.log('Start alignment for', r);
                 return await startAlignment(r);
             } else if (r.step === 2) {
+                console.log('Start color depth search for', r);
                 return await startColorDepthSearch(r);
             } else {
                 // do nothing
+                console.log('No processing for', r);
                 return r;
             }
         });
@@ -180,18 +183,28 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
 const submitAlignmentJob = async (searchParams) => {
     const jobResources = {
         'vcpus': 16,
-        'memory': 8192
+        'memory': 16394,
+        'environment': [{
+            name: 'ALIGNMENT_MEMORY',
+            value: '16G'
+        }]
     };
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const jobName = `align-${searchParams.id}`;
-    const jobParameters = {
-        reference_channel: searchParams.referenceChannel,
-        xy_resolution: searchParams.voxelX + '',
-        z_resolution: searchParams.voxelZ + '',
+    let jobParameters = {
         search_id: searchParams.id,
         input_filename: fullSearchInputImage,
         output_folder: searchParams.searchInputFolder
     };
+    if (searchParams.userDefinedImageParams) {
+        const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '1';
+        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '1'
+        const refChannel = searchParams.referenceChannel;
+        jobParameters.force_voxel_size = 'true';
+        jobParameters.xy_resolution = xyRes;
+        jobParameters.z_resolution = zRes;
+        jobParameters.reference_channel = refChannel;
+    }
     const params = {
         jobDefinition: jobDefinition,
         jobQueue: jobQueue,
@@ -203,21 +216,23 @@ const submitAlignmentJob = async (searchParams) => {
     try {
         // submit batch job
         const job = await bc.submitJob(params).promise();
+        const now = new Date();
         console.log('Submitted', job);
         console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
             step: ALIGNMENT_JOB_SUBMITTED,
+            alignStarted: now.toISOString()
         });
         if (alignMonitorStateMachineArn != null) {
             // start the state machine
-            const now = new Date().getTime();
+            const timestamp = now.getTime();
             await startStepFunction(
-                `Align_${job.jobId}_${now}`,
+                `Align_${job.jobId}_${timestamp}`,
                 {
                     searchId: searchParams.id || null,
                     jobId: job.jobId,
-                    startTime: now
+                    startTime: timestamp
                 },
                 alignMonitorStateMachineArn
             );

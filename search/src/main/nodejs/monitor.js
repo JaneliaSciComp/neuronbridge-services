@@ -56,10 +56,12 @@ const monitorAlignmentJob = async (alignJobParams) => {
     }
     const job = jobDescriptions.jobs.find(j => j.jobId === jobId);
     if (job) {
+        const timestamp = new Date();
         if (job.status === 'SUCCEEDED') {
             await updateSearchMetadata({
                 id: searchId,
-                step: ALIGNMENT_JOB_COMPLETED
+                step: ALIGNMENT_JOB_COMPLETED,
+                alignFinished: timestamp.toISOString()
             });
             return {
                 ...alignJobParams,
@@ -71,6 +73,7 @@ const monitorAlignmentJob = async (alignJobParams) => {
             if (!searchMetadata.errorMessage) {
                 await updateSearchMetadata({
                     id: searchId,
+                    alignFinished: timestamp.toISOString(),
                     errorMessage: 'Alignment job failed'
                 });
             }
@@ -120,7 +123,8 @@ const monitoCDSJob = async (cdsJobParams) => {
     const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
 
     // Fetch all keys
-    const allKeys  = await getAllKeys({
+    console.log(`Fetching all keys in bucket ${bucket} with prefix ${intermediateSearchResultsPrefix}`)
+    const allKeys = await getAllKeys({
         Bucket: bucket,
         Prefix: intermediateSearchResultsPrefix
     });

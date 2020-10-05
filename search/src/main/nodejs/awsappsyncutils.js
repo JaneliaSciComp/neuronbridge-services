@@ -35,6 +35,7 @@ exports.getSearchMetadata = async (searchId) => {
                 upload
                 searchType
                 algorithm
+                userDefinedImageParams
                 channel
                 referenceChannel
                 voxelX
@@ -54,6 +55,8 @@ exports.getSearchMetadata = async (searchId) => {
                 nTotalMatches
                 cdsStarted
                 cdsFinished
+                alignStarted
+                alignFinished
                 createdOn
                 updatedOn
                 displayableMask
@@ -63,7 +66,8 @@ exports.getSearchMetadata = async (searchId) => {
                 simulateMIPGeneration
             }
         }`),
-        variables: { searchId: searchId}
+        variables: { searchId: searchId},
+        fetchPolicy: 'no-cache'
     });
     console.log("Search data for", searchId, result);
     const searchResult = toSearchResult(result.data.getSearch);
@@ -99,6 +103,7 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     upload
                     searchType
                     algorithm
+                    userDefinedImageParams
                     channel
                     referenceChannel
                     voxelX
@@ -118,6 +123,8 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     nTotalMatches
                     cdsStarted
                     cdsFinished
+                    alignStarted
+                    alignFinished
                     createdOn
                     updatedOn
                     displayableMask
@@ -136,6 +143,48 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
         .filter(s => searchFilterParams.withNoErrorsOnly ? !s.errorMessage : true);
     console.log("Found searches", searches);
     return searches;
+}
+
+exports.createSearchMetadata = async (searchData) => {
+  const result = await appSyncClient.mutate({
+    mutation: gql(`mutation createSearch($createInput: CreateSearchInput!) {
+      createSearch(input: $createInput) {
+        id
+        step
+        owner
+        identityId
+        searchDir
+        upload
+        searchType
+        algorithm
+        maskThreshold
+        dataThreshold
+        pixColorFluctuation
+        xyShift
+        mirrorMask
+        minMatchingPixRatio
+        maxResultsPerMask
+        nBatches
+        completedBatches
+        nTotalMatches
+        cdsStarted
+        cdsFinished
+        alignStarted
+        alignFinished
+        createdOn
+        updatedOn
+        displayableMask
+        searchMask
+        computedMIPs
+        errorMessage
+      }
+    }`),
+    variables: {
+      createInput: searchData
+    }
+  });
+  const newSearch = toSearchResult(result.data.createSearch);
+  return newSearch;
 }
 
 exports.updateSearchMetadata = async (searchData) => {
@@ -168,6 +217,8 @@ exports.updateSearchMetadata = async (searchData) => {
                 nTotalMatches
                 cdsStarted
                 cdsFinished
+                alignStarted
+                alignFinished
                 createdOn
                 updatedOn
                 displayableMask

@@ -38,6 +38,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchType: SearchType
     algorithm: Algorithm
     anatomicalRegion: String
+    userDefinedImageParams: Boolean
     channel: Int
     referenceChannel: String
     voxelX: Int
@@ -58,6 +59,8 @@ type Search @aws_cognito_user_pools @aws_iam {
     nTotalMatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
+    alignStarted: AWSDateTime
+    alignFinished: AWSDateTime
     displayableMask: String
     searchMask: String
     computedMIPs: [String]
@@ -91,12 +94,14 @@ enum SearchType {
 
 input CreateSearchInput {
     step: Int!
+    owner: String
     identityId: String!
-    searchType: SearchType!
+    searchType: SearchType
     searchDir: String!
     upload: String!
     algorithm: Algorithm
     anatomicalRegion: String
+    userDefinedImageParams: Boolean
     channel: Int
     referenceChannel: String
     voxelX: Int
@@ -202,6 +207,8 @@ input TableStringFilterInput {
 input UpdateSearchInput {
     id: ID!
     step: Int
+    searchType: SearchType
+    owner: String
     maskThreshold: Int
     dataThreshold: Int
     pixColorFluctuation: Float
@@ -216,6 +223,8 @@ input UpdateSearchInput {
     nTotalMatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
+    alignStarted: AWSDateTime
+    alignFinished: AWSDateTime
     displayableMask: String
     searchMask: String
     computedMIPs: [String]

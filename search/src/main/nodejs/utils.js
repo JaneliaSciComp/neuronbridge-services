@@ -1,5 +1,7 @@
 'use strict';
 
+const AWSXRay = require('aws-xray-sdk-core');
+// const AWS = process.env.DISABLE_XRAY ? require('aws-sdk') : AWSXRay.captureAWS(require('aws-sdk'));
 const AWS = require('aws-sdk');
 const stream = require('stream');
 
@@ -9,10 +11,11 @@ AWS.config.apiVersions = {
 };
 
 const s3 = new AWS.S3();
-const lambda = new AWS.Lambda();
+const lambda = process.env.DISABLE_XRAY ? new AWS.Lambda() : AWSXRay.captureAWSClient(new AWS.Lambda());
 const stepFunction = new AWS.StepFunctions();
 
 const DEBUG = !!process.env.DEBUG;
+const RETRY_DELAY = 500;
 
 // Retrieve all the keys in a particular bucket
 const getAllKeys = async params => {
@@ -55,12 +58,12 @@ const getObjectWithRetry = async (bucket, key, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await getObject(bucket, key);
-            await sleep(500);
         } catch (e) {
             if (retry + 1 >= retries) {
                 console.error(`Error getting object ${bucket}:${key} after ${retries} retries`, e);
                 throw e;
             }
+            await sleep(RETRY_DELAY);
         }
     }
 }
@@ -82,12 +85,12 @@ const getS3ContentWithRetry = async (bucket, key, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await getS3Content(bucket, key);
-            await sleep(500);
         } catch (e) {
             if (retry + 1 >= retries) {
                 console.error(`Error getting content ${bucket}:${key} after ${retries} retries`, e);
                 throw e;
             }
+            await sleep(RETRY_DELAY);
         }
     }
 }
@@ -96,12 +99,12 @@ const putObjectWithRetry = async (bucket, key, data, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
             return await putObject(bucket, key, data);
-            await sleep(500);
         } catch (e) {
             if (retry + 1 >= retries) {
                 console.error(`Error putting content ${bucket}:${key} after ${retries} retries`, e);
                 throw e;
             }
+            await sleep(RETRY_DELAY);
         }
     }
 }
@@ -147,6 +150,27 @@ const putS3Content = async (Bucket, Key, contentType, content) => {
         throw e;
     }
     return `s3://${Bucket}/${Key}`
+};
+
+const copyS3Content = async (Bucket, Source, Key) => {
+   try {
+        if (DEBUG) {
+            console.log(`Copying content to ${Bucket}:${Key} from ${Source}`);
+        }
+        const res = await s3.copyObject({
+            Bucket,
+            CopySource: Source,
+            Key,
+        }).promise();
+        if (DEBUG) {
+            console.log(`Copied content to ${Bucket}:${Key} from ${Source}`, res);
+        }
+    } catch (e) {
+        console.error(`Error copying content to ${Bucket}:${Key} from ${Source}`, e);
+        throw e;
+    }
+    return `s3://${Bucket}/${Key}`
+
 };
 
 // Remove key from an S3 bucket
@@ -226,7 +250,7 @@ const invokeFunction = async (functionName, parameters) => {
         console.log(`Invoke sync ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
-        Payload: JSON.stringify(parameters)
+        Payload: JSON.stringify(parameters),
         //LogType: "Tail"
     };
     try {
@@ -295,5 +319,6 @@ module.exports = {
     invokeFunction: invokeFunction,
     invokeAsync: invokeAsync,
     startStepFunction: startStepFunction,
-    verifyKey: verifyKey
+    verifyKey: verifyKey,
+    copyS3Content
 };

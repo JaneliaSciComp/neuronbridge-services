@@ -18,7 +18,7 @@ custom:
   neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
   cdsTimeoutInSeconds: 600
   version: 2.0.0
-  tracing: true
+  tracing: false
   debug: true
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
@@ -83,6 +83,7 @@ provider:
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
+    DISABLE_XRAY: true
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -225,6 +226,26 @@ functions:
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
       DEBUG: ${self:custom.debug}
 
+  searchCopy:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_copy.searchCopy
+    memorySize: 128
+    timeout: 10
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+    events:
+      - httpApi:
+          method: POST
+          path: /copy
+          cors: true
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+
   search:
     package:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
@@ -252,7 +273,6 @@ functions:
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
-      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
@@ -303,7 +323,7 @@ stepFunctions:
             Default: Wait
           Wait:
             Type: Wait
-            Seconds: 5
+            Seconds: 7
             Next: Monitor
           Reduce:
             Type: Task
