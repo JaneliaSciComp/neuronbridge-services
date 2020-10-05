@@ -10,6 +10,7 @@ import java.util.List;
 public class BatchSearchParameters {
 
     private String monitorName;
+    private Integer batchId;
     private String searchId;
     private String searchPrefix;
     private List<String> searchKeys;
@@ -29,6 +30,14 @@ public class BatchSearchParameters {
 
     public void setMonitorName(String monitorName) {
         this.monitorName = monitorName;
+    }
+
+    public Integer getBatchId() {
+        return batchId;
+    }
+
+    public void setBatchId(Integer batchId) {
+        this.batchId = batchId;
     }
 
     public String getSearchId() {
