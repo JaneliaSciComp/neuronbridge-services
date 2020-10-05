@@ -183,10 +183,10 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
 const submitAlignmentJob = async (searchParams) => {
     const jobResources = {
         'vcpus': 16,
-        'memory': 8192,
+        'memory': 16394,
         'environment': [{
             name: 'ALIGNMENT_MEMORY',
-            value: '8G'
+            value: '16G'
         }]
     };
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
