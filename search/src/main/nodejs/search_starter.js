@@ -34,10 +34,10 @@ exports.searchStarter = async (event) => {
     const searchPromises = await newRecords
         .filter(r => !!r)
         .map(async r => {
-            if (r.step === 0) {
+            if (r.step < ALIGNMENT_JOB_COMPLETED) {
                 console.log('Start alignment for', r);
                 return await startAlignment(r);
-            } else if (r.step === 2) {
+            } else if (r.step >= ALIGNMENT_JOB_COMPLETED) {
                 console.log('Start color depth search for', r);
                 return await startColorDepthSearch(r);
             } else {
