@@ -4,7 +4,7 @@ const AWS = require('aws-sdk');
 const Jimp = require('jimp');
 const {getSearchKey, getSearchMaskId} = require('./searchutils');
 const {getS3ContentWithRetry, invokeAsync, putS3Content, startStepFunction} = require('./utils');
-const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata, ALIGNMENT_JOB_SUBMITTED} = require('./awsappsyncutils');
+const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata, ALIGNMENT_JOB_SUBMITTED, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 const {generateMIPs} = require('./mockMIPGeneration');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
