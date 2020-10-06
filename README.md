@@ -42,7 +42,7 @@ The command above will create the compute environment, the job definition and th
 Make sure you have built all the java packages with jdk 1.8 and maven:
 
 ```
-mvn clean package
+mvnw clean package
 ```
 
 
