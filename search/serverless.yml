@@ -43,6 +43,12 @@ custom:
         request: "dynamodb-listSearches-request-template.vtl"
         response: "dynamodb-listSearches-response-template.vtl"
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: listAllSearches
+        request: "dynamodb-listAllSearches-request-template.vtl"
+        response: "dynamodb-listAllSearches-response-template.vtl"
+
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Mutation
         field: createSearch
         request: "dynamodb-createSearch-request-template.vtl"
