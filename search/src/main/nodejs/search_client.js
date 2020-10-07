@@ -237,21 +237,24 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   console.log("Step function history:");
 
   await forExecutionHistory(execution.executionArn, event => {
+    //console.log(event)
     if (event.type === 'ExecutionStarted') {
       stateMachineStarted = event.timestamp
     } else if (event.type === 'ExecutionSucceeded') {
       stateMachineEnded = event.timestamp
-    } else if (event.type === 'LambdaFunctionScheduled') {
+    } else if (event.type === 'TaskScheduled') {
       if (currState=='Monitor') {
         monitorStarted = event.timestamp
-        monitorLogGroupName = '/aws/lambda/'+event.lambdaFunctionScheduledEventDetails.resource.split(':').pop()
+        const parameters = JSON.parse(event.taskScheduledEventDetails.parameters)
+        monitorLogGroupName = '/aws/lambda/'+parameters.FunctionName
       }
       else if (currState=='Reduce') {
-        reducerLogGroupName = '/aws/lambda/'+event.lambdaFunctionScheduledEventDetails.resource.split(':').pop()
+        const parameters = JSON.parse(event.taskScheduledEventDetails.parameters)
+        reducerLogGroupName = '/aws/lambda/'+parameters.FunctionName
       }
-    } else if (event.type === 'LambdaFunctionSucceeded') {
+    } else if (event.type === 'TaskSucceeded') {
+      const output = JSON.parse(event.taskSucceededEventDetails.output).Payload
       if (currState=='Monitor') {
-        const output = JSON.parse(event.lambdaFunctionSucceededEventDetails.output)
         monitorName = `Monitor (${output.numRemaining})`
         stages.push({
           category: "Overview",
@@ -264,7 +267,6 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       if (reduceStarted && !reduceEnded) {
         reduceEnded = event.timestamp
       } else {
-        const output = JSON.parse(event.lambdaFunctionSucceededEventDetails.output)
         if (searchStarted==null) {
           searchStarted = new Date(output.startTime);
         }

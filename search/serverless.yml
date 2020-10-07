@@ -207,7 +207,7 @@ functions:
     environment:
       DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
-      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      SEARCH_DISPATCH_FUNCTION: ${self:resources.Outputs.SearchDispatchLambdaFunction.Value}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
@@ -235,8 +235,10 @@ functions:
       BATCH_SIZE: ${self:custom.searchBatchSize}
       MAX_PARALLELISM: ${self:custom.searchParallelization}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
-      SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
+      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
+      MONITOR_FUNCTION_ARN: ${self:resources.Outputs.MonitorLambdaFunction.Value}
+      REDUCE_FUNCTION_ARN: ${self:resources.Outputs.SearchReduceLambdaFunction.Value}
       DEBUG: ${self:custom.debug}
 
   searchCopy:
@@ -312,8 +314,9 @@ functions:
 
 
 stepFunctions:
-
+  validate: true # enable pre-deployment definition validation
   stateMachines:
+
     searchMonitorStateMachine:
       id: SearchMonitorStateMachine
       name: searchMonitorStateMachine-${self:service}-${self:provider.stage}
@@ -323,8 +326,11 @@ stepFunctions:
         States:
           Monitor:
             Type: Task
-            Resource:
-              Fn::GetAtt: [monitor, Arn]
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName.$: "$$.Execution.Input.monitorFunctionArn"
+              Payload.$: "$"
+            OutputPath: "$.Payload"
             Retry:
               - ErrorEquals: 
                 - Lambda.TooManyRequestsException
@@ -351,12 +357,16 @@ stepFunctions:
             Next: Monitor
           Reduce:
             Type: Task
-            Resource:
-              Fn::GetAtt: [searchReduce, Arn]
+            Resource: arn:aws:states:::lambda:invoke
+            Parameters:
+              FunctionName.$: "$$.Execution.Input.reduceFunctionArn"
+              Payload.$: "$"
+            OutputPath: "$.Payload"
             Next: EndState
           EndState:
             Type: Pass
             End: true
+      
     jobMonitorStateMachine:
       id: JobMonitorStateMachine
       name: jobMonitorStateMachine-${self:service}-${self:provider.stage}
@@ -397,19 +407,36 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
-  validate: true # enable pre-deployment definition validation
+            
 
 
 resources:
-
   Outputs:
+    SearchDispatchLambdaFunction:
+      Description: The ARN of the saerchDispatch function
+      Value:
+        Ref: SearchDispatchLambdaFunction
+    SearchLambdaFunction:
+      Description: The ARN of the saerch function
+      Value:
+        Ref: SearchLambdaFunction
+    MonitorLambdaFunction:
+      Description: The ARN of the monitor function
+      Value:
+        Ref: MonitorLambdaFunction
+    SearchReduceLambdaFunction:
+      Description: The ARN of the searchReduce function
+      Value:
+        Ref: SearchReduceLambdaFunction
     SearchMonitorStateMachine:
-      Description: The ARN of the state machine
+      Description: The ARN of the searchMonitorStateMachine 
       Value:
         Ref: SearchMonitorStateMachine
     JobMonitorStateMachine:
+      Description: The ARN of the jobMonitorStateMachine 
       Value:
         Ref: JobMonitorStateMachine
+
 
   Resources:
     SearchTable:

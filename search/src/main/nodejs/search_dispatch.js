@@ -33,11 +33,19 @@ const defaultSearchBucket = process.env.SEARCH_BUCKET;
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const stateMachineArn = process.env.STATE_MACHINE_ARN;
+const monitorFunctionArn = process.env.MONITOR_FUNCTION_ARN;
+const reduceFunctionArn = process.env.REDUCE_FUNCTION_ARN;
 
 exports.searchDispatch = async (event) => {
 
     // This next log statement is parsed by the analyzer. DO NOT CHANGE.
     console.log('Input event:', JSON.stringify(event));
+
+    console.log(`dispatchFunction: ${dispatchFunction}`)
+    console.log(`searchFunction: ${searchFunction}`)
+    console.log(`stateMachineArn: ${stateMachineArn}`)
+    console.log(`monitorFunctionArn: ${monitorFunctionArn}`)
+    console.log(`reduceFunctionArn: ${reduceFunctionArn}`)
 
     const searchInputParams = await getSearchInputParams(event);
     if (DEBUG) console.log('Input params:', searchInputParams);
@@ -48,7 +56,7 @@ exports.searchDispatch = async (event) => {
     const searchType = searchInputParams.searchType;
     const searchInputFolder = searchInputParams.searchInputFolder;
     const searchInputName = searchInputParams.searchInputName;
-
+    
     // Parameters which have defaults
     const level = parseInt(searchInputParams.level) || DEFAULTS.level;
     const numLevels = parseInt(searchInputParams.numLevels) || DEFAULTS.numLevels;
@@ -180,6 +188,8 @@ exports.searchDispatch = async (event) => {
         if (stateMachineArn != null) {
             // if monitoring then start it right away
             const monitorParams = {
+                monitorFunctionArn,
+                reduceFunctionArn,
                 bucket: searchBucket,
                 jobId: jobId,
                 searchId: searchId || null,
