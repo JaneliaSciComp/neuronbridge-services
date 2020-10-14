@@ -16,7 +16,6 @@ import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.io.InputStream;
-import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -49,6 +48,9 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         if (tableName != null && params.getJobId() != null && params.getBatchId() != null) {
             DynamoDbClient dynamoDbClient = LambdaUtils.createDynamoDB();
             writeCDSResults(results, dynamoDbClient, tableName, params.getJobId(), params.getBatchId());
+        }
+        else {
+            LOG.error("Could not write results to DynamoDB. Missing tableName, jobId, and/or batchId.");
         }
 
         return cdsResults.size();
@@ -157,19 +159,5 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         }
 
         throw new IllegalStateException("Could not find items " + startIndex + "-" + endIndex + " in library keys");
-    }
-
-    private void writeCDSResults(List<ColorMIPSearchResult> cdsResults, S3Client s3, String outputLocation) {
-        if (outputLocation != null) {
-            try {
-                LambdaUtils.putObject(
-                        s3,
-                        URI.create(outputLocation),
-                        ColorMIPSearchResultUtils.groupResults(cdsResults, ColorMIPSearchResult::perMaskMetadata));
-                LOG.info("Results written to {}", outputLocation);
-            } catch (Exception e) {
-                throw new IllegalStateException("Error writing results", e);
-            }
-        }
     }
 }
