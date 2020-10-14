@@ -65,6 +65,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     computedMIPs: [String]
     errorMessage: String
     simulateMIPGeneration: Boolean
+    zSliceRange: Int
 }
 
 type SearchConnection @aws_cognito_user_pools @aws_iam {
@@ -116,6 +117,7 @@ input CreateSearchInput {
     mimeType: String
     searchMask: String
     simulateMIPGeneration: Boolean
+    zSliceRange: Int
 }
 
 input DeleteSearchInput {
@@ -224,4 +226,5 @@ input UpdateSearchInput {
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
+    zSliceRange: Int
 }
