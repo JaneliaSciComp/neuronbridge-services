@@ -140,6 +140,27 @@ class LambdaUtils {
         } else {
             return Collections.emptyList();
         }
+
+        // TODO: the above code is incorrect, we should use the V2 API and continuation token like this:
+//            LOG.info("Finding images in library bucket {} with prefix {}", libraryBucket, library);
+//            ListObjectsV2Request.Builder builder = ListObjectsV2Request.builder().bucket(libraryBucket).prefix(library);
+//            ListObjectsV2Request req = builder.build();
+//            ListObjectsV2Response result;
+//            do {
+//                result = s3.listObjectsV2(req);
+//                keys.addAll(result.contents().stream()
+//                        .map(S3Object::key) // get the keys
+//                        .filter(k -> !k.endsWith("/")) // exclude the folders
+//                        .collect(Collectors.toList()));
+//                // If there are more than maxKeys keys in the bucket, get a continuation token and list the next objects.
+//                req = builder.continuationToken(result.continuationToken()).build();
+//                // Return as soon as we have the items we're looking for
+//                if (keys.size() >= endIndex) {
+//                    return keys.subList(startIndex, endIndex);
+//                }
+//            }
+//            while (result.isTruncated());
+
     }
 
 }

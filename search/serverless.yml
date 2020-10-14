@@ -3,7 +3,6 @@ service: janelia-neuronbridge-cds
 
 plugins:
   - serverless-step-functions
-  - serverless-pseudo-parameters
   - serverless-appsync-plugin
 
 
@@ -12,7 +11,11 @@ custom:
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
-  jobTable: janelia-neuronbridge-job-batches-table-${self:provider.stage}
+  # Resources from burst-compute
+  burstComputeStage: dev
+  tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
+  dispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
+
   searchBatchSize: 40
   searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
@@ -119,16 +122,9 @@ provider:
       Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
     - Effect: "Allow"
       Action:
-        - dynamodb:DescribeStream
-        - dynamodb:DescribeTable
-        - dynamodb:GetRecords
-        - dynamodb:ListStreams
-        - dynamodb:GetItem
         - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:UpdateTable
         - dynamodb:Query
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.jobTable}"
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tasksTable}"
     - Effect: Allow
       Action:
         - lambda:InvokeFunction
@@ -206,11 +202,17 @@ functions:
     maximumRetryAttempts: 1
     environment:
       DEBUG: ${self:custom.debug}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
-      SEARCH_DISPATCH_FUNCTION: ${self:resources.Outputs.SearchDispatchLambdaFunction.Value}
+      DISPATCH_FUNCTION_ARN: ${self:custom.dispatchFunction}
+      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
+      REDUCE_FUNCTION: ${self:resources.Outputs.SearchReduceLambdaFunction.Value}
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
+      BATCH_SIZE: ${self:custom.searchBatchSize}
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
       ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
@@ -218,28 +220,30 @@ functions:
       - httpApi:
           method: POST
           path: /searches
-          cors: true
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-  searchDispatch:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_dispatch.searchDispatch
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
+  search:
+    package:
+      artifact: target/neuronbridge-search-${self:custom.version}.jar
+    runtime: java8
+    handler: org.janelia.colordepthsearch.BatchSearch
+    memorySize: 384
+    timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      DEBUG: ${self:custom.debug}
+      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
+      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
+
+  searchReduce:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_reducer_dynamodb.searchReducer
+    memorySize: 384
+    timeout: ${self:custom.cdsTimeoutInSeconds}
+    environment:
+      DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      BATCH_SIZE: ${self:custom.searchBatchSize}
-      MAX_PARALLELISM: ${self:custom.searchParallelization}
-      SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
-      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
-      STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
-      MONITOR_FUNCTION_ARN: ${self:resources.Outputs.MonitorLambdaFunction.Value}
-      REDUCE_FUNCTION_ARN: ${self:resources.Outputs.SearchReduceLambdaFunction.Value}
-      DEBUG: ${self:custom.debug}
 
   searchCopy:
     runtime: nodejs12.x
@@ -256,43 +260,8 @@ functions:
       - httpApi:
           method: POST
           path: /copy
-          cors: true
           authorizer:
             name: neuronBridgeJwtAuthorizer
-
-  search:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.BatchSearch
-    memorySize: 384
-    timeout: ${self:custom.cdsTimeoutInSeconds}
-    environment:
-      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
-      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
-      JOB_TABLE_NAME: ${self:custom.jobTable}
-
-  monitor:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/monitor.isSearchDone
-    memorySize: 128
-    timeout: 180
-    environment:
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      JOB_TABLE_NAME: ${self:custom.jobTable}
-      DEBUG: ${self:custom.debug}
-
-  searchReduce:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_reducer_dynamodb.searchReducer
-    memorySize: 384
-    timeout: ${self:custom.cdsTimeoutInSeconds}
-    environment:
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      JOB_TABLE_NAME: ${self:custom.jobTable}
-      DEBUG: ${self:custom.debug}
 
   searchUpdate:
     runtime: nodejs12.x
@@ -303,69 +272,29 @@ functions:
       DEBUG: ${self:custom.debug}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
-  em2lmGradScorer:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.AWSLambdaEM2LMGradientScoreCalc
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
+  monitor:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/monitor.isSearchDone
+    memorySize: 128
+    timeout: 180
+    environment:
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      DEBUG: ${self:custom.debug}
+
+  # em2lmGradScorer:
+  #   package:
+  #     artifact: target/neuronbridge-search-${self:custom.version}.jar
+  #   runtime: java8
+  #   handler: org.janelia.colordepthsearch.AWSLambdaEM2LMGradientScoreCalc
+  #   memorySize: 256
+  #   # 5 minute timeout
+  #   timeout: 300
 
 
 stepFunctions:
   validate: true # enable pre-deployment definition validation
   stateMachines:
-
-    searchMonitorStateMachine:
-      id: SearchMonitorStateMachine
-      name: searchMonitorStateMachine-${self:service}-${self:provider.stage}
-      definition:
-        Comment: "Monitors a parallel Color Depth Search and notifies the user upon completion"
-        StartAt: Monitor
-        States:
-          Monitor:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            Parameters:
-              FunctionName.$: "$$.Execution.Input.monitorFunctionArn"
-              Payload.$: "$"
-            OutputPath: "$.Payload"
-            Retry:
-              - ErrorEquals: 
-                - Lambda.TooManyRequestsException
-                IntervalSeconds: 1
-                MaxAttempts: 100
-            Next: IsTimedOut
-          IsTimedOut:
-            Type: Choice
-            Choices:
-              - Variable: "$.timedOut"
-                BooleanEquals: true
-                Next: Reduce
-            Default: AreWeDoneYet
-          AreWeDoneYet:
-            Type: Choice
-            Choices:
-              - Variable: "$.completed"
-                BooleanEquals: true
-                Next: Reduce
-            Default: Wait
-          Wait:
-            Type: Wait
-            Seconds: 1
-            Next: Monitor
-          Reduce:
-            Type: Task
-            Resource: arn:aws:states:::lambda:invoke
-            Parameters:
-              FunctionName.$: "$$.Execution.Input.reduceFunctionArn"
-              Payload.$: "$"
-            OutputPath: "$.Payload"
-            Next: EndState
-          EndState:
-            Type: Pass
-            End: true
       
     jobMonitorStateMachine:
       id: JobMonitorStateMachine
@@ -407,15 +336,10 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
-            
 
 
 resources:
   Outputs:
-    SearchDispatchLambdaFunction:
-      Description: The ARN of the saerchDispatch function
-      Value:
-        Ref: SearchDispatchLambdaFunction
     SearchLambdaFunction:
       Description: The ARN of the saerch function
       Value:
@@ -428,10 +352,6 @@ resources:
       Description: The ARN of the searchReduce function
       Value:
         Ref: SearchReduceLambdaFunction
-    SearchMonitorStateMachine:
-      Description: The ARN of the searchMonitorStateMachine 
-      Value:
-        Ref: SearchMonitorStateMachine
     JobMonitorStateMachine:
       Description: The ARN of the jobMonitorStateMachine 
       Value:
@@ -451,18 +371,3 @@ resources:
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.searchTable}
 
-    JobTable:
-      Type: "AWS::DynamoDB::Table"
-      Properties:
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-          - AttributeName: batchId
-            KeyType: RANGE
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-          - AttributeName: batchId
-            AttributeType: N
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${self:custom.jobTable}

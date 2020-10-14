@@ -5,7 +5,6 @@ const {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey}
 const {streamObject, removeKey, DEBUG} = require('./utils');
 const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
-const JOB_TABLE_NAME = process.env.JOB_TABLE_NAME
 var docClient = new AWS.DynamoDB.DocumentClient();
 
 const mergeResults = (rs1, rs2) => {
@@ -26,24 +25,21 @@ const mergeResults = (rs1, rs2) => {
 exports.searchReducer = async (event) => {
     // Parameters
     if (DEBUG) console.log(event);
-    const bucket = event.bucket;
-    const jobId = event.jobId;
-    const searchId = event.searchId;
-    const searchInputFolder = event.searchInputFolder;
-    const searchInputName = event.searchInputName;
-    const maxResultsPerMask =  event.maxResultsPerMask;
-
-    const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
+    
+    const { jobId, tasksTableName } = event;
+    const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
+    const fullSearchInputName = maskKeys[0];
+    const searchInputName = fullSearchInputName.substring(fullSearchInputName.lastIndexOf("/")+1);
 
     let allBatchResults = {};
 
     const params = {
-        TableName: JOB_TABLE_NAME,
+        TableName: tasksTableName,
         ConsistentRead: true,
-        KeyConditionExpression: 'id = :id',
+        KeyConditionExpression: 'jobId = :jobId',
         FilterExpression: 'results <> :emptyList',
         ExpressionAttributeValues: {
-            ':id': jobId,
+            ':jobId': jobId,
             ':emptyList': '[ ]'
         },
       };
@@ -87,7 +83,7 @@ exports.searchReducer = async (event) => {
 
     // write down the results
     const outputUri = await streamObject(
-        bucket,
+        searchBucket,
         getSearchResultsKey(fullSearchInputName),
         allMatches.length > 1
             ? allMatches
@@ -111,7 +107,7 @@ exports.searchReducer = async (event) => {
 
     if (!DEBUG) {
         const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
-        await removeKey(bucket, intermediateSearchResultsPrefix);
+        await removeKey(searchBucket, intermediateSearchResultsPrefix);
 
         // TODO: delete items from DynamoDB using BatchWriteItem
     }

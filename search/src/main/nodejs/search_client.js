@@ -2,7 +2,7 @@
 //
 // Usage:
 // npm run-script search <stackName> <inputfile> [batchSize] [numLevels]
-// npm run-script search <stackName> report [monitorName]
+// npm run-script search <stackName> report [jobId]
 //
 'use strict'
 const util = require('util')
@@ -208,16 +208,16 @@ async function getRequestLogs(logGroupName, logStreamName) {
 }
 
 // Generate a complete performance report for a burst-parallel execution
-async function report(dispatchFunction, searchFunction, stateMachineName, monitorUniqueName) {
+async function report(dispatchFunction, searchFunction, stateMachineName, jobId) {
 
-  const execution = await waitForMonitor(stateMachineName, monitorUniqueName)
+  const execution = await waitForMonitor(stateMachineName, jobId)
   if (execution.status!=='SUCCEEDED') {
     console.log(`Search status is ${execution.status}`)
     return
   }
 
   // State machine (and thus search) is now complete
-  console.log('Reporting on ' + monitorUniqueName)
+  console.log('Reporting on ' + jobId)
 
   let input = null
   const stages = []
@@ -226,13 +226,12 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   let searchStarted = null
   let stateMachineStarted = null
   let stateMachineEnded = null
-  let reduceStarted = null
-  let reduceEnded = null
+  let combinerStarted = null
+  let combinerEnded = null
   let totalTasks = null
   let currState = null
   let monitorStarted = null
-  let monitorName = null
-  let reducerLogGroupName = null
+  let combinerLogGroupName = null
   let monitorLogGroupName = null
   console.log("Step function history:");
 
@@ -248,24 +247,23 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
         const parameters = JSON.parse(event.taskScheduledEventDetails.parameters)
         monitorLogGroupName = '/aws/lambda/'+parameters.FunctionName
       }
-      else if (currState=='Reduce') {
+      else if (currState=='Combine') {
         const parameters = JSON.parse(event.taskScheduledEventDetails.parameters)
-        reducerLogGroupName = '/aws/lambda/'+parameters.FunctionName
+        combinerLogGroupName = '/aws/lambda/'+parameters.FunctionName
       }
     } else if (event.type === 'TaskSucceeded') {
       const output = JSON.parse(event.taskSucceededEventDetails.output).Payload
       if (currState=='Monitor') {
-        monitorName = `Monitor (${output.numRemaining})`
         stages.push({
           category: "Overview",
-          name: monitorName,
+          name: `Monitor (${output.numRemaining})`,
           logGroupName: monitorLogGroupName,
           start: monitorStarted,
           end: event.timestamp
         })
       }
-      if (reduceStarted && !reduceEnded) {
-        reduceEnded = event.timestamp
+      if (combinerStarted && !combinerEnded) {
+        combinerEnded = event.timestamp
       } else {
         if (searchStarted==null) {
           searchStarted = new Date(output.startTime);
@@ -277,8 +275,8 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       }
     } else if (event.type === 'TaskStateEntered') {
       currState = event.stateEnteredEventDetails.name
-      if (currState === 'Reduce') {
-        reduceStarted = event.timestamp
+      if (currState === 'Combine') {
+        combinerStarted = event.timestamp
       }
     }
     return true
@@ -293,10 +291,10 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
 
   stages.push({
     category: "Overview",
-    name: "Reducer",
-    logGroupName: reducerLogGroupName,
-    start: reduceStarted,
-    end: reduceEnded
+    name: "Combiner",
+    logGroupName: combinerLogGroupName,
+    start: combinerStarted,
+    end: combinerEnded
   })
   
 
@@ -319,7 +317,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
 
       let rootDispatcher = false
       let inputEvent = null
-      let monitorId = null
+      let dispatcherJobId = null
 
       for(const logEvent of r.logEvents) {
 
@@ -327,9 +325,9 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
           rootDispatcher = true
         }
 
-        const monitorSplit = logEvent.message.split('Monitor: ');
-        if (monitorSplit.length>1) {
-          monitorId = monitorSplit[1].trim()
+        const jobIdSplit = logEvent.message.split('Job Id: ');
+        if (jobIdSplit.length>1) {
+          dispatcherJobId = jobIdSplit[1].trim()
         }
 
         const dispatchSplit = logEvent.message.split('Dispatching Batch Id: ');
@@ -344,14 +342,14 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
         }
       }
 
-      if (monitorId) {
-        if (monitorId!==monitorUniqueName) {
-          if (TRACE) console.log(`DEBUG: wrong monitor name ${monitorId} in ${logStreamName}/${requestId}`)
+      if (dispatcherJobId) {
+        if (dispatcherJobId!==jobId) {
+          if (TRACE) console.log(`DEBUG: wrong job id ${dispatcherJobId} in ${logStreamName}/${requestId}`)
           continue
         }
       }
       else {
-        console.log(`No monitor id found in ${logStreamName}/${requestId}`)
+        console.log(`No job id found in ${logStreamName}/${requestId}`)
       }
 
       if (r.firstEventTime < firstDispatcherTime) {
@@ -407,16 +405,16 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
     const requests = await getRequestLogs(logGroupName, logStreamName)
 
     let batchId = null
-    let monitorId = null
+    let workerJobId = null
 
     for(const requestId of Object.keys(requests)) {
       const r = requests[requestId]
 
       for(const logEvent of r.logEvents) {
 
-        const monitorSplit = logEvent.message.split('Monitor: ');
-        if (monitorSplit.length>1) {
-          monitorId = monitorSplit[1].trim()
+        const jobIdSplit = logEvent.message.split('Job Id: ');
+        if (jobIdSplit.length>1) {
+          workerJobId = jobIdSplit[1].trim()
         }
 
         const batchIdSplit = logEvent.message.split('Batch Id: ');
@@ -426,14 +424,14 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
         }
       }
 
-      if (monitorId) {
-        if (monitorId!==monitorUniqueName) {
-          if (TRACE) console.log(`DEBUG: wrong monitor name ${monitorId} in ${logStreamName}/${requestId}`)
+      if (workerJobId) {
+        if (workerJobId!==jobId) {
+          if (TRACE) console.log(`DEBUG: wrong job id ${workerJobId} in ${logStreamName}/${requestId}`)
           continue
         }
       }
       else {
-        console.log(`No monitor id found in ${logStreamName}/${requestId}`)
+        console.log(`No job id found in ${logStreamName}/${requestId}`)
       }
 
 
@@ -472,12 +470,12 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
 
   const totalElapsed = stateMachineEnded.getTime() - searchStarted.getTime()
   const totalStateMachineElapsed = stateMachineEnded.getTime() - stateMachineStarted.getTime()
-  const totalSearchElapsed = reduceStarted.getTime() - firstDispatcherTime
-  const totalReducerElapsed = reduceEnded.getTime() - reduceStarted.getTime()
+  const totalSearchElapsed = combinerStarted.getTime() - firstDispatcherTime
+  const totalCombinerElapsed = combinerEnded.getTime() - combinerStarted.getTime()
   const dispatcherElapsed = lastDispatcherTime - firstDispatcherTime
   const searchWorkerElapsed = lastWorkerTime - firstWorkerTime
-  const totalReducerDelay = reduceStarted.getTime() - lastWorkerTime
-  const userTimeElapsed = reduceEnded.getTime() - stateMachineStarted.getTime()
+  const totalCombinerDelay = combinerStarted.getTime() - lastWorkerTime
+  const userTimeElapsed = combinerEnded.getTime() - stateMachineStarted.getTime()
 
   stages.push({
     category: "Overview",
@@ -514,12 +512,12 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
     }
   })
 
-  if (totalReducerDelay > 0) {
+  if (totalCombinerDelay > 0) {
     stages.push({
       category: "Overview",
-      name: "Reducer Delay",
+      name: "Combiner Delay",
       start: new Date(lastWorkerTime),
-      end: reduceStarted
+      end: combinerStarted
     })
   }
 
@@ -546,10 +544,10 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   console.log(`          searchWorkerMin:    ${pad(min(workerElapsedTimes))}`)
   console.log(`          searchWorkerMax:    ${pad(max(workerElapsedTimes))}`)
   console.log(``)
-  if (totalReducerDelay > 0) {
-    console.log(`        totalReducerDelay:    ${pad(totalReducerDelay)}`)
+  if (totalCombinerDelay > 0) {
+    console.log(`        totalCombinerDelay:    ${pad(totalCombinerDelay)}`)
   }
-  console.log(`      totalReducerElapsed:    ${pad(totalReducerElapsed)}`)
+  console.log(`      totalCombinerElapsed:    ${pad(totalCombinerElapsed)}`)
   
   return {
     input: input,
@@ -563,16 +561,17 @@ async function main () {
   const identifier = args[0]
   const infile = args[1]
 
-  const dispatchFunction = identifier + '-searchDispatch'
-  const searchFunction = identifier + '-search'
-  const stateMachineName = 'searchMonitorStateMachine-' + identifier
+  const burstComputeStage = 'dev'
+  const dispatchFunction = `burst-compute-${burstComputeStage}-dispatch`
+  const stateMachineName = `burst-compute-${burstComputeStage}-lifecycle`
+  const workerFunction = identifier + '-search'
+  const combinerFunction = identifier + '-searchReduce'
 
   if (infile==="report") {
-    
-    const monitorName = args[2]
-    const reportObj = await report(dispatchFunction, searchFunction, stateMachineName, monitorName)
+    const jobId = args[2]
+    const reportObj = await report(dispatchFunction, workerFunction, stateMachineName, jobId)
     if (reportObj) {
-      const outfile = monitorName+".json"
+      const outfile = jobId+".json"
       fs.writeFileSync(outfile, JSON.stringify(reportObj, null, 2))
       console.log(`Wrote report to ${outfile}`)
       console.log(`To analyze, open timeline.html and load the JSON data file.`)
@@ -582,12 +581,23 @@ async function main () {
     const searchParamsJson = await readFile(infile, 'utf8')
     const searchParams = JSON.parse(searchParamsJson)
 
-    if (args.length==4) {
-      searchParams["batchSize"] = Number.parseInt(args[2])
-      searchParams["numLevels"] = Number.parseInt(args[3])
+    if (args.length!=4) {
+      console.log("4 parameters are required")
+      return
     }
 
-    const cdsInvocationResult = await invokeFunction(dispatchFunction, searchParams)
+    const params = {
+      workerFunctionName: workerFunction,
+      combinerFunctionName: combinerFunction,
+      jobParameters: searchParams,
+      startIndex: 0,
+      endIndex: 44592,
+      batchSize: Number.parseInt(args[2]),
+      numLevels: Number.parseInt(args[3]),
+      searchTimeoutSecs: 120,
+    }
+
+    const cdsInvocationResult = await invokeFunction(dispatchFunction, params)
 
     if (cdsInvocationResult.FunctionError) {
       console.log('Error:', cdsInvocationResult.FunctionError)
@@ -605,12 +615,12 @@ async function main () {
     }
 
     const response = JSON.parse(cdsInvocationResult.Payload)
-    const execution = await waitForMonitor(stateMachineName, response.monitorUniqueName)
+    const execution = await waitForMonitor(stateMachineName, response.jobId)
       
-    if (execution.status==='SUCCEEDED') {
+    if (execution && execution.status==='SUCCEEDED') {
       console.log("Search complete.")
       console.log("Results may lag due to eventual consistency. To attempt analysis, run:")
-      console.log(`npm run-script search ${identifier} report ${response.monitorUniqueName}`)
+      console.log(`npm run-script search ${identifier} report ${response.jobId}`)
     }
     else {
       // Search failed, try to find out why...
