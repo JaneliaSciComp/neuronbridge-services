@@ -16,6 +16,7 @@ import software.amazon.awssdk.services.dynamodb.model.PutItemRequest;
 import software.amazon.awssdk.services.s3.S3Client;
 
 import java.io.InputStream;
+import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -139,7 +140,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
     private List<String> getSearchKeys(S3Client s3, String libraryBucket, List<String> libraries, int startIndex, int endIndex) {
         List<String> keys = new ArrayList<>();
         int i = 0;
-        for(String library : libraries) {
+        for (String library : libraries) {
             String keyListKey = library + "/keys_denormalized.json";
             LOG.info("Retrieving keys in s3://{}/{}", libraryBucket, keyListKey);
             InputStream object = LambdaUtils.getObject(s3, libraryBucket, keyListKey);
@@ -155,6 +156,20 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
             }
         }
 
-        throw new IllegalStateException("Could not find items "+startIndex+"-"+endIndex+" in library keys");
+        throw new IllegalStateException("Could not find items " + startIndex + "-" + endIndex + " in library keys");
+    }
+
+    private void writeCDSResults(List<ColorMIPSearchResult> cdsResults, S3Client s3, String outputLocation) {
+        if (outputLocation != null) {
+            try {
+                LambdaUtils.putObject(
+                        s3,
+                        URI.create(outputLocation),
+                        ColorMIPSearchResultUtils.groupResults(cdsResults, ColorMIPSearchResult::perMaskMetadata));
+                LOG.info("Results written to {}", outputLocation);
+            } catch (Exception e) {
+                throw new IllegalStateException("Error writing results", e);
+            }
+        }
     }
 }

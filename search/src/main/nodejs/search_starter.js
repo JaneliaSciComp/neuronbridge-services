@@ -2,6 +2,7 @@
 
 const AWS = require('aws-sdk');
 const Jimp = require('jimp');
+
 const {getSearchMetadataKey, getSearchKey, getSearchMaskId} = require('./searchutils');
 const {
   getS3ContentWithRetry,
@@ -19,7 +20,9 @@ const {
   lookupSearchMetadata,
   SEARCH_IN_PROGRESS, 
   ALIGNMENT_JOB_SUBMITTED,
+  ALIGNMENT_JOB_COMPLETED,
 } = require("./awsappsyncutils");
+
 const {generateMIPs} = require('./mockMIPGeneration');
 
 const DEFAULTS = {
@@ -138,10 +141,10 @@ exports.searchStarter = async (event) => {
     const searchPromises = await newRecords
         .filter(r => !!r)
         .map(async r => {
-            if (r.step === 0) {
+            if (r.step < ALIGNMENT_JOB_COMPLETED) {
                 console.log('Start alignment for', r);
                 return await startAlignment(r);
-            } else if (r.step === 2) {
+            } else if (r.step >= ALIGNMENT_JOB_COMPLETED) {
                 console.log('Start color depth search for', r);
                 return await startColorDepthSearch(r);
             } else {
@@ -407,12 +410,14 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
 }
 
 const submitAlignmentJob = async (searchParams) => {
+    const cpus = 16;
+    const mem = 16 * 1024; // 16M
     const jobResources = {
-        'vcpus': 16,
-        'memory': 8192,
+        'vcpus': cpus,
+        'memory': mem,
         'environment': [{
             name: 'ALIGNMENT_MEMORY',
-            value: '8G'
+            value: mem + 'M'
         }]
     };
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;

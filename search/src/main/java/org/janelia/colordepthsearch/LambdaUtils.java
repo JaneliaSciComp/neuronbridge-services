@@ -52,7 +52,6 @@ class LambdaUtils {
                 .region(region)
                 //.endpointOverride(URI.create(endpoint))
                 .build();
-
     }
 
     static String getMandatoryEnv(String name) {

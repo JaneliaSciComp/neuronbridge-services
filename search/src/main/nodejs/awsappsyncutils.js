@@ -141,6 +141,48 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
     return searches;
 }
 
+exports.createSearchMetadata = async (searchData) => {
+  const result = await appSyncClient.mutate({
+    mutation: gql(`mutation createSearch($createInput: CreateSearchInput!) {
+      createSearch(input: $createInput) {
+        id
+        step
+        owner
+        identityId
+        searchDir
+        upload
+        searchType
+        algorithm
+        maskThreshold
+        dataThreshold
+        pixColorFluctuation
+        xyShift
+        mirrorMask
+        minMatchingPixRatio
+        maxResultsPerMask
+        nBatches
+        completedBatches
+        nTotalMatches
+        cdsStarted
+        cdsFinished
+        alignStarted
+        alignFinished
+        createdOn
+        updatedOn
+        displayableMask
+        searchMask
+        computedMIPs
+        errorMessage
+      }
+    }`),
+    variables: {
+      createInput: searchData
+    }
+  });
+  const newSearch = toSearchResult(result.data.createSearch);
+  return newSearch;
+}
+
 exports.updateSearchMetadata = async (searchData) => {
     if (!searchData.id) {
         if (DEBUG) console.log('Update not invoked because no search ID was set');
