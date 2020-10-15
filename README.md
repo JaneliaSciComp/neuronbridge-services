@@ -65,3 +65,20 @@ To update a single function, once you have a seployed stack
 ```
 npm run sls -- deploy function -f <function_name> -s dev
 ```
+
+### Alignment Parameters
+* force_voxel_size - if true it uses resolution parameters provided by the user
+* xy_resolution
+* z_resolution
+* reference_channel
+* number of slots (not exposed to the user)
+
+
+### Color Depth Search Parameters:
+
+* dataThreshold - default: 100
+* maskThreshold - default: 100
+* pixColorFluctuation - default: 2
+* xyShift - default: 2
+* mirrorMask - default: true
+* minMatchingPixRatio - default: 2

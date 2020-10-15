@@ -49,4 +49,3 @@ This runs a local client which invokes the search dispatch, waits for the search
 ```
 npm run-script search janelia-neuronbridge-cds-dev src/test/resources/test1.json
 ```
-
