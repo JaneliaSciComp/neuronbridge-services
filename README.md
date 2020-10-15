@@ -78,7 +78,7 @@ npm run sls -- deploy function -f <function_name> -s dev
 
 * dataThreshold - default: 100
 * maskThreshold - default: 100
-* pixColorFluctuation - default: 2
+* pixColorFluctuation (zSliceRange) - default: 2
 * xyShift - default: 2
 * mirrorMask - default: true
 * minMatchingPixRatio - default: 2
