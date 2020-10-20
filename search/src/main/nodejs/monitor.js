@@ -74,7 +74,7 @@ const monitorAlignmentJob = async (alignJobParams) => {
             if (job.attempts && job.attempts.length > 0) {
                 let reason = job.attempts[0].container && job.attempts[0].container.reason;
                 if (reason) {
-                    if (errorMessage) {
+                    if (!!errorMessage) {
                         errorMessage = `${errorMessage}; ${reason}`;
                     } else {
                         errorMessage = reason;
