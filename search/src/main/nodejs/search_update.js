@@ -11,6 +11,9 @@ exports.searchUpdate = async (event) => {
     if (event.computedMIPs && event.computedMIPs.length > 0) {
         searchData.computedMIPs = event.computedMIPs;
     }
+    if (event.uploadThumbnail) {
+        searchData.uploadThumbnail = event.uploadThumbnail;
+    }
     if (event.displayableMask) {
         searchData.displayableMask = event.displayableMask;
     }
