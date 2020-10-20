@@ -3,7 +3,7 @@
 const AWS = require('aws-sdk');
 const Jimp = require('jimp');
 const {getSearchKey, getSearchMaskId} = require('./searchutils');
-const {getS3ContentWithRetry, invokeAsync, putS3Content, startStepFunction} = require('./utils');
+const {getS3ContentWithRetry, getS3ContentMetadata, invokeAsync, putS3Content, startStepFunction} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata, ALIGNMENT_JOB_SUBMITTED, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 const {generateMIPs} = require('./mockMIPGeneration');
 
@@ -181,8 +181,20 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
 }
 
 const submitAlignmentJob = async (searchParams) => {
+    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
+    const searchInputMetadata = await getS3ContentMetadata(searchBucket, fullSearchInputImage);
+    console.log('Search input metadata', searchInputMetadata);
+    const searchInputSize = searchInputMetadata.ContentLength;
+    const searchInputContentType = searchInputMetadata.ContentType;
+    let estimatedMemory;
+    if (searchInputContentType === 'application/zip') {
+        estimatedMemory = searchInputSize / (1024. * 1024.) * 8 * 3.5;
+    } else {
+        estimatedMemory = searchInputSize / (1024. * 1024.) * 3.5;
+    }
     const cpus = 16;
-    const mem = 16 * 1024; // 16M
+    const mem = Math.max(16 * 1024, Math.ceil(estimatedMemory));
+    console.log(`Estimated memory for ${fullSearchInputImage}: ${estimatedMemory}, allocated memory: ${mem}`);
     const jobResources = {
         'vcpus': cpus,
         'memory': mem,
@@ -191,7 +203,6 @@ const submitAlignmentJob = async (searchParams) => {
             value: mem + 'M'
         }]
     };
-    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const jobName = `align-${searchParams.id}`;
     let jobParameters = {
         search_id: searchParams.id,
