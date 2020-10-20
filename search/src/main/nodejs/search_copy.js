@@ -27,7 +27,7 @@ async function getSearchRecord(searchId) {
 async function createDefaultChannel(searchData) {
   const { id, upload, searchInputFolder, identityId, searchDir } = searchData;
   // TODO: add a check for the image extension here. We should only be copying
-  // png, jpeg, tiff or gif? images that are already aligned. The 3D stacks
+  // png, jpeg, bmp, tiff or gif images that are already aligned. The 3D stacks
   // need to go through the aligner which will output the channels for masking
 
   const fullSearchInputImage = `${searchInputFolder}/${upload}`;
@@ -46,9 +46,10 @@ async function createDefaultChannel(searchData) {
     step: ALIGNMENT_JOB_COMPLETED
   };
 
-  // if tiff, transform to png
-  if (/\.tiff?$/.test(upload)) {
-    const pngMime = "image/png";
+  const pngMime = "image/png";
+
+  // if not a png, transform to png
+  if (/\.(tiff?|gif|jpe?g|bmp)$/.test(upload)) {
     const pngExt = ".png";
     const image = await Jimp.read(imageContent);
     const imageBuffer = await image.getBufferAsync(pngMime);
@@ -65,6 +66,16 @@ async function createDefaultChannel(searchData) {
     `/${searchBucket}/${sourceImage}`,
     channelPath
   );
+
+  // create a thumbnail of the uploaded image
+  const thumbnailName = 'upload_thumbnail.png';
+  const original = await Jimp.read(imageContent);
+  const thumbnail = original.scaleToFit(150, 70);
+  const thumbnailBuffer = await thumbnail.getBufferAsync(pngMime);
+  const thumbnailPath = `private/${identityId}/${searchDir}/${thumbnailName}`;
+  await putS3Content(searchBucket, thumbnailPath, pngMime, thumbnailBuffer);
+  searchMetaData.uploadThumbnail = thumbnailName;
+
   await updateSearchMetadata(searchMetaData);
   return { id };
 }
@@ -86,6 +97,12 @@ async function copyAlignment(searchData) {
     searchBucket,
     `/${searchBucket}/${searchInputFolder}/${upload}`,
     `${newSearchInputFolder}/${upload}`
+  );
+  // copy thumbnail image
+  await copyS3Content(
+    searchBucket,
+    `/${searchBucket}/${searchInputFolder}/upload_thumbnail.png`,
+    `${newSearchInputFolder}/upload_thumbnail.png`
   );
   // copy display image
   await copyS3Content(
@@ -120,7 +137,8 @@ async function copyAlignment(searchData) {
     identityId: searchData.identityId,
     searchDir: newSearchDir,
     upload: searchData.upload,
-    simulateMIPGeneration: false
+    simulateMIPGeneration: false,
+    uploadThumbnail: 'upload_thumbnail.png'
   };
   // save new data object- in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
