@@ -70,13 +70,25 @@ const monitorAlignmentJob = async (alignJobParams) => {
             };
         } else if (job.status === 'FAILED') {
             const searchMetadata = getSearchMetadata(searchId);
-            if (!searchMetadata.errorMessage) {
-                await updateSearchMetadata({
-                    id: searchId,
-                    alignFinished: timestamp.toISOString(),
-                    errorMessage: 'Alignment job failed'
-                });
+            let errorMessage = searchMetadata.errorMessage;
+            if (job.attempts && job.attempts.length > 0) {
+                let reason = job.attempts[0].container && job.attempts[0].container.reason;
+                if (reason) {
+                    if (errorMessage) {
+                        errorMessage = `${errorMessage}; ${reason}`;
+                    } else {
+                        errorMessage = reason;
+                    }
+                }
             }
+            if (!errorMessage) {
+                errorMessage = 'Alignment job failed';
+            }
+            await updateSearchMetadata({
+                id: searchId,
+                alignFinished: timestamp.toISOString(),
+                errorMessage: errorMessage
+            });
             return {
                 ...alignJobParams,
                 completed: true,
