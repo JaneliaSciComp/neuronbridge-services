@@ -104,8 +104,8 @@ const startColorDepthSearch = async (searchParams) => {
         const searchInputName = searchParams.searchMask
             ? searchParams.searchMask
             : searchParams.searchInputName
-        if (searchInputName.endsWith('.tif') ||
-            searchInputName.endsWith('.tiff')) {
+
+        if (/\.(tiff?|gif|jpe?g|bmp)$/.test(searchInputName)) {
             const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchInputName}`;
             try {
                 console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
@@ -119,21 +119,19 @@ const startColorDepthSearch = async (searchParams) => {
                 await putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
                 console.info(`${fullSearchInputImage} converted to png successfully`);
                 searchParams.displayableMask = getSearchMaskId(pngImageName, pngExt);
-                await updateSearchMetadata({
-                    id: searchParams.id || searchParams.searchId,
-                    displayableMask: searchParams.displayableMask
-                });
             } catch (convertError) {
                 console.error(`Error converting ${searchBucket}:${fullSearchInputImage} to PNG`, convertError);
             }
         } else {
             // the upload mask is displayable so set it as such
             searchParams.displayableMask = searchInputName;
-            await updateSearchMetadata({
-                id: searchParams.id || searchParams.searchId,
-                displayableMask: searchParams.displayableMask
-            });
         }
+
+        await updateSearchMetadata({
+          id: searchParams.id || searchParams.searchId,
+          displayableMask: searchParams.displayableMask
+        });
+
         const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
         return cdsInvocationResult;
