@@ -4,8 +4,6 @@ service: janelia-neuronbridge-cds
 plugins:
   - serverless-step-functions
   - serverless-appsync-plugin
-
-
 custom:
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
@@ -228,14 +226,28 @@ functions:
           path: /searches
           authorizer:
             name: neuronBridgeJwtAuthorizer
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt:
+              - SearchTable
+              - StreamArn
+          batchSize: 1
 
-  search:
+  search-java:
     package:
       artifact: target/neuronbridge-search-${self:custom.version}.jar
     runtime: java8
     handler: org.janelia.colordepthsearch.BatchSearch
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
+
+  search:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/batch_search.batchSearch
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
     environment:
       DEBUG: ${self:custom.debug}
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}

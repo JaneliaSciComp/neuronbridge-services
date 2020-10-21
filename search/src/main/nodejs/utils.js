@@ -4,6 +4,7 @@ const AWSXRay = require('aws-xray-sdk-core');
 // const AWS = process.env.DISABLE_XRAY ? require('aws-sdk') : AWSXRay.captureAWS(require('aws-sdk'));
 const AWS = require('aws-sdk');
 const stream = require('stream');
+const url = require('url');
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
@@ -27,6 +28,23 @@ const getAllKeys = async params => {
         params.ContinuationToken = result.NextContinuationToken;
     } while (result.NextContinuationToken);
     return allKeys;
+};
+
+// Retrieve a file from S3
+exports.getObjectDataArray = async (bucket, key, defaultValue) => {
+    try {
+        if (DEBUG)
+            console.log(`Getting object from ${bucket}:${key}`);
+        const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
+        return response.Body.buffer;
+    } catch (e) {
+        console.error(`Error getting object ${bucket}:${key}`, e);
+        if (defaultValue === undefined) {
+            throw e; // rethrow it
+        } else {
+            return defaultValue;
+        }
+    }
 };
 
 // Retrieve a JSON file from S3
@@ -117,7 +135,7 @@ const putObject = async (Bucket, Key, data) => {
         const res =  await s3.putObject({
             Bucket,
             Key,
-            Body: JSON.stringify(data),
+            Body: JSON.stringify(data, null , "\t"),
             ContentType: 'application/json'
         }).promise();
         if (DEBUG) {
@@ -320,5 +338,6 @@ module.exports = {
     invokeAsync: invokeAsync,
     startStepFunction: startStepFunction,
     verifyKey: verifyKey,
+    sleep,
     copyS3Content
 };

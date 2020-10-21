@@ -23,6 +23,33 @@ class AWSMIPLoader {
         this.s3 = s3;
     }
 
+    MIPImage loadMIPRange(String bucketName, MIPMetadata mip, long start, long end) {
+        long startTime = System.currentTimeMillis();
+        LOG.trace("Load MIP {}", mip);
+        InputStream inputStream;
+        try {
+            inputStream = LambdaUtils.getObject(s3, bucketName, mip.getImagePath());
+            if (inputStream == null) {
+                return null;
+            }
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
+        }
+        try {
+            return new MIPImage(mip, ImageArrayUtils.readImageArrayRange(mip.getId(), mip.getImageName(), inputStream, start, end));
+            //return new MIPImage(mip, ImageArrayUtils.readImageArray(mip.getId(), mip.getImageName(), inputStream));
+        } catch (Exception e) {
+            LOG.error("Error loading {}", mip, e);
+            throw new IllegalStateException(e);
+        } finally {
+            try {
+                inputStream.close();
+            } catch (IOException ignore) {
+            }
+            LOG.trace("Loaded MIP {} in {}ms", mip, System.currentTimeMillis() - startTime);
+        }
+    }
+
     MIPImage loadMIP(String bucketName, MIPMetadata mip) {
         long startTime = System.currentTimeMillis();
         LOG.trace("Load MIP {}", mip);

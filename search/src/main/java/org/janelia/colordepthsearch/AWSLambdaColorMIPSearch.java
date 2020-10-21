@@ -64,7 +64,7 @@ class AWSLambdaColorMIPSearch {
         ColorMIPMaskCompare maskComparator = colorMIPSearch.createMaskComparator(maskImage, maskThreshold);
         return libraryKeys.stream()
                 .map(this::createLibraryMIP)
-                .map(libraryMIP -> mipLoader.loadMIP(awsLibrariesBucket, libraryMIP))
+                .map(libraryMIP -> mipLoader.loadMIPRange(awsLibrariesBucket, libraryMIP, maskComparator.getMaskStartPosition(), maskComparator.getMaskEndPosition()))
                 .filter(libraryImage -> libraryImage != null)
                 .map(libraryImage -> {
                     LOG.trace("Compare {} with {}", maskImage, libraryImage);
