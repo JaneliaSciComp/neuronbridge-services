@@ -30,7 +30,7 @@ const getAllKeys = async params => {
 };
 
 // Retrieve a file from S3
-exports.getObjectDataArray = async (bucket, key, defaultValue) => {
+const getObjectDataArray = async (bucket, key, defaultValue) => {
     try {
         if (DEBUG)
             console.log(`Getting object from ${bucket}:${key}`);
@@ -67,9 +67,7 @@ const getObject = async (bucket, key, defaultValue) => {
     }
 };
 
-exports.getObject = getObject;
-
-exports.sleep = async (ms) => {
+const sleep = async (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
@@ -335,6 +333,8 @@ const verifyKey = async (Bucket, Key) => {
 
 module.exports = {
     DEBUG,
+    sleep: sleep,
+    getObjectDataArray: getObjectDataArray,
     getAllKeys: getAllKeys,
     getObject: getObject,
     getObjectWithRetry: getObjectWithRetry,
