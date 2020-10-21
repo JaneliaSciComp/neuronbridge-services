@@ -144,6 +144,19 @@ async function copyAlignment(searchData) {
   return { searchData, newSearchData, newSearchMeta, channelsList };
 }
 
+async function createNewSearchFromMatch(matchId) {
+  // generate a new id for the search directory
+  const newSearchDir = uuidv1();
+  // create new search directory
+  // copy match image to upload
+  // generate mip channel for this image
+  // create new data object to store in dynamoDB
+  // set step to mask selection
+}
+
+
+
+
 exports.searchCopy = async event => {
   console.log(event);
   const returnObj = {
