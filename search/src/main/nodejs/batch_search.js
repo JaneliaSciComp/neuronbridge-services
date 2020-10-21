@@ -14,25 +14,27 @@ const {getObjectDataArray, getObject, putObject, invokeAsync, partition, verifyK
 //const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
 
 exports.batchSearch = async (event) => {
+
+    console.log(event);
+
+    const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
+
     const batchParams = {
-        searchPrefix: event.searchPrefix,
-        searchKeys: event.searchKeys,
-        maskPrefix: event.maskPrefix,
-        maskKeys: event.maskKeys,
-        dataThreshold: event.dataThreshold || 100,
-        maskThresholds: event.maskThresholds,
-        pixColorFluctuation: event.pixColorFluctuation || 2.0,
-        xyShift: event.xyShift || 0,
-        mirrorMask: event.mirrorMask || false,
-        outputBucket: event.outputBucket,
-        outputKey: event.outputKey,
-        minMatchingPixRatio: event.minMatchingPixRatio || 2.0
+        libraryBucket: jobParameters.libraryBucket,
+        libraries: jobParameters.libraries,
+        searchBucket: jobParameters.searchBucket,
+        maskKeys: jobParameters.maskKeys,
+        dataThreshold: jobParameters.dataThreshold || 100,
+        maskThresholds: jobParameters.maskThresholds,
+        pixColorFluctuation: jobParameters.pixColorFluctuation || 2.0,
+        xyShift: jobParameters.xyShift || 0,
+        mirrorMask: jobParameters.mirrorMask || false,
+        minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
     }
 
-    console.log(batchParams);
     const segment = AWSXRay.getSegment();
     let subsegment = segment.addNewSubsegment('Read parameters');
-    if (batchParams.searchPrefix == null) {
+    if (batchParams.libraries == null) {
         console.log('No images to search');
         return 0;
     }
@@ -48,8 +50,10 @@ exports.batchSearch = async (event) => {
         console.log('Number of mask thresholds does not match number of masks');
         return 0;
     }
-    subsegment.close();
+    const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);    
+    console.log(`Loaded ${searchKeys.length} search keys`);
 
+    subsegment.close();
 
     subsegment = segment.addNewSubsegment('Read search');
 
@@ -77,20 +81,37 @@ exports.batchSearch = async (event) => {
         .sort(function(a, b) {return a.matchingPixels < b.matchingPixels ? 1 : -1;});
     const ret = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
 
-    if (batchParams.outputBucket != null && batchParams.outputKey != null) {
-        await putObject(
-            batchParams.outputBucket,
-            batchParams.outputKey,
-            ret);
-    }
-    else {
-        console.log(JSON.stringify(ret, null , "\t"));
-    }
+    await writeCDSResults(ret, tasksTableName, jobId, batchId)
 
     subsegment.close();
 
     return cdsResults.length;
 
+}
+
+const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => {
+
+    const searchableTargetsPromise =  await libraries
+        .map(async l => {
+            return await {
+                ...l,
+                searchableKeys: await getKeys(libraryBucket, l.lkey)
+            };
+        });
+    const searchableTargets = await Promise.all(searchableTargetsPromise);
+    const allTargets = searchableTargets
+        .flatMap(l => l.searchableKeys);
+
+        
+    return allTargets.slice(startIndex, endIndex);
+}
+
+const getKeys = async (libraryBucket, libraryKey) => {
+    console.log("Get keys from:", libraryKey);
+    return await getObject(
+        libraryBucket,
+        `${libraryKey}/keys_denormalized.json`,
+        []);
 }
 
 const groupBy = (...keys) => xs =>
@@ -148,11 +169,6 @@ const perMaskMetadata = (params) => {
 
 const findAllColorDepthMatches = async (params) => {
     const maskKeys = params.maskKeys;
-    const maskThresholds = params.maskThresholds;
-    const libraryKeys = params.libraryKeys;
-    const awsMasksBucket = params.awsMasksBucket;
-    const awsLibrariesBucket = params.awsLibrariesBucket;
-    const awsLibrariesThumbnailsBucket = params.awsLibrariesThumbnailsBucket;
 
     let results = [];
     let i;
@@ -423,4 +439,23 @@ const populateEMMetadataFromName = (mipName, mipMetadata) => {
     mipMetadata["publishedName"] = bodyID;
     mipMetadata["gender"] = "f"; // default to female for now
     return mipMetadata;
+}
+
+const writeCDSResults = async (results, tableName, jobId, batchId) => {
+
+    const TTL_DELTA = 60 * 60; // 1 hour TTL
+    const ttl = (Math.floor(+new Date() / 1000) + TTL_DELTA).toString()
+
+    const params = {
+        TableName: tableName,
+        Item: {
+            "jobId": {S: jobId},
+            "batchId": {N: ""+batchId},
+            "ttl": {N: ttl},
+            "results": {S: JSON.stringify(results)}
+        }
+    };
+
+    const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
+    await ddb.putItem(params).promise()
 }
