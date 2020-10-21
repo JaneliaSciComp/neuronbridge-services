@@ -86,6 +86,7 @@ async function copyAlignment(searchData) {
     searchDir,
     searchInputFolder,
     upload,
+    uploadThumbnail,
     searchMask
   } = searchData;
   // generate a new id for the search directory
@@ -101,8 +102,8 @@ async function copyAlignment(searchData) {
   // copy thumbnail image
   await copyS3Content(
     searchBucket,
-    `/${searchBucket}/${searchInputFolder}/upload_thumbnail.png`,
-    `${newSearchInputFolder}/upload_thumbnail.png`
+    `/${searchBucket}/${searchInputFolder}/${uploadThumbnail}`,
+    `${newSearchInputFolder}/${uploadThumbnail}`
   );
   // copy display image
   await copyS3Content(
@@ -127,8 +128,6 @@ async function copyAlignment(searchData) {
     })
   );
 
-
-
   // create new data object to store in dynamoDB
   const newSearchData = {
     step: ALIGNMENT_JOB_COMPLETED,
@@ -138,7 +137,7 @@ async function copyAlignment(searchData) {
     searchDir: newSearchDir,
     upload: searchData.upload,
     simulateMIPGeneration: false,
-    uploadThumbnail: 'upload_thumbnail.png'
+    uploadThumbnail: searchData.uploadThumbnail
   };
   // save new data object- in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
