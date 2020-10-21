@@ -10,11 +10,13 @@ custom:
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+  searchBatchSize: 40
+  searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
   neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
   cdsTimeoutInSeconds: 300
   version: 2.0.0
-  tracing: true
+  tracing: false
   debug: true
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
@@ -38,6 +40,12 @@ custom:
         field: listSearches
         request: "dynamodb-listSearches-request-template.vtl"
         response: "dynamodb-listSearches-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: listAllSearches
+        request: "dynamodb-listAllSearches-request-template.vtl"
+        response: "dynamodb-listAllSearches-response-template.vtl"
+
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Mutation
         field: createSearch
@@ -64,7 +72,7 @@ custom:
 provider:
   name: aws
   region: ${opt:region, "us-east-1"}
-  stage: ${opt:stage, "cgdev"}
+  stage: ${opt:stage, "dev"}
   tags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
@@ -79,6 +87,7 @@ provider:
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
+    DISABLE_XRAY: true
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -103,12 +112,13 @@ provider:
     - Effect: "Allow"
       Action:
         - dynamodb:DescribeStream
+        - dynamodb:DescribeTable
         - dynamodb:GetRecords
-        - dynamodb:GetShardIterator
         - dynamodb:ListStreams
         - dynamodb:GetItem
         - dynamodb:PutItem
         - dynamodb:UpdateItem
+        - dynamodb:UpdateTable
       Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
     - Effect: Allow
       Action:
@@ -142,8 +152,9 @@ provider:
       ]}
     - Effect: Allow
       Action:
+        - batch:DescribeJobs
         - batch:SubmitJob
-      Resource: "arn:aws:batch:*:*:*"
+      Resource: "*"
   httpApi:
     payload: "2.0"
     cors: true
@@ -182,12 +193,18 @@ functions:
     handler: src/main/nodejs/search_starter.searchStarter
     memorySize: 256
     timeout: 25
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
     environment:
       DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
-      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-lowpriority
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
+      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
     events:
       - httpApi:
           method: POST
@@ -195,13 +212,6 @@ functions:
           cors: true
           authorizer:
             name: neuronBridgeJwtAuthorizer
-      - stream:
-          type: dynamodb
-          arn:
-            Fn::GetAtt:
-              - SearchTable
-              - StreamArn
-          batchSize: 1
 
   searchDispatch:
     runtime: nodejs12.x
@@ -213,10 +223,32 @@ functions:
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      BATCH_SIZE: ${self:custom.searchBatchSize}
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
       SEARCH_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
       SEARCH_FUNCTION: ${self:service}-${self:provider.stage}-search
       STATE_MACHINE_ARN: ${self:resources.Outputs.SearchMonitorStateMachine.Value}
       DEBUG: ${self:custom.debug}
+
+  searchCopy:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_copy.searchCopy
+    memorySize: 128
+    timeout: 10
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+    events:
+      - httpApi:
+          method: POST
+          path: /copy
+          cors: true
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
 
   search:
     runtime: nodejs12.x
@@ -232,8 +264,7 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/monitor.isSearchDone
     memorySize: 128
-    # 5 minute timeout because the last iteration also runs the reduce step
-    timeout: 300
+    timeout: 180
     environment:
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
@@ -242,11 +273,9 @@ functions:
   searchReduce:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_reducer.searchReducer
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
+    memorySize: 384
+    timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
-      AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
@@ -295,7 +324,7 @@ stepFunctions:
             Choices:
               - Variable: "$.timedOut"
                 BooleanEquals: true
-                Next: TimedOut
+                Next: Reduce
             Default: AreWeDoneYet
           AreWeDoneYet:
             Type: Choice
@@ -308,9 +337,6 @@ stepFunctions:
             Type: Wait
             Seconds: 5
             Next: Monitor
-          TimedOut:
-            Type: Fail
-            Cause: "Search timed out"
           Reduce:
             Type: Task
             Resource:
@@ -319,7 +345,46 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
-
+    jobMonitorStateMachine:
+      id: JobMonitorStateMachine
+      name: jobMonitorStateMachine-${self:service}-${self:provider.stage}
+      definition:
+        StartAt: Monitor
+        States:
+          Monitor:
+            Type: Task
+            Resource:
+              Fn::GetAtt: [monitor, Arn]
+            Retry:
+              - ErrorEquals:
+                  - Lambda.TooManyRequestsException
+                IntervalSeconds: 1
+                MaxAttempts: 100
+            Next: AreWeDoneYet
+          AreWeDoneYet:
+            Type: Choice
+            Choices:
+              - Variable: "$.completed"
+                BooleanEquals: true
+                Next: CheckErrors
+            Default: Wait
+          Wait:
+            Type: Wait
+            Seconds: 300
+            Next: Monitor
+          CheckErrors:
+            Type: Choice
+            Choices:
+              - Variable: "$.withErrors"
+                BooleanEquals: true
+                Next: ErrorState
+            Default: EndState
+          ErrorState:
+            Type: Fail
+            Cause: "Job completed with errors"
+          EndState:
+            Type: Pass
+            End: true
   validate: true # enable pre-deployment definition validation
 
 
@@ -330,6 +395,9 @@ resources:
       Description: The ARN of the state machine
       Value:
         Ref: SearchMonitorStateMachine
+    JobMonitorStateMachine:
+      Value:
+        Ref: JobMonitorStateMachine
 
   Resources:
     SearchTable:
@@ -342,8 +410,6 @@ resources:
           - AttributeName: id
             AttributeType: S
         BillingMode: PAY_PER_REQUEST
-        StreamSpecification:
-          StreamViewType: KEYS_ONLY
         TableName: ${self:custom.searchTable}
 
 

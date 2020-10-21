@@ -70,7 +70,30 @@ resources:
           InstanceRole: ecsInstanceRole
           Tags: ${self:provider.stackTags}
 
-    ComputeAlignmentJobQueue:
+    ComputeAlignmentOnDemandEnv:
+      Type: AWS::Batch::ComputeEnvironment
+      Properties:
+        Type: MANAGED
+        State: ENABLED
+        ServiceRole: !Ref BatchServiceRole
+        ComputeEnvironmentName: "#{AWS::StackName}-align-ondemand-compute-env"
+        ComputeResources:
+          Type: EC2
+          MinvCpus: 0
+          DesiredvCpus: 0
+          MaxvCpus: 64
+          InstanceTypes:
+            - optimal
+          ImageId: ${self:custom.ec2AlignmentImageId}
+          Subnets:
+            - ${self:custom.subnetId}
+          SecurityGroupIds:
+            - ${self:custom.securityGroupId}
+          Ec2KeyPair: ${self:custom.sshKeyPairName}
+          InstanceRole: ecsInstanceRole
+          Tags: ${self:provider.stackTags}
+
+    LowPriorityComputeAlignmentJobQueue:
       Type: AWS::Batch::JobQueue
       Properties:
         ComputeEnvironmentOrder:
@@ -79,6 +102,16 @@ resources:
         State: ENABLED
         Priority: 100
         JobQueueName: "${self:service}-${self:provider.stage}-align-job-queue-lowpriority"
+
+    HighPriorityComputeAlignmentJobQueue:
+      Type: AWS::Batch::JobQueue
+      Properties:
+        ComputeEnvironmentOrder:
+          - Order: 0
+            ComputeEnvironment: !Ref ComputeAlignmentOnDemandEnv
+        State: ENABLED
+        Priority: 200
+        JobQueueName: "${self:service}-${self:provider.stage}-align-job-queue-highpriority"
 
     ComputeAlignmentJobDefinition:
       Type: "AWS::Batch::JobDefinition"
@@ -96,9 +129,9 @@ resources:
           inputs_bucket: ${self:custom.alignInputBucket}
           outputs_bucket: ${self:custom.alignOutputBucket}
           templates_dir: ${self:custom.alignmentTemplatesFolder}
-          xy_resolution: ""
-          z_resolution: ""
-          nchannels: 2
+          xy_resolution: "0"
+          z_resolution: "0"
+          reference_channel: "Signal_amount"
           force_voxel_size: false
           nslots: ${self:custom.defaultAlignmentThreads}
         ContainerProperties:
@@ -124,8 +157,8 @@ resources:
             - "Ref::xy_resolution"
             - "--zres"
             - "Ref::z_resolution"
-            - "--nchannels"
-            - "Ref::nchannels"
+            - "--reference-channel"
+            - "Ref::reference_channel"
             - "--forceVxSize"
             - "Ref::force_voxel_size"
             - "--nslots"
@@ -155,6 +188,8 @@ resources:
               Value: xvfb
             - Name: SEARCH_UPDATE_FUNCTION
               Value: ${file(../search/serverless.yml):service}-${self:provider.stage}-searchUpdate
+            - Name: ALIGNMENT_MEMORY
+              Value: 8G
           ReadonlyRootFilesystem: true
           Privileged: true
           LinuxParameters:

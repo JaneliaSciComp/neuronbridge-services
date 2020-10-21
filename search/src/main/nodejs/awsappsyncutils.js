@@ -8,8 +8,10 @@ require("isomorphic-fetch");
 
 const DEBUG = !!process.env.DEBUG;
 
-exports.SEARCH_IN_PROGRESS = 3
-exports.SEARCH_COMPLETED = 4
+exports.ALIGNMENT_JOB_SUBMITTED = 1;
+exports.ALIGNMENT_JOB_COMPLETED = 2;
+exports.SEARCH_IN_PROGRESS = 3;
+exports.SEARCH_COMPLETED = 4;
 
 const appSyncClient = new AWSAppSyncClient({
     url: process.env.APPSYNC_API_URL,
@@ -31,24 +33,40 @@ exports.getSearchMetadata = async (searchId) => {
                 identityId
                 searchDir
                 upload
+                uploadThumbnail
                 searchType
                 algorithm
+                userDefinedImageParams
                 channel
+                referenceChannel
                 voxelX
                 voxelY
                 voxelZ
+                maskThreshold
+                dataThreshold
+                pixColorFluctuation
+                xyShift
+                mirrorMask
+                minMatchingPixRatio
+                maxResultsPerMask
                 nBatches
                 completedBatches
+                nTotalMatches
                 cdsStarted
                 cdsFinished
+                alignStarted
+                alignFinished
                 createdOn
                 updatedOn
+                displayableMask
                 searchMask
                 computedMIPs
                 errorMessage
+                simulateMIPGeneration
             }
         }`),
-        variables: { searchId: searchId}
+        variables: { searchId: searchId},
+        fetchPolicy: 'no-cache'
     });
     console.log("Search data for", searchId, result);
     const searchResult = toSearchResult(result.data.getSearch);
@@ -56,9 +74,121 @@ exports.getSearchMetadata = async (searchId) => {
     return searchResult;
 }
 
+exports.lookupSearchMetadata = async (searchFilterParams) => {
+    let searchFilter = {};
+    if (searchFilterParams.currentSearchId) {
+        searchFilter.id = {ne: searchFilterParams.currentSearchId}
+    }
+    if (searchFilterParams.identityId) {
+        searchFilter.identityId = {eq: searchFilterParams.identityId}
+    }
+    if (searchFilterParams.owner) {
+        searchFilter.owner = {eq: searchFilterParams.owner}
+    }
+    if (searchFilterParams.lastUpdated) {
+        const lastUpdated = searchFilterParams.lastUpdated;
+        lastUpdated.setHours(0,0,0,0);
+        searchFilter.updatedOn = {"ge": lastUpdated.toISOString()};
+    }
+    const result = await appSyncClient.query({
+        query: gql(`query listSearches($searchFilter: TableSearchFilterInput!) {
+            listSearches(filter: $searchFilter, limit: 100, nextToken: null) {
+                items {
+                    id
+                    step
+                    owner
+                    identityId
+                    searchDir
+                    upload
+                    uploadThumbnail
+                    searchType
+                    algorithm
+                    userDefinedImageParams
+                    channel
+                    referenceChannel
+                    voxelX
+                    voxelY
+                    voxelZ
+                    maskThreshold
+                    dataThreshold
+                    pixColorFluctuation
+                    xyShift
+                    mirrorMask
+                    minMatchingPixRatio
+                    maxResultsPerMask
+                    nBatches
+                    completedBatches
+                    nTotalMatches
+                    cdsStarted
+                    cdsFinished
+                    alignStarted
+                    alignFinished
+                    createdOn
+                    updatedOn
+                    displayableMask
+                    searchMask
+                    computedMIPs
+                    errorMessage
+                    simulateMIPGeneration
+                }
+            }
+        }`),
+        variables: { searchFilter: searchFilter}
+    });
+    console.log("Search data for", searchFilterParams, result);
+    const searches = result.data.listSearches.items
+        .map(s => toSearchResult(s))
+        .filter(s => searchFilterParams.withNoErrorsOnly ? !s.errorMessage : true);
+    console.log("Found searches", searches);
+    return searches;
+}
+
+exports.createSearchMetadata = async (searchData) => {
+  const result = await appSyncClient.mutate({
+    mutation: gql(`mutation createSearch($createInput: CreateSearchInput!) {
+      createSearch(input: $createInput) {
+        id
+        step
+        owner
+        identityId
+        searchDir
+        upload
+        uploadThumbnail
+        searchType
+        algorithm
+        maskThreshold
+        dataThreshold
+        pixColorFluctuation
+        xyShift
+        mirrorMask
+        minMatchingPixRatio
+        maxResultsPerMask
+        nBatches
+        completedBatches
+        nTotalMatches
+        cdsStarted
+        cdsFinished
+        alignStarted
+        alignFinished
+        createdOn
+        updatedOn
+        displayableMask
+        searchMask
+        computedMIPs
+        errorMessage
+      }
+    }`),
+    variables: {
+      createInput: searchData
+    }
+  });
+  const newSearch = toSearchResult(result.data.createSearch);
+  return newSearch;
+}
+
 exports.updateSearchMetadata = async (searchData) => {
     if (!searchData.id) {
-        console.log('Update not invoked because no search ID was set');
+        if (DEBUG) console.log('Update not invoked because no search ID was set');
         return searchData;
     }
     const result = await appSyncClient.mutate({
@@ -70,14 +200,26 @@ exports.updateSearchMetadata = async (searchData) => {
                 identityId
                 searchDir
                 upload
+                uploadThumbnail
                 searchType
                 algorithm
+                maskThreshold
+                dataThreshold
+                pixColorFluctuation
+                xyShift
+                mirrorMask
+                minMatchingPixRatio
+                maxResultsPerMask
                 nBatches
                 completedBatches
+                nTotalMatches
                 cdsStarted
                 cdsFinished
+                alignStarted
+                alignFinished
                 createdOn
                 updatedOn
+                displayableMask
                 searchMask
                 computedMIPs
                 errorMessage
@@ -99,13 +241,14 @@ const toSearchResult = (searchData) => {
     }
     const searchInputFolder = `private/${searchData.identityId}/${searchData.searchDir}`;
     const searchMask = searchData.searchMask
-        ? { searchMask: searchData.searchMask, searchInputMask: `${searchInputFolder}/${searchData.searchMask}`}
+        ? { searchMask: searchData.searchMask,
+            searchInputMask: `${searchInputFolder}/${searchData.searchMask}`
+          }
         : {};
     return {
         searchId: searchData.id,
         searchInputFolder: searchInputFolder,
         searchInputName: `${searchData.upload}`,
-        searchInput: `${searchInputFolder}/${searchData.upload}`,
         ...searchMask,
         ...searchData
     }

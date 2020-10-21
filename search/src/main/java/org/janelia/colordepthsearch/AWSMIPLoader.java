@@ -60,13 +60,14 @@ class AWSMIPLoader {
                 return null;
             }
         } catch (Exception e) {
-            throw new IllegalStateException(e);
+            LOG.error("Error loading {}:{}", bucketName, mip, e);
+            return null;
         }
         try {
             return new MIPImage(mip, ImageArrayUtils.readImageArray(mip.getId(), mip.getImageName(), inputStream));
         } catch (Exception e) {
-            LOG.error("Error loading {}", mip, e);
-            throw new IllegalStateException(e);
+            LOG.error("Error loading {}:{}", bucketName, mip, e);
+            return null;
         } finally {
             try {
                 inputStream.close();
@@ -76,7 +77,7 @@ class AWSMIPLoader {
         }
     }
 
-    MIPImage loadFirstMatchingMIP(String bucketName, MIPMetadata mip, String mipExt, String... otherMipExts) {
+    MIPImage loadFirstMatchingMIP(String bucketName, MIPMetadata mip) {
         long startTime = System.currentTimeMillis();
         InputStream inputStream;
         String mipImagePrefix = RegExUtils.replacePattern(mip.getImagePath(), "\\..*$", "");
@@ -95,19 +96,20 @@ class AWSMIPLoader {
                 }
             }
         } catch (Exception e) {
-            throw new IllegalStateException(e);
+            LOG.error("Error looking up {}:{}", bucketName, mip, e);
+            return null;
         }
         try {
             return new MIPImage(mip, ImageArrayUtils.readImageArray(mip.getId(), mipImageName, inputStream));
         } catch (Exception e) {
-            LOG.error("Error loading {}", mip, e);
+            LOG.error("Error loading {}:{}", bucketName, mip, e);
             throw new IllegalStateException(e);
         } finally {
             try {
                 inputStream.close();
             } catch (IOException ignore) {
             }
-            LOG.trace("Loaded MIP {} in {}ms", mip, System.currentTimeMillis() - startTime);
+            LOG.trace("Loaded MIP {}:{} in {}ms", bucketName, mip, System.currentTimeMillis() - startTime);
         }
     }
 

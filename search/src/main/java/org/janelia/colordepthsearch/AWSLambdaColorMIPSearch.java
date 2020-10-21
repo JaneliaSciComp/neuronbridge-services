@@ -68,21 +68,29 @@ class AWSLambdaColorMIPSearch {
                 .filter(libraryImage -> libraryImage != null)
                 .map(libraryImage -> {
                     LOG.trace("Compare {} with {}", maskImage, libraryImage);
-                    ColorMIPCompareOutput sr = maskComparator.runSearch(libraryImage.getImageArray());
-                    if (colorMIPSearch.isMatch(sr)) {
+                    try {
+                        ColorMIPCompareOutput sr = maskComparator.runSearch(libraryImage.getImageArray());
+                        if (colorMIPSearch.isMatch(sr)) {
+                            return new ColorMIPSearchResult(
+                                    maskMIP,
+                                    libraryImage.getMipInfo(),
+                                    sr.getMatchingPixNum(),
+                                    sr.getMatchingPixNumToMaskRatio(),
+                                    true,
+                                    false
+                            );
+                        } else {
+                            return new ColorMIPSearchResult(
+                                    maskMIP,
+                                    libraryImage.getMipInfo(),
+                                    0, 0, false, false);
+                        }
+                    } catch (Throwable e) {
+                        LOG.error("Error comparing mask {} with {}", maskMIP, libraryImage.getMipInfo(), e);
                         return new ColorMIPSearchResult(
                                 maskMIP,
                                 libraryImage.getMipInfo(),
-                                sr.getMatchingPixNum(),
-                                sr.getMatchingPixNumToMaskRatio(),
-                                true,
-                                false
-                        );
-                    } else {
-                        return new ColorMIPSearchResult(
-                                maskMIP,
-                                libraryImage.getMipInfo(),
-                                0, 0, false, false);
+                                0, 0, false, true);
                     }
                 })
                 .filter(ColorMIPSearchResult::isMatch)

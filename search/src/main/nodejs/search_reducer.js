@@ -1,7 +1,7 @@
 'use strict';
 
-const {getIntermediateSearchResultsKey, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getObject, sleep, putText, putObject, removeKey, DEBUG} = require('./utils');
+const {getIntermediateSearchResultsKey, getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
+const {getObject, sleep, getAllKeys, getObjectWithRetry, streamObject, removeKey, DEBUG} = require('./utils');
 const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 const mergeResults = (rs1, rs2) => {
@@ -47,8 +47,18 @@ exports.searchReducer = async (event, context) => {
     const searchInputFolder = event.searchInputFolder;
     const searchInputName = event.searchInputName;
     const numBatches = event.numBatches;
+    const maxResultsPerMask =  event.maxResultsPerMask;
 
     const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
+    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
+
+    // Fetch all keys
+    const allKeys  = await getAllKeys({
+        Bucket: bucket,
+        Prefix: intermediateSearchResultsPrefix
+    });
+    const allBatchResultsKeys = new Set(allKeys);
+
     let allBatchResults = {};
     let fail = [];
     for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
@@ -93,14 +103,22 @@ exports.searchReducer = async (event, context) => {
         throw new Error(e);
     }
 
+    const nTotalMatches = Object.values(allBatchResults).map(rsByMask => {
+        return rsByMask.results.length;
+    }).reduce((a, n) => a  + n, 0);
+
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
-        console.log(`Sort ${rsByMask.results.length} for ${rsByMask.maskId}`);
-        rsByMask.results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
+        const results = rsByMask.results;
+        console.log(`Sort ${results.length} for ${rsByMask.maskId}`);
+        results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
+        if (maxResultsPerMask && maxResultsPerMask > 0 && results.length > maxResultsPerMask) {
+            rsByMask.results = results.slice(0, maxResultsPerMask);
+        }
         return rsByMask;
     });
 
     // write down the results
-    const outputUri = await putObject(
+    const outputUri = await streamObject(
         bucket,
         getSearchResultsKey(fullSearchInputName),
         allMatches.length > 1
@@ -119,6 +137,7 @@ exports.searchReducer = async (event, context) => {
     await updateSearchMetadata({
         id: searchId,
         step: SEARCH_COMPLETED,
+        nTotalMatches: nTotalMatches,
         cdsFinished: now.toISOString()
     });
 

@@ -1,23 +1,127 @@
 'use strict';
 
+const AWS = require('aws-sdk');
 const moment = require('moment');
 
 const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getAllKeys, putText, DEBUG} = require('./utils');
-const {updateSearchMetadata} = require('./awsappsyncutils');
+const {getAllKeys, DEBUG} = require('./utils');
+const {getSearchMetadata, updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 
+const bc = new AWS.Batch({
+    apiVersion: '2016-08-10'
+});
 const SEARCH_TIMEOUT_SECS = process.env.SEARCH_TIMEOUT_SECS;
 
-exports.isSearchDone = async (event, context) => {
+exports.isSearchDone = async (event) =>  {
+    console.log(event);
+    try {
+        if (event.jobId) {
+            return await monitorAlignmentJob(event);
+        } else {
+            return await monitoCDSJob(event);
+        }
+    } catch (e) {
+        console.log('Error while checking if search completed', event, e);
+        await updateSearchMetadata({
+            id: event.searchId,
+            errorMessage: `Error while checking search status ${event.searchId} - ${e.message}`
+        });
+        return {
+            ...event,
+            completed: true,
+            withErrors: true
+        };
+    }
+}
+
+const monitorAlignmentJob = async (alignJobParams) => {
+    const searchId = alignJobParams.searchId;
+    const jobId = alignJobParams.jobId;
+
+    const jobDescriptions = await bc.describeJobs({
+        jobs: [jobId]
+    }).promise();
+    console.log('Jobs', jobDescriptions);
+    if (!jobDescriptions.jobs)  {
+        console.log('Something must have gone completely wrong - no jobs found for', alignJobParams);
+        await updateSearchMetadata({
+            id: searchId,
+            errorMessage: `No jobs found for ${jobId} created for search ${searchId}`
+        });
+        return {
+            ...alignJobParams,
+            completed: true,
+            withErrors: true
+        };
+    }
+    const job = jobDescriptions.jobs.find(j => j.jobId === jobId);
+    if (job) {
+        const timestamp = new Date();
+        if (job.status === 'SUCCEEDED') {
+            await updateSearchMetadata({
+                id: searchId,
+                step: ALIGNMENT_JOB_COMPLETED,
+                alignFinished: timestamp.toISOString()
+            });
+            return {
+                ...alignJobParams,
+                completed: true,
+                withErrors: false
+            };
+        } else if (job.status === 'FAILED') {
+            const searchMetadata = getSearchMetadata(searchId);
+            let errorMessage = searchMetadata.errorMessage;
+            if (job.attempts && job.attempts.length > 0) {
+                let reason = job.attempts[0].container && job.attempts[0].container.reason;
+                if (reason) {
+                    if (!!errorMessage) {
+                        errorMessage = `${errorMessage}; ${reason}`;
+                    } else {
+                        errorMessage = reason;
+                    }
+                }
+            }
+            if (!errorMessage) {
+                errorMessage = 'Alignment job failed';
+            }
+            await updateSearchMetadata({
+                id: searchId,
+                alignFinished: timestamp.toISOString(),
+                errorMessage: errorMessage
+            });
+            return {
+                ...alignJobParams,
+                completed: true,
+                withErrors: true
+            };
+        } else {
+            // job is still running
+            return {
+                ...alignJobParams,
+                completed: false,
+                withErrors: false
+            };
+        }
+    } else {
+        // job not found
+        console.log('No job not found for', alignJobParams);
+        return {
+            ...alignJobParams,
+            completed: true,
+            withErrors: true
+        };
+    }
+}
+
+const monitoCDSJob = async (cdsJobParams) => {
 
     // Parameters
-    if (DEBUG) console.log(event);
-    const bucket = event.bucket;
-    const searchId = event.searchId;
-    const searchInputFolder = event.searchInputFolder;
-    const searchInputName = event.searchInputName;
-    const numBatches = event.numBatches;
-    const startTime = moment(event.startTime);
+    const bucket = cdsJobParams.bucket;
+    const searchId = cdsJobParams.searchId;
+    const searchInputFolder = cdsJobParams.searchInputFolder;
+    const searchInputName = cdsJobParams.searchInputName;
+    const numBatches = cdsJobParams.numBatches;
+    const startTime = moment(cdsJobParams.startTime);
 
     if (!bucket) {
         throw new Error('Missing required key \'bucket\' in input to isSearchDone');
@@ -31,7 +135,8 @@ exports.isSearchDone = async (event, context) => {
     const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
 
     // Fetch all keys
-    const allKeys  = await getAllKeys({
+    console.log(`Fetching all keys in bucket ${bucket} with prefix ${intermediateSearchResultsPrefix}`)
+    const allKeys = await getAllKeys({
         Bucket: bucket,
         Prefix: intermediateSearchResultsPrefix
     });
@@ -62,21 +167,18 @@ exports.isSearchDone = async (event, context) => {
     if (numRemaining === 0) {
         console.log(`Search took ${elapsedSecs} seconds`);
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
             numRemaining: 0,
             completed: true,
             timedOut: false
         };
     } else if (elapsedSecs > SEARCH_TIMEOUT_SECS) {
-        console.log(`Search timed out after ${elapsedSecs} seconds`);
-        // update the error
-        await updateSearchMetadata({
-            id: searchId,
-            errorMessage: `Search timed out after ${elapsedSecs} seconds`
-        });
+        // we log the message but really not mark it as an error
+        // this will allow the work to continue but final results may not include all partial results
+        console.log(`Search timed out after ${elapsedSecs} seconds. Completed ${numComplete} of ${numBatches} jobs.`);
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
             numRemaining: numRemaining,
             completed: false,
@@ -85,7 +187,7 @@ exports.isSearchDone = async (event, context) => {
     } else {
         console.log(`Search still running after ${elapsedSecs} seconds. Completed ${numComplete} of ${numBatches} jobs.`);
         return {
-            ...event,
+            ...cdsJobParams,
             elapsedSecs: elapsedSecs,
             numRemaining: numRemaining,
             completed: false,

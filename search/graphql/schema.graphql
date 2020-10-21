@@ -5,8 +5,9 @@
 }
 
 type Query {
-    getSearch(id: ID!): Search @aws_cognito_user_pools @aws_iam
+    getSearch(id: ID!): Search @aws_cognito_user_pools @aws_iam @aws_auth(cognito_groups: ["neuronbridge-admin"])
     listSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam
+    listAllSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam @aws_auth(cognito_groups: ["neuronbridge-admin"])
 }
 
 type Mutation {
@@ -38,7 +39,9 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchType: SearchType
     algorithm: Algorithm
     anatomicalRegion: String
+    userDefinedImageParams: Boolean
     channel: Int
+    referenceChannel: String
     voxelX: Int
     voxelY: Int
     voxelZ: Int
@@ -48,14 +51,21 @@ type Search @aws_cognito_user_pools @aws_iam {
     xyShift: Int
     mirrorMask: Boolean
     minMatchingPixRatio: Int
+    maxResultsPerMask: Int
     mimeType: String
     nBatches: Int
     completedBatches: Int
+    nTotalMatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
+    alignStarted: AWSDateTime
+    alignFinished: AWSDateTime
+    displayableMask: String
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
+    simulateMIPGeneration: Boolean
+    uploadThumbnail: String
 }
 
 type SearchConnection @aws_cognito_user_pools @aws_iam {
@@ -84,13 +94,16 @@ enum SearchType {
 
 input CreateSearchInput {
     step: Int!
+    owner: String
     identityId: String!
-    searchType: SearchType!
+    searchType: SearchType
     searchDir: String!
     upload: String!
     algorithm: Algorithm
     anatomicalRegion: String
+    userDefinedImageParams: Boolean
     channel: Int
+    referenceChannel: String
     voxelX: Int
     voxelY: Int
     voxelZ: Int
@@ -100,8 +113,11 @@ input CreateSearchInput {
     xyShift: Int
     mirrorMask: Boolean
     minMatchingPixRatio: Int
+    maxResultsPerMask: Int
     mimeType: String
     searchMask: String
+    simulateMIPGeneration: Boolean
+    uploadThumbnail: String
 }
 
 input DeleteSearchInput {
@@ -110,11 +126,14 @@ input DeleteSearchInput {
 
 input TableSearchFilterInput {
     id: TableIDFilterInput
-    step: TableStringFilterInput
+    step: TableIntFilterInput
+    identityId: TableStringFilterInput
+    owner: TableStringFilterInput
     createdOn: TableDateFilterInput
     updatedOn: TableDateFilterInput
     searchType: TableStringFilterInput
     algorithm: TableStringFilterInput
+    errorMessage: TableStringFilterInput
     cdsStarted: TableDateFilterInput
     cdsFinished: TableDateFilterInput
 }
@@ -187,11 +206,25 @@ input TableStringFilterInput {
 input UpdateSearchInput {
     id: ID!
     step: Int
+    searchType: SearchType
+    owner: String
+    maskThreshold: Int
+    dataThreshold: Int
+    pixColorFluctuation: Float
+    xyShift: Int
+    mirrorMask: Boolean
+    minMatchingPixRatio: Int
+    maxResultsPerMask: Int
     nBatches: Int
     completedBatches: Int
+    nTotalMatches: Int
     cdsStarted: AWSDateTime
     cdsFinished: AWSDateTime
+    alignStarted: AWSDateTime
+    alignFinished: AWSDateTime
+    displayableMask: String
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
+    uploadThumbnail: String
 }

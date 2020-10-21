@@ -15,7 +15,6 @@ import java.util.stream.Collectors;
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 
-import org.apache.commons.lang3.RegExUtils;
 import org.janelia.colormipsearch.api.cdmips.MIPImage;
 import org.janelia.colormipsearch.api.cdmips.MIPMetadata;
 import org.janelia.colormipsearch.api.cdsearch.CDSMatches;
@@ -24,6 +23,7 @@ import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.janelia.colormipsearch.api.gradienttools.GradientAreaGapUtils;
 import org.janelia.colormipsearch.api.gradienttools.MaskGradientAreaGapCalculator;
 import org.janelia.colormipsearch.api.gradienttools.MaskGradientAreaGapCalculatorProvider;
+import org.janelia.colormipsearch.api.gradienttools.NegativeGradientScores;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.services.s3.S3Client;
@@ -150,27 +150,32 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                     matchedMIP.setImageName(csr.getImageName());
                     matchedMIP.setImageType(csr.getImageType());
                     MIPImage matchedImage = mipLoader.loadMIP(extractBucketName(csr.getImageURL()), matchedMIP);
-                    MIPImage matchedGradientImage = mipLoader.loadMIP(gradientsBucket, getAncillaryMIP(matchedMIP, gradientSuffix));
-                    MIPImage matchedZGapImage = mipLoader.loadFirstMatchingMIP(zgapsBucket, getAncillaryMIP(matchedMIP, zgapsSuffix), "png", "tif");
+                    MIPImage matchedGradientImage = mipLoader.loadMIP(gradientsBucket, getVariantMIP(matchedMIP, gradientSuffix));
+                    MIPImage matchedZGapImage = mipLoader.loadFirstMatchingMIP(zgapsBucket, getVariantMIP(matchedMIP, zgapsSuffix));
                     long areaGap;
+                    long highExpressionArea;
                     if (matchedImage != null && matchedGradientImage != null) {
                         // only calculate the area gap if the gradient exist
                         LOG.info("Calculate area gap for {}", csr);
-                        areaGap = gradientGapCalculator.calculateMaskAreaGap(
+                        NegativeGradientScores negativeGradientScores = gradientGapCalculator.calculateMaskAreaGap(
                                 matchedImage.getImageArray(),
                                 matchedGradientImage.getImageArray(),
                                 matchedZGapImage != null ? matchedZGapImage.getImageArray() : null);
-                        LOG.info("Area gap for {} -> {}", csr, areaGap);
+                        LOG.info("Negative score for {} -> {}", csr, negativeGradientScores);
+                        areaGap = negativeGradientScores.gradientAreaGap;
+                        highExpressionArea = negativeGradientScores.highExpressionArea;
                     } else {
                         areaGap = -1;
+                        highExpressionArea = -1;
                     }
                     csr.setGradientAreaGap(areaGap);
+                    csr.setHighExpressionArea(highExpressionArea);
                     return areaGap;
                 }, executor))
                 .collect(Collectors.toList());
         return CompletableFuture.allOf(areaGapComputations.toArray(new CompletableFuture<?>[0]))
                 .thenApply(vr -> {
-                    Integer maxMatchingPixels = selectedCDSResultsForInputMIP.stream()
+                    int maxMatchingPixels = selectedCDSResultsForInputMIP.stream()
                             .map(ColorMIPSearchMatchMetadata::getMatchingPixels)
                             .max(Integer::compare)
                             .orElse(0);
@@ -184,8 +189,9 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
                     if (maxAreaGap >= 0 && maxMatchingPixels > 0) {
                         selectedCDSResultsForInputMIP.stream().filter(csr -> csr.getGradientAreaGap() >= 0)
                                 .forEach(csr -> {
-                                    csr.setNormalizedGapScore(GradientAreaGapUtils.calculateAreaGapScore(
+                                    csr.setNormalizedGapScore(GradientAreaGapUtils.calculateNormalizedScore(
                                             csr.getGradientAreaGap(),
+                                            csr.getHighExpressionArea(),
                                             maxAreaGap,
                                             csr.getMatchingPixels(),
                                             csr.getMatchingRatio(),
@@ -202,16 +208,14 @@ public class AWSLambdaEM2LMGradientScoreCalc implements RequestHandler<GradientS
         return fullImagePath.getName(0).toString();
     }
 
-    private MIPMetadata getAncillaryMIP(MIPMetadata mip, String suffix) {
-        MIPMetadata ancilaryMIP = new MIPMetadata();
-        mip.copyTo(ancilaryMIP);
-        ancilaryMIP.setImageArchivePath(null);
-        ancilaryMIP.setImageName(RegExUtils.replacePattern(
-                mip.getImagePath().replace("searchable_neurons", suffix),
-                "\\..*$",
-                ".png")); // ancillary images use png
-        ancilaryMIP.setImageURL(null);
-        ancilaryMIP.setThumbnailURL(null);
-        return ancilaryMIP;
+    private MIPMetadata getVariantMIP(MIPMetadata mip, String variantFolderName) {
+        MIPMetadata variantMIP = new MIPMetadata();
+        mip.copyTo(variantMIP);
+        variantMIP.setImageArchivePath(null);
+        // only replace searchable_neurons with the specified variant folder name
+        variantMIP.setImageName(mip.getImagePath().replace("searchable_neurons", variantFolderName));
+        variantMIP.setImageURL(null);
+        variantMIP.setThumbnailURL(null);
+        return variantMIP;
     }
 }

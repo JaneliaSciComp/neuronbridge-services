@@ -7,11 +7,13 @@ import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.xray.AWSXRay;
 
+import org.apache.commons.lang3.StringUtils;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import software.amazon.awssdk.services.s3.S3Client;
 
 /**
@@ -26,6 +28,9 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
 
     @Override
     public Integer handleRequest(BatchSearchParameters params, Context context) {
+        if (StringUtils.isNotBlank(params.getSearchId())) {
+            MDC.put("searchId", params.getSearchId());
+        }
         verifyCDSParams(params);
         S3Client s3 = LambdaUtils.createS3();
         List<ColorMIPSearchResult> cdsResults = performColorDepthSearch(params, s3);
@@ -34,8 +39,12 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
     }
 
     private void verifyCDSParams(BatchSearchParameters params) {
-        LOG.debug("Received color depth search request: {}", LambdaUtils.toJson(params));
         AWSXRay.beginSubsegment("Read parameters");
+        LOG.debug("Received color depth search request: {}", LambdaUtils.toJson(params));
+        LOG.info("Monitor: {}", params.getMonitorName());
+        // This next log statement is parsed by the analyzer. DO NOT CHANGE.
+        LOG.info("Batch Id: {}", params.getBatchId());
+        LOG.info("Searching {} images using {} masks", params.getSearchKeys().size(), params.getMaskKeys().size());
         if (LambdaUtils.isEmpty(params.getSearchKeys())) {
             throw new IllegalArgumentException("No images to search");
         }
