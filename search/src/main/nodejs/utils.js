@@ -106,6 +106,22 @@ const getS3ContentMetadata = async (bucket, key) => {
     }
 };
 
+// Tag an existing object in S3
+const tagS3Content = async (Bucket, Key, Tags) => {
+    try {
+         console.log(`Tagging ${Bucket}:${Key} with ${Tags}`);
+         const res = await s3.putObjectTagging({Bucket: Bucket,
+                                                Key: Key,
+                                                Tagging: Tags
+                                               }).promise();
+         console.log(`Tagged ${Bucket}:${Key} with ${Tags}`, res);
+    } catch (e) {
+        console.error(`Error tagging ${Bucket}:${Key}`, e);
+        throw e;
+    }
+    return `s3://${Bucket}/${Key}`
+};
+
 const putObjectWithRetry = async (bucket, key, data, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {
