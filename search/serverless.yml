@@ -209,7 +209,7 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DISPATCH_FUNCTION_ARN: ${self:custom.dispatchFunction}
       SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
-      REDUCE_FUNCTION: ${self:resources.Outputs.SearchReduceLambdaFunction.Value}
+      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
@@ -233,6 +233,10 @@ functions:
     handler: org.janelia.colordepthsearch.BatchSearch
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
+      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
   search:
     runtime: nodejs12.x
@@ -245,9 +249,9 @@ functions:
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
-  searchReduce:
+  combiner:
     runtime: nodejs12.x
-    handler: src/main/nodejs/search_reducer_dynamodb.searchReducer
+    handler: src/main/nodejs/search_combiner.searchCombiner
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
@@ -350,17 +354,17 @@ stepFunctions:
 resources:
   Outputs:
     SearchLambdaFunction:
-      Description: The ARN of the saerch function
+      Description: The ARN of the search function
       Value:
         Ref: SearchLambdaFunction
     MonitorLambdaFunction:
       Description: The ARN of the monitor function
       Value:
         Ref: MonitorLambdaFunction
-    SearchReduceLambdaFunction:
-      Description: The ARN of the searchReduce function
+    CombinerLambdaFunction:
+      Description: The ARN of the combiner function
       Value:
-        Ref: SearchReduceLambdaFunction
+        Ref: CombinerLambdaFunction
     JobMonitorStateMachine:
       Description: The ARN of the jobMonitorStateMachine 
       Value:

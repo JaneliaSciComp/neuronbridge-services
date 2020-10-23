@@ -22,7 +22,7 @@ const mergeResults = (rs1, rs2) => {
     }
 }
 
-exports.searchReducer = async (event) => {
+exports.searchCombiner = async (event) => {
     // Parameters
     if (DEBUG) console.log(event);
     
@@ -67,9 +67,11 @@ exports.searchReducer = async (event) => {
         }
     }
 
-    const nTotalMatches = Object.values(allBatchResults).map(rsByMask => {
+    const matchCounts = Object.values(allBatchResults).map(rsByMask => {
         return rsByMask.results.length;
-    }).reduce((a, n) => a  + n, 0);
+    });
+
+    const nTotalMatches = matchCounts.reduce((a, n) => a  + n, 0);
 
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
         const results = rsByMask.results;
@@ -108,9 +110,11 @@ exports.searchReducer = async (event) => {
     if (!DEBUG) {
         const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
         await removeKey(searchBucket, intermediateSearchResultsPrefix);
-
         // TODO: delete items from DynamoDB using BatchWriteItem
     }
 
-    return event;
+    return {
+        ...event,
+        matchCounts
+    };
 }
