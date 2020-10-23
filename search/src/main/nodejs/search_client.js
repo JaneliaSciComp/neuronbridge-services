@@ -565,7 +565,7 @@ async function main () {
   const dispatchFunction = `burst-compute-${burstComputeStage}-dispatch`
   const stateMachineName = `burst-compute-${burstComputeStage}-lifecycle`
   const workerFunction = identifier + '-search'
-  const combinerFunction = identifier + '-searchReduce'
+  const combinerFunction = identifier + '-combiner'
 
   if (infile==="report") {
     const jobId = args[2]

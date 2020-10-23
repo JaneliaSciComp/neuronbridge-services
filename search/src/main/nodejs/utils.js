@@ -4,7 +4,6 @@ const AWSXRay = require('aws-xray-sdk-core');
 // const AWS = process.env.DISABLE_XRAY ? require('aws-sdk') : AWSXRay.captureAWS(require('aws-sdk'));
 const AWS = require('aws-sdk');
 const stream = require('stream');
-const url = require('url');
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
@@ -31,7 +30,7 @@ const getAllKeys = async params => {
 };
 
 // Retrieve a file from S3
-exports.getObjectDataArray = async (bucket, key, defaultValue) => {
+const getObjectDataArray = async (bucket, key, defaultValue) => {
     try {
         if (DEBUG)
             console.log(`Getting object from ${bucket}:${key}`);
@@ -310,9 +309,7 @@ const startStepFunction = async (uniqueName, stateMachineParams, stateMachineArn
 // Verify that key exists on S3
 const verifyKey = async (Bucket, Key) => {
     try {
-        const response = await s3.headObject({
-            Bucket,
-            Key}).promise();
+        await s3.headObject({Bucket, Key}).promise();
         console.log(`Found object ${Bucket}:${Key}`);
         return true;
     } catch (e) {
@@ -323,21 +320,22 @@ const verifyKey = async (Bucket, Key) => {
 
 module.exports = {
     DEBUG,
-    getAllKeys: getAllKeys,
-    getObject: getObject,
-    getObjectWithRetry: getObjectWithRetry,
-    getS3Content: getS3Content,
-    getS3ContentWithRetry: getS3ContentWithRetry,
-    putObjectWithRetry: putObjectWithRetry,
-    putObject: putObject,
-    putS3Content: putS3Content,
-    removeKey: removeKey,
-    streamObject: streamObject,
-    partition: partition,
-    invokeFunction: invokeFunction,
-    invokeAsync: invokeAsync,
-    startStepFunction: startStepFunction,
-    verifyKey: verifyKey,
+    getAllKeys,
+    getObject,
+    getObjectWithRetry,
+    getObjectDataArray,
+    getS3Content,
+    getS3ContentWithRetry,
+    putObjectWithRetry,
+    putObject,
+    putS3Content,
+    removeKey,
+    streamObject,
+    partition,
+    invokeFunction,
+    invokeAsync,
+    startStepFunction,
+    verifyKey,
     sleep,
     copyS3Content
 };

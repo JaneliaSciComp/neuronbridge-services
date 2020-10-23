@@ -3,21 +3,22 @@
 //ported from https://github.com/JaneliaSciComp/neuronbridge-services/commit/61266d14196dfc63ec739b257bda2bbcd193474b
 
 const AWS = require('aws-sdk');
-const AWSXRay = require('aws-xray-sdk-core');
 const tiff = require('geotiff');
 const path = require('path');
 const UPNG = require('./UPNG');
 
 const {GenerateColorMIPMasks, ColorMIPSearch} = require('./mipsearch');
-//const {getSearchMetadataKey, getIntermediateSearchResultsKey} = require('./searchutils');
-const {getObjectDataArray, getObject, putObject, invokeAsync, partition, verifyKey, DEBUG} = require('./utils');
-//const {getSearchMetadata, updateSearchMetadata, SEARCH_IN_PROGRESS} = require('./awsappsyncutils');
+const {getObjectDataArray, getObject} = require('./utils');
 
 exports.batchSearch = async (event) => {
 
     console.log(event);
 
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
+
+    // The next two log statements are parsed by the analyzer. DO NOT CHANGE.
+    console.log(`Job Id: ${jobId}`);
+    console.log(`Batch Id: ${batchId}`);
 
     const batchParams = {
         libraryBucket: jobParameters.libraryBucket,
@@ -32,8 +33,6 @@ exports.batchSearch = async (event) => {
         minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
     }
 
-    const segment = AWSXRay.getSegment();
-    let subsegment = segment.addNewSubsegment('Read parameters');
     if (batchParams.libraries == null) {
         console.log('No images to search');
         return 0;
@@ -53,18 +52,14 @@ exports.batchSearch = async (event) => {
     const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);    
     console.log(`Loaded ${searchKeys.length} search keys`);
 
-    subsegment.close();
-
-    subsegment = segment.addNewSubsegment('Read search');
-
-    console.log(`Comparing ${batchParams.maskKeys.length} masks with ${batchParams.searchKeys.length} library mips`);
+    console.log(`Comparing ${batchParams.maskKeys.length} masks with ${searchKeys.length} library mips`);
     let cdsResults = await findAllColorDepthMatches({
         maskKeys: batchParams.maskKeys,
         maskThresholds: batchParams.maskThresholds,
-        libraryKeys: batchParams.searchKeys,
-        awsMasksBucket: batchParams.maskPrefix,
-        awsLibrariesBucket: batchParams.searchPrefix,
-        awsLibrariesThumbnailsBucket: process.env.SEARCHED_THUMBNAILS_BUCKET || batchParams.searchPrefix,
+        libraryKeys: searchKeys,
+        awsMasksBucket: batchParams.searchBucket,
+        awsLibrariesBucket: batchParams.libraryBucket,
+        awsLibrariesThumbnailsBucket: process.env.SEARCHED_THUMBNAILS_BUCKET || batchParams.libraryBucket,
         dataThreshold: batchParams.dataThreshold,
         pixColorFluctuation: batchParams.pixColorFluctuation,
         xyShift: batchParams.xyShift,
@@ -73,36 +68,25 @@ exports.batchSearch = async (event) => {
     });
     console.log(`Found ${cdsResults.length} matches.`);
 
-    subsegment.close();
-
-    subsegment = segment.addNewSubsegment('Sort and save results');
-
     const matchedMetadata = cdsResults.map(perMaskMetadata)
         .sort(function(a, b) {return a.matchingPixels < b.matchingPixels ? 1 : -1;});
     const ret = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
 
     await writeCDSResults(ret, tasksTableName, jobId, batchId)
 
-    subsegment.close();
-
     return cdsResults.length;
 
 }
 
 const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => {
-
     const searchableTargetsPromise =  await libraries
-        .map(async l => {
+        .map(async key => {
             return await {
-                ...l,
-                searchableKeys: await getKeys(libraryBucket, l.lkey)
+                searchableKeys: await getKeys(libraryBucket, key)
             };
         });
     const searchableTargets = await Promise.all(searchableTargetsPromise);
-    const allTargets = searchableTargets
-        .flatMap(l => l.searchableKeys);
-
-        
+    const allTargets = searchableTargets.flatMap(l => l.searchableKeys);
     return allTargets.slice(startIndex, endIndex);
 }
 
