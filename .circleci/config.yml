@@ -61,6 +61,6 @@ workflows:
     build:
       jobs:
         - build-search-java:
-          <<: *staging_only
+          <<: *main_only
         - build-search-nodejs:
-          <<: *staging_only
+          <<: *main_only
