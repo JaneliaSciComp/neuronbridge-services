@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+
 /**
  * AWS Lambda Handler that performs a pairwise color depth search between all provided MIPs to be searched and all provided masks.
  * The handler writes down the result to s specified location and returns the number of found matches.

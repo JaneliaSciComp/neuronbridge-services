@@ -33,6 +33,7 @@ exports.getSearchMetadata = async (searchId) => {
                 identityId
                 searchDir
                 upload
+                uploadThumbnail
                 searchType
                 algorithm
                 userDefinedImageParams
@@ -99,6 +100,7 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
                     identityId
                     searchDir
                     upload
+                    uploadThumbnail
                     searchType
                     algorithm
                     userDefinedImageParams
@@ -151,6 +153,7 @@ exports.createSearchMetadata = async (searchData) => {
         identityId
         searchDir
         upload
+        uploadThumbnail
         searchType
         algorithm
         maskThreshold
@@ -197,6 +200,7 @@ exports.updateSearchMetadata = async (searchData) => {
                 identityId
                 searchDir
                 upload
+                uploadThumbnail
                 searchType
                 algorithm
                 maskThreshold

@@ -47,9 +47,13 @@ const reduceFunction = process.env.REDUCE_FUNCTION;
 const searchTimeoutSecs = process.env.SEARCH_TIMEOUT_SECS;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
+
 const maxParallelism = process.env.MAX_PARALLELISM || DEFAULTS.maxParallelism;
-const perDaySearchLimits = process.env.MAX_SEARCHES_PER_DAY || DEFAULTS.perDaySearchLimits;
-const concurrentSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || DEFAULTS.concurrentSearchLimits;
+const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
+const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
+const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1
+const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
+
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 
 const defaultBatchSize = () => {
@@ -198,7 +202,7 @@ const getNewRecords = async (e) => {
 }
 
 const startColorDepthSearch = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentSearchLimits, perDaySearchLimits);
+    const limitsMessage = await checkLimits(searchParams, concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits);
     if (limitsMessage) {
         console.log(`No color depth search started because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
@@ -207,9 +211,10 @@ const startColorDepthSearch = async (searchParams) => {
         });
         return {};
     }
+
     console.log("Start ColorDepthSearch", searchParams);
     const searchInputName = searchParams.searchMask ? searchParams.searchMask : searchParams.searchInputName;
-    if (searchInputName.endsWith(".tif") || searchInputName.endsWith(".tiff")) {
+    if (/\.(tiff?|gif|jpe?g|bmp)$/.test(searchInputName)) {
         const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchInputName}`;
         try {
             console.log(`Convert ${searchBucket}:${fullSearchInputImage} to PNG`);
@@ -371,7 +376,7 @@ const startColorDepthSearch = async (searchParams) => {
 }
 
 const startAlignment = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentSearchLimits, perDaySearchLimits);
+    const limitsMessage = await checkLimits(searchParams, concurrentAlignmentLimits, perDayAlignmentLimits);
     if (limitsMessage) {
         console.log(`No job invoked because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
@@ -410,8 +415,20 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
 }
 
 const submitAlignmentJob = async (searchParams) => {
+    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
+    const searchInputMetadata = await getS3ContentMetadata(searchBucket, fullSearchInputImage);
+    console.log('Search input metadata', searchInputMetadata);
+    const searchInputSize = searchInputMetadata.ContentLength;
+    const searchInputContentType = searchInputMetadata.ContentType;
+    let estimatedMemory;
+    if (searchInputContentType === 'application/zip') {
+        estimatedMemory = searchInputSize / (1024. * 1024.) * 8 * 3.5;
+    } else {
+        estimatedMemory = searchInputSize / (1024. * 1024.) * 3.5;
+    }
     const cpus = 16;
-    const mem = 16 * 1024; // 16M
+    const mem = Math.max(16 * 1024, Math.ceil(estimatedMemory));
+    console.log(`Estimated memory for ${fullSearchInputImage}: ${estimatedMemory}, allocated memory: ${mem}`);
     const jobResources = {
         'vcpus': cpus,
         'memory': mem,
@@ -420,7 +437,6 @@ const submitAlignmentJob = async (searchParams) => {
             value: mem + 'M'
         }]
     };
-    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const jobName = `align-${searchParams.id}`;
     let jobParameters = {
         search_id: searchParams.id,

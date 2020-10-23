@@ -112,6 +112,17 @@ const getS3ContentWithRetry = async (bucket, key, retries) => {
     }
 }
 
+const getS3ContentMetadata = async (bucket, key) => {
+    try {
+        if (DEBUG)
+            console.log(`Getting metadata for ${bucket}:${key}`);
+        return await s3.headObject({ Bucket: bucket, Key: key}).promise();
+    } catch (e) {
+        console.error(`Error getting metadata for ${bucket}:${key}`, e);
+        throw e; // rethrow it
+    }
+};
+
 const putObjectWithRetry = async (bucket, key, data, retries) => {
     for(let retry = 0; retry < retries; retry++) {
         try {

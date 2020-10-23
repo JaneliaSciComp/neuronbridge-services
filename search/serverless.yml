@@ -218,6 +218,8 @@ functions:
       MAX_PARALLELISM: ${self:custom.searchParallelization}
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
+      MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
       ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
     events:
       - httpApi:
@@ -296,20 +298,18 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
 
-  # em2lmGradScorer:
-  #   package:
-  #     artifact: target/neuronbridge-search-${self:custom.version}.jar
-  #   runtime: java8
-  #   handler: org.janelia.colordepthsearch.AWSLambdaEM2LMGradientScoreCalc
-  #   memorySize: 256
-  #   # 5 minute timeout
-  #   timeout: 300
-
+  em2lmGradScorer:
+    package:
+      artifact: target/neuronbridge-search-${self:custom.version}.jar
+    runtime: java8
+    handler: org.janelia.colordepthsearch.AWSLambdaEM2LMGradientScoreCalc
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
 
 stepFunctions:
   validate: true # enable pre-deployment definition validation
   stateMachines:
-      
     jobMonitorStateMachine:
       id: JobMonitorStateMachine
       name: jobMonitorStateMachine-${self:service}-${self:provider.stage}
