@@ -68,7 +68,7 @@ async function createDefaultChannel(searchData) {
   );
 
   // create a thumbnail of the uploaded image
-  const thumbnailName = 'upload_thumbnail.png';
+  const thumbnailName = "upload_thumbnail.png";
   const original = await Jimp.read(imageContent);
   const thumbnail = original.scaleToFit(150, 70);
   const thumbnailBuffer = await thumbnail.getBufferAsync(pngMime);
@@ -138,21 +138,66 @@ async function copyAlignment(searchData) {
   return { newSearchData, newSearchMeta };
 }
 
-async function createNewSearchFromMatch(matchId) {
+/*
+ *  Given an s3 image url and a users identity, this function will
+ *  copy that image into a new search record and set it up so that
+ *  the user can create a new mask and run a search.
+ */
+async function createNewSearchFromImage(image, event, identityId) {
   // generate a new id for the search directory
-  const newSearchDir = uuidv1();
+  const newSearchId = uuidv1();
   // create new search directory
-  // copy match image to upload
+  const newSearchFolder = `private/${identityId}/${newSearchId}`;
+  // convert image.imageURL to bucket location
+  const [, originalBucket, originalPath, originalImage] = image.imageURL.match(
+    /^.*s3.amazonaws.com\/([^/]*)(.*?)([^/]*)$/
+  );
+  // copy image to upload
+  await copyS3Content(
+    searchBucket,
+    `/${originalBucket}/${originalPath}/${originalImage}`,
+    `${newSearchFolder}/${originalImage}`
+  );
+
+  // convert image.thumbnailURL to new bucket location
+  const [, thumbnailBucket, thumbnailPath, thumbnailUpload] = image.thumbnailURL.match(
+    /^.*s3.amazonaws.com\/([^/]*)(.*?)([^/]*)$/
+  );
+  // copy image thumbnail to new bucket
+  await copyS3Content(
+    searchBucket,
+    `/${thumbnailBucket}/${thumbnailPath}/${thumbnailUpload}`,
+    `${newSearchFolder}/upload_thumbnail.png`
+  );
+  //
   // generate mip channel for this image
+  let channelName = originalImage.replace(/\.([^.]*)$/, "_1.$1");
+  const channelPath = `private/${identityId}/${newSearchId}/generatedMIPS/${channelName}`;
+  await copyS3Content(
+    searchBucket,
+    `/${originalBucket}/${originalPath}/${originalImage}`,
+    channelPath
+  );
+
   // create new data object to store in dynamoDB
+  const ownerId = event.requestContext.authorizer.jwt.claims.sub;
   // set step to mask selection
+  const newSearchData = {
+    step: ALIGNMENT_JOB_COMPLETED,
+    owner: ownerId,
+    identityId: identityId,
+    searchDir: newSearchFolder,
+    upload: originalImage,
+    simulateMIPGeneration: false,
+    uploadThumbnail: thumbnailUpload
+  };
+  // save new data object- in dynamoDB
+  const newSearchMeta = await createSearchMetadata(newSearchData);
+
+  return { event, image, identityId, newSearchMeta };
 }
 
-
-
-
-exports.searchCopy = async event => {
-  console.log(event);
+exports.searchCopy = async (event) => {
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,
@@ -162,15 +207,17 @@ exports.searchCopy = async event => {
 
   try {
     // get the search id from the post body
-    const { searchId, action } = JSON.parse(event.body);
-
-    // fetch search information from dynamoDB
-    const searchData = await getSearchRecord(searchId);
-
+    const { searchId, action, image, identityId } = JSON.parse(event.body);
     if (action === "create_default_channel") {
+      // fetch search information from dynamoDB
+      const searchData = await getSearchRecord(searchId);
       returnBody = await createDefaultChannel(searchData);
     } else if (action === "alignment_copy") {
+      // fetch search information from dynamoDB
+      const searchData = await getSearchRecord(searchId);
       returnBody = await copyAlignment(searchData);
+    } else if (action === "new_search_from_image") {
+      returnBody = await createNewSearchFromImage(image, event, identityId);
     }
   } catch (error) {
     returnObj.statusCode = 500;
