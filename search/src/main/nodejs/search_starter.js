@@ -4,7 +4,12 @@ const AWS = require('aws-sdk');
 const Jimp = require('jimp');
 const {getSearchKey, getSearchMaskId} = require('./searchutils');
 const {getS3ContentWithRetry, getS3ContentMetadata, invokeAsync, putS3Content, startStepFunction} = require('./utils');
-const {getSearchMetadata, updateSearchMetadata, lookupSearchMetadata, ALIGNMENT_JOB_SUBMITTED, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
+const {
+    getSearchMetadata,
+    updateSearchMetadata,
+    lookupSearchMetadata,
+    ALIGNMENT_JOB_SUBMITTED, ALIGNMENT_JOB_COMPLETED, SEARCH_IN_PROGRESS
+} = require('./awsappsyncutils');
 const {generateMIPs} = require('./mockMIPGeneration');
 
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
@@ -50,10 +55,28 @@ exports.searchStarter = async (event) => {
         });
     const results = await Promise.all(searchPromises);
     if (sourceIsHttpApiGateway) {
+        console.log('Returned results:', results);
+        const statusResult = results.find(r => !!r.errorMessage);
+        let httpStatusCode;
+        let returnedResults;
+        if (statusResult && !!statusResult.errorMessage) {
+            httpStatusCode = 403;
+            returnedResults = {
+                errorMessage: statusResult.errorMessage,
+                submissionResults: results
+            };
+        } else {
+            httpStatusCode = 200;
+            returnedResults = results;
+        }
+
         return {
+            statusCode: httpStatusCode,
             isBase64Encoded: false,
-            statusCode: 200,
-            body: JSON.stringify(results)
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(returnedResults)
         }
     } else {
         return results;
@@ -93,14 +116,16 @@ const getNewRecords = async (e) => {
 }
 
 const startColorDepthSearch = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits);
+    const limitsMessage = await checkLimits(searchParams, concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits, s => s.step === SEARCH_IN_PROGRESS);
     if (limitsMessage) {
         console.log(`No color depth search started because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
             errorMessage: `Color depth search was not started because ${limitsMessage}`
         });
-        return {};
+        return {
+            errorMessage: `Color depth search was not started because ${limitsMessage}`
+        };
     } else {
         console.log('Start ColorDepthSearch', searchParams);
         const searchInputName = searchParams.searchMask
@@ -141,14 +166,16 @@ const startColorDepthSearch = async (searchParams) => {
 }
 
 const startAlignment = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentAlignmentLimits, perDayAlignmentLimits);
+    const limitsMessage = await checkLimits(searchParams, concurrentAlignmentLimits, perDayAlignmentLimits, s => s.step === ALIGNMENT_JOB_SUBMITTED);
     if (limitsMessage) {
         console.log(`No job invoked because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
             errorMessage: `Alignment was not started because ${limitsMessage}`
         });
-        return {};
+        return {
+            errorMessage: `Alignment was not started because ${limitsMessage}`
+        };
     } else {
         if (searchParams.simulateMIPGeneration) {
             return await generateMIPs(searchParams);
@@ -158,7 +185,7 @@ const startAlignment = async (searchParams) => {
     }
 }
 
-const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
+const checkLimits = async (searchParams, concurrentSearches, perDayLimits, searchesFilter) => {
     if (concurrentSearches < 0 && perDayLimits < 0) {
         // no limits
         return null;
@@ -173,7 +200,7 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits) => {
     if (perDayLimits >= 0 && searches.length >= perDayLimits) {
         return `it already reached the daily limits`;
     }
-    const currentSearches =  searches.filter(s => s.step < 4);
+    const currentSearches =  searches.filter(searchesFilter);
     if (concurrentSearches >= 0 && currentSearches.length >=  concurrentSearches) {
         return `it is already running ${currentSearches.length} searches - the maximum allowed concurrent searches`;
     }

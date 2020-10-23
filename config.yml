@@ -11,4 +11,4 @@ config:
   concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 20}
   concurrentAlignmentLimits: ${env:CONCURRENT_ALIGNMENT_LIMITS, 1}
   tracing: true
-  debug: true
+  debug: ${env:DEBUG, false}
