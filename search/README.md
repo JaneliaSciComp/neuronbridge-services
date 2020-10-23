@@ -1,3 +1,26 @@
+# NeuronBridge Color Depth Search
+
+The color depth search is run in parallel using the [burst compute](https://github.com/JaneliaSciComp/burst-compute) framework.
+
+## Unit testing
+
+Simply run:
+```
+npm test
+```
+
+## Integration testing
+
+This runs a local client which invokes the search dispatch, waits for the search to run, and then analyzes the search performance and produces an HTML report.
+
+```
+npm run search janelia-neuronbridge-cds-dev src/test/resources/test1.json
+npm run search janelia-neuronbridge-cds-dev report <jobId>
+open timeline.html
+```
+
+You can then open the report json using [burst-compute's timeline.html](https://github.com/JaneliaSciComp/burst-compute/blob/master/timeline.html).
+
 ## Test Event for Color Depth Search Dispatch:
 
 ```
@@ -35,17 +58,3 @@ as below:
 }
 ```
 
-## Unit testing
-
-Simply run:
-```
-npm test
-```
-
-## Integration testing
-
-This runs a local client which invokes the search dispatch, waits for the search to run, and then analyzes the search performance in various ways.
-
-```
-npm run-script search janelia-neuronbridge-cds-dev src/test/resources/test1.json
-```
