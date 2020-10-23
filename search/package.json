@@ -2,6 +2,7 @@
   "name": "neuronbridge-cds-service",
   "description": "Backend color depth search service for NeuronBridge",
   "version": "0.1.0",
+  "private": true,
   "scripts": {
     "sls": "./node_modules/serverless/bin/serverless.js",
     "test": "jest",
