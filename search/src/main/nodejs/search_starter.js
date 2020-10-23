@@ -285,6 +285,8 @@ const submitAlignmentJob = async (searchParams) => {
             step: ALIGNMENT_JOB_SUBMITTED,
             errorMessage: `Error submitting alignment job for ${searchParams.id}:${fullSearchInputImage} - ${submitError.message}`
         });
-        throw submitError;
+        return {
+            errorMessage: `Error submitting alignment job: ${submitError.message}`
+        };
     }
 }
