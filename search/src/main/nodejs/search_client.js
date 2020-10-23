@@ -2,7 +2,7 @@
 //
 // Usage:
 // npm run-script search <stackName> <inputfile> [batchSize] [numLevels]
-// npm run-script search <stackName> report [monitorName]
+// npm run-script search <stackName> report [jobId]
 //
 'use strict'
 const util = require('util')
@@ -105,61 +105,166 @@ async function getStreams(functionName, startTime, endTime) {
   return logStreams
 }
 
+function isStart(logEvent) {
+  return logEvent.message.startsWith('START ')
+}
+
+function isEnd(logEvent) {
+  return logEvent.message.startsWith('END ')
+}
+
+function isReport(logEvent) {
+  return logEvent.message.startsWith('REPORT ')
+}
+
+function getRequestId(logEvent, requests) {
+  // First check for a START message where the request id is easily parsed
+  //START RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Version: $LATEST 
+  const match = logEvent.message.match(/START RequestId: (\S+) /);
+  if (match) {
+    return match[1]
+  }
+  else if (requests) {
+    // Are any of the known request ids present in the log line?
+    for(let requestId of Object.keys(requests)) {
+      if (logEvent.message.indexOf(requestId) > 0) {
+        return requestId
+      }
+    }
+  }
+  else {
+    console.log('WARNING: no valid request id found in:', logEvent)
+    return null
+  }
+}
+
+function parseReport(logEvent) {
+  //REPORT RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Duration: 28823.03 ms Billed Duration: 28900 ms Memory Size: 384 MB Max Memory Used: 181 MB Init Duration: 601.37 ms 
+  const match = logEvent.message.match(/.*?Duration: ([\d.]+ \w+)\s+Billed Duration: ([\d.]+ \w+)\s+Memory Size: (\d+ \w+)\s+Max Memory Used: (\d+ \w+)(\s+Init Duration: ([\d.]+ \w+))?/);
+  if (!match) {
+    console.log('Could not parse report: ', logEvent.message)
+    return {}
+  }
+  const report = {
+    duration: match[1],
+    billedBuration: match[2],
+    memorySize: match[3],
+    maxMemoryUsed: match[4]
+  }
+  if (match.length > 6) {
+    report.initDuration = match[6]
+  }
+  return report
+}
+
+async function getRequestLogs(logGroupName, logStreamName) {
+  const requests = {}
+  const logEventsParams = {
+    logGroupName: logGroupName,
+    logStreamName: logStreamName,
+    startFromHead: true
+  }
+  do {
+    const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
+    logEventsParams.nextToken = eventsResponse.nextToken
+    for(const logEvent of eventsResponse.events) {
+      if (isStart(logEvent)) {
+        const requestId = getRequestId(logEvent)
+        requests[requestId] = {
+          firstEventTime: Number.MAX_SAFE_INTEGER,
+          lastEventTime: 0,
+          logEvents: []
+        }
+      }
+      else if (isEnd(logEvent)) {
+        // Ignore
+      }
+      else if (isReport(logEvent)) {
+        const requestId = getRequestId(logEvent, requests)
+        const report = parseReport(logEvent)
+        requests[requestId].report = report
+      }
+      else {
+        const requestId = getRequestId(logEvent, requests)
+        const r = requests[requestId]
+        if (r) {
+          if (logEvent.timestamp < r.firstEventTime) {
+            r.firstEventTime = logEvent.timestamp
+          }
+          if (logEvent.timestamp > r.lastEventTime) {
+            r.lastEventTime = logEvent.timestamp
+          }
+          r.logEvents.push(logEvent)
+        }
+        else {
+          if (DEBUG) console.log(`No such request: ${requestId}`)
+        }
+      }
+    }
+    await sleep(50) // try to avoid rate limiting
+  } while (logEventsParams.nextToken)
+
+  return requests
+}
+
 // Generate a complete performance report for a burst-parallel execution
-async function report(dispatchFunction, searchFunction, stateMachineName, monitorUniqueName) {
+async function report(dispatchFunction, searchFunction, stateMachineName, jobId) {
 
-  const execution = await waitForMonitor(stateMachineName, monitorUniqueName)
-
+  const execution = await waitForMonitor(stateMachineName, jobId)
   if (execution.status!=='SUCCEEDED') {
     console.log(`Search status is ${execution.status}`)
     return
   }
 
   // State machine (and thus search) is now complete
-  console.log('Reporting on ' + monitorUniqueName)
+  console.log('Reporting on ' + jobId)
 
   let input = null
   const stages = []
 
   // Analyze state machine step history
-  let searchStarted = null;
+  let searchStarted = null
   let stateMachineStarted = null
   let stateMachineEnded = null
-  let reduceStarted = null
-  let reduceEnded = null
+  let combinerStarted = null
+  let combinerEnded = null
   let totalTasks = null
   let currState = null
   let monitorStarted = null
-  let monitorName = null
-  let reducerLogGroupName = null
+  let combinerLogGroupName = null
+  let monitorLogGroupName = null
   console.log("Step function history:");
+
   await forExecutionHistory(execution.executionArn, event => {
+    //console.log(event)
     if (event.type === 'ExecutionStarted') {
       stateMachineStarted = event.timestamp
     } else if (event.type === 'ExecutionSucceeded') {
       stateMachineEnded = event.timestamp
-    } else if (event.type === 'LambdaFunctionScheduled') {
+    } else if (event.type === 'TaskScheduled') {
       if (currState=='Monitor') {
         monitorStarted = event.timestamp
+        const parameters = JSON.parse(event.taskScheduledEventDetails.parameters)
+        monitorLogGroupName = '/aws/lambda/'+parameters.FunctionName
       }
-      else if (currState=='Reduce') {
-        reducerLogGroupName = '/aws/lambda/'+event.lambdaFunctionScheduledEventDetails.resource.split(':').pop()
+      else if (currState=='Combine') {
+        const parameters = JSON.parse(event.taskScheduledEventDetails.parameters)
+        combinerLogGroupName = '/aws/lambda/'+parameters.FunctionName
       }
-    } else if (event.type === 'LambdaFunctionSucceeded') {
+    } else if (event.type === 'TaskSucceeded') {
+      const output = JSON.parse(event.taskSucceededEventDetails.output).Payload
       if (currState=='Monitor') {
-        const output = JSON.parse(event.lambdaFunctionSucceededEventDetails.output)
-        monitorName = `Monitor (${output.numRemaining})`
         stages.push({
           category: "Overview",
-          name: monitorName,
+          name: `Monitor (${output.numRemaining})`,
+          logGroupName: monitorLogGroupName,
           start: monitorStarted,
           end: event.timestamp
         })
       }
-      if (reduceStarted && !reduceEnded) {
-        reduceEnded = event.timestamp
+      if (combinerStarted && !combinerEnded) {
+        combinerEnded = event.timestamp
       } else {
-        const output = JSON.parse(event.lambdaFunctionSucceededEventDetails.output)
         if (searchStarted==null) {
           searchStarted = new Date(output.startTime);
         }
@@ -170,8 +275,8 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       }
     } else if (event.type === 'TaskStateEntered') {
       currState = event.stateEnteredEventDetails.name
-      if (currState === 'Reduce') {
-        reduceStarted = event.timestamp
+      if (currState === 'Combine') {
+        combinerStarted = event.timestamp
       }
     }
     return true
@@ -186,108 +291,12 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
 
   stages.push({
     category: "Overview",
-    name: "Reducer",
-    logGroupName: reducerLogGroupName,
-    start: reduceStarted,
-    end: reduceEnded
+    name: "Combiner",
+    logGroupName: combinerLogGroupName,
+    start: combinerStarted,
+    end: combinerEnded
   })
   
-  function isStart(logEvent) {
-    return logEvent.message.startsWith('START ')
-  }
-
-  function isEnd(logEvent) {
-    return logEvent.message.startsWith('END ')
-  }
-
-  function isReport(logEvent) {
-    return logEvent.message.startsWith('REPORT ')
-  }
-
-  function getRequestId(logEvent, requests) {
-    // First check for a START message where the request id is easily parsed
-    //START RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Version: $LATEST 
-    const match = logEvent.message.match(/RequestId: (\S+) /);
-    if (match) {
-      return match[1]
-    }
-    else if (requests) {
-      // Are any of the known request ids present in the log line?
-      for(let requestId of Object.keys(requests)) {
-        if (logEvent.message.indexOf(requestId) > 0) {
-          return requestId
-        }
-      }
-    }
-    else {
-      console.log('WARNING: no valid request id found in:', logEvent)
-      return null
-    }
-  }
-
-  function parseReport(logEvent) {
-    //REPORT RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Duration: 28823.03 ms Billed Duration: 28900 ms Memory Size: 384 MB Max Memory Used: 181 MB Init Duration: 601.37 ms 
-    const match = logEvent.message.match(/.*?Duration: ([\d.]+ \w+)\s+Billed Duration: ([\d.]+ \w+)\s+Memory Size: (\d+ \w+)\s+Max Memory Used: (\d+ \w+)(\s+Init Duration: ([\d.]+ \w+))?/);
-    if (!match) {
-      console.log('Could not parse report: ', logEvent.message)
-      return {}
-    }
-    const report = {
-      duration: match[1],
-      billedBuration: match[2],
-      memorySize: match[3],
-      maxMemoryUsed: match[4]
-    }
-    if (match.length > 6) {
-      report.initDuration = match[6]
-    }
-    return report
-  }
-
-  async function getRequestLogs(logGroupName, logStreamName) {
-    const requests = {}
-    const logEventsParams = {
-      logGroupName: logGroupName,
-      logStreamName: logStreamName,
-      startFromHead: true
-    }
-    do {
-      const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise()
-      logEventsParams.nextToken = eventsResponse.nextToken
-      for(const logEvent of eventsResponse.events) {
-        if (isStart(logEvent)) {
-          const requestId = getRequestId(logEvent)
-          requests[requestId] = {
-            firstEventTime: Number.MAX_SAFE_INTEGER,
-            lastEventTime: 0,
-            logEvents: []
-          }
-        }
-        else if (isEnd(logEvent)) {
-          // Ignore
-        }
-        else if (isReport(logEvent)) {
-          const requestId = getRequestId(logEvent, requests)
-          const report = parseReport(logEvent)
-          requests[requestId].report = report
-        }
-        else {
-          const requestId = getRequestId(logEvent, requests)
-          const r = requests[requestId]
-          if (logEvent.timestamp < r.firstEventTime) {
-            r.firstEventTime = logEvent.timestamp
-          }
-          if (logEvent.timestamp > r.lastEventTime) {
-            r.lastEventTime = logEvent.timestamp
-          }
-          r.logEvents.push(logEvent)
-        }
-      }
-      await sleep(50) // try to avoid rate limiting
-    } while (logEventsParams.nextToken)
-
-    return requests
-  }
 
   console.log('Fetching dispatcher log streams...')
   const dispatcherLogStreams = await getStreams(dispatchFunction, new Date(stateMachineStarted.getTime() - STATE_MACHINE_START_TIME_ESTIMATE), stateMachineEnded)
@@ -299,9 +308,6 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   const dispatchElapsedTimes = []
   for (const logStream of dispatcherLogStreams) {
     
-    const elapsedMs = logStream.lastEventTimestamp - logStream.firstEventTimestamp
-    dispatchElapsedTimes.push(elapsedMs)
-
     const logGroupName = `/aws/lambda/${dispatchFunction}`
     const logStreamName = logStream.logStreamName
     const requests = await getRequestLogs(logGroupName, logStreamName)
@@ -311,7 +317,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
 
       let rootDispatcher = false
       let inputEvent = null
-      let monitorId = null
+      let dispatcherJobId = null
 
       for(const logEvent of r.logEvents) {
 
@@ -319,9 +325,9 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
           rootDispatcher = true
         }
 
-        const monitorSplit = logEvent.message.split('Monitor: ');
-        if (monitorSplit.length>1) {
-          monitorId = monitorSplit[1].trim()
+        const jobIdSplit = logEvent.message.split('Job Id: ');
+        if (jobIdSplit.length>1) {
+          dispatcherJobId = jobIdSplit[1].trim()
         }
 
         const dispatchSplit = logEvent.message.split('Dispatching Batch Id: ');
@@ -336,14 +342,14 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
         }
       }
 
-      if (monitorId) {
-        if (monitorId!==monitorUniqueName) {
-          if (TRACE) console.log(`DEBUG: wrong monitor name ${monitorId} in ${logStreamName}/${requestId}`)
+      if (dispatcherJobId) {
+        if (dispatcherJobId!==jobId) {
+          if (TRACE) console.log(`DEBUG: wrong job id ${dispatcherJobId} in ${logStreamName}/${requestId}`)
           continue
         }
       }
       else {
-        console.log(`No monitor id found in ${logStreamName}/${requestId}`)
+        console.log(`No job id found in ${logStreamName}/${requestId}`)
       }
 
       if (r.firstEventTime < firstDispatcherTime) {
@@ -356,6 +362,9 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       if (rootDispatcher && inputEvent) {
         input = JSON.parse(inputEvent)
       }
+
+      const elapsedMs = r.lastEventTime - r.firstEventTime
+      dispatchElapsedTimes.push(elapsedMs)
 
       stages.push({
         category: "Dispatchers",
@@ -395,20 +404,17 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
     const logStreamName = logStream.logStreamName
     const requests = await getRequestLogs(logGroupName, logStreamName)
 
-    const elapsedMs = logStream.lastEventTimestamp - logStream.firstEventTimestamp
-    workerElapsedTimes.push(elapsedMs)
-
     let batchId = null
-    let monitorId = null
+    let workerJobId = null
 
     for(const requestId of Object.keys(requests)) {
       const r = requests[requestId]
 
       for(const logEvent of r.logEvents) {
 
-        const monitorSplit = logEvent.message.split('Monitor: ');
-        if (monitorSplit.length>1) {
-          monitorId = monitorSplit[1].trim()
+        const jobIdSplit = logEvent.message.split('Job Id: ');
+        if (jobIdSplit.length>1) {
+          workerJobId = jobIdSplit[1].trim()
         }
 
         const batchIdSplit = logEvent.message.split('Batch Id: ');
@@ -418,14 +424,14 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
         }
       }
 
-      if (monitorId) {
-        if (monitorId!==monitorUniqueName) {
-          if (TRACE) console.log(`DEBUG: wrong monitor name ${monitorId} in ${logStreamName}/${requestId}`)
+      if (workerJobId) {
+        if (workerJobId!==jobId) {
+          if (TRACE) console.log(`DEBUG: wrong job id ${workerJobId} in ${logStreamName}/${requestId}`)
           continue
         }
       }
       else {
-        console.log(`No monitor id found in ${logStreamName}/${requestId}`)
+        console.log(`No job id found in ${logStreamName}/${requestId}`)
       }
 
 
@@ -435,7 +441,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       if (r.lastEventTime > lastWorkerTime) {
         lastWorkerTime = r.lastEventTime
       }
-  
+
       if (batchId==null) {
         console.log(`WARNING: could not find batch id in ${logStreamName}/${requestId}`);
       }
@@ -446,26 +452,30 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
       else {
         console.log(`WARNING: missing dispatch time for batch ${batchId}`);
       }
-  
+
+      const elapsedMs = r.lastEventTime - r.firstEventTime
+      workerElapsedTimes.push(elapsedMs)
+
       stages.push({
         category: "Workers",
         name: "Worker "+batchId,
         logGroupName: logGroupName,
         logStreamName: logStream.logStreamName,
         start: new Date(r.firstEventTime),
-        end: new Date(r.lastEventTime)
+        end: new Date(r.lastEventTime),
+        report: r.report
       })
     }
   }
 
   const totalElapsed = stateMachineEnded.getTime() - searchStarted.getTime()
   const totalStateMachineElapsed = stateMachineEnded.getTime() - stateMachineStarted.getTime()
-  const totalSearchElapsed = reduceStarted.getTime() - firstDispatcherTime
-  const totalReducerElapsed = reduceEnded.getTime() - reduceStarted.getTime()
+  const totalSearchElapsed = combinerStarted.getTime() - firstDispatcherTime
+  const totalCombinerElapsed = combinerEnded.getTime() - combinerStarted.getTime()
   const dispatcherElapsed = lastDispatcherTime - firstDispatcherTime
   const searchWorkerElapsed = lastWorkerTime - firstWorkerTime
-  const totalReducerDelay = reduceStarted.getTime() - lastWorkerTime
-  const userTimeElapsed = reduceEnded.getTime() - stateMachineStarted.getTime()
+  const totalCombinerDelay = combinerStarted.getTime() - lastWorkerTime
+  const userTimeElapsed = combinerEnded.getTime() - stateMachineStarted.getTime()
 
   stages.push({
     category: "Overview",
@@ -502,12 +512,12 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
     }
   })
 
-  if (totalReducerDelay > 0) {
+  if (totalCombinerDelay > 0) {
     stages.push({
       category: "Overview",
-      name: "Reducer Delay",
+      name: "Combiner Delay",
       start: new Date(lastWorkerTime),
-      end: reduceStarted
+      end: combinerStarted
     })
   }
 
@@ -534,10 +544,10 @@ async function report(dispatchFunction, searchFunction, stateMachineName, monito
   console.log(`          searchWorkerMin:    ${pad(min(workerElapsedTimes))}`)
   console.log(`          searchWorkerMax:    ${pad(max(workerElapsedTimes))}`)
   console.log(``)
-  if (totalReducerDelay > 0) {
-    console.log(`        totalReducerDelay:    ${pad(totalReducerDelay)}`)
+  if (totalCombinerDelay > 0) {
+    console.log(`        totalCombinerDelay:    ${pad(totalCombinerDelay)}`)
   }
-  console.log(`      totalReducerElapsed:    ${pad(totalReducerElapsed)}`)
+  console.log(`      totalCombinerElapsed:    ${pad(totalCombinerElapsed)}`)
   
   return {
     input: input,
@@ -551,16 +561,17 @@ async function main () {
   const identifier = args[0]
   const infile = args[1]
 
-  const dispatchFunction = identifier + '-searchDispatch'
-  const searchFunction = identifier + '-search'
-  const stateMachineName = 'searchMonitorStateMachine-' + identifier
+  const burstComputeStage = 'dev'
+  const dispatchFunction = `burst-compute-${burstComputeStage}-dispatch`
+  const stateMachineName = `burst-compute-${burstComputeStage}-lifecycle`
+  const workerFunction = identifier + '-search'
+  const combinerFunction = identifier + '-combiner'
 
   if (infile==="report") {
-    
-    const monitorName = args[2]
-    const reportObj = await report(dispatchFunction, searchFunction, stateMachineName, monitorName)
+    const jobId = args[2]
+    const reportObj = await report(dispatchFunction, workerFunction, stateMachineName, jobId)
     if (reportObj) {
-      const outfile = monitorName+".json"
+      const outfile = jobId+".json"
       fs.writeFileSync(outfile, JSON.stringify(reportObj, null, 2))
       console.log(`Wrote report to ${outfile}`)
       console.log(`To analyze, open timeline.html and load the JSON data file.`)
@@ -570,12 +581,23 @@ async function main () {
     const searchParamsJson = await readFile(infile, 'utf8')
     const searchParams = JSON.parse(searchParamsJson)
 
-    if (args.length==4) {
-      searchParams["batchSize"] = Number.parseInt(args[2])
-      searchParams["numLevels"] = Number.parseInt(args[3])
+    if (args.length!=4) {
+      console.log("4 parameters are required")
+      return
     }
 
-    const cdsInvocationResult = await invokeFunction(dispatchFunction, searchParams)
+    const params = {
+      workerFunctionName: workerFunction,
+      combinerFunctionName: combinerFunction,
+      jobParameters: searchParams,
+      startIndex: 0,
+      endIndex: 44592,
+      batchSize: Number.parseInt(args[2]),
+      numLevels: Number.parseInt(args[3]),
+      searchTimeoutSecs: 120,
+    }
+
+    const cdsInvocationResult = await invokeFunction(dispatchFunction, params)
 
     if (cdsInvocationResult.FunctionError) {
       console.log('Error:', cdsInvocationResult.FunctionError)
@@ -593,12 +615,12 @@ async function main () {
     }
 
     const response = JSON.parse(cdsInvocationResult.Payload)
-    const execution = await waitForMonitor(stateMachineName, response.monitorUniqueName)
+    const execution = await waitForMonitor(stateMachineName, response.jobId)
       
-    if (execution.status==='SUCCEEDED') {
+    if (execution && execution.status==='SUCCEEDED') {
       console.log("Search complete.")
       console.log("Results may lag due to eventual consistency. To attempt analysis, run:")
-      console.log(`npm run-script search ${identifier} report ${response.monitorUniqueName}`)
+      console.log(`npm run-script search ${identifier} report ${response.jobId}`)
     }
     else {
       // Search failed, try to find out why...

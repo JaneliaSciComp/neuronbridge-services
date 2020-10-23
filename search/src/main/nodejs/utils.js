@@ -29,6 +29,23 @@ const getAllKeys = async params => {
     return allKeys;
 };
 
+// Retrieve a file from S3
+const getObjectDataArray = async (bucket, key, defaultValue) => {
+    try {
+        if (DEBUG)
+            console.log(`Getting object from ${bucket}:${key}`);
+        const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
+        return response.Body.buffer;
+    } catch (e) {
+        console.error(`Error getting object ${bucket}:${key}`, e);
+        if (defaultValue === undefined) {
+            throw e; // rethrow it
+        } else {
+            return defaultValue;
+        }
+    }
+};
+
 // Retrieve a JSON file from S3
 const getObject = async (bucket, key, defaultValue) => {
     try {
@@ -128,7 +145,7 @@ const putObject = async (Bucket, Key, data) => {
         const res =  await s3.putObject({
             Bucket,
             Key,
-            Body: JSON.stringify(data),
+            Body: JSON.stringify(data, null , "\t"),
             ContentType: 'application/json'
         }).promise();
         if (DEBUG) {
@@ -262,7 +279,7 @@ const invokeFunction = async (functionName, parameters) => {
     const params = {
         FunctionName: functionName,
         Payload: JSON.stringify(parameters),
-        //LogType: "Tail"
+        LogType: "Tail"
     };
     try {
         return await lambda.invoke(params).promise();
@@ -303,9 +320,7 @@ const startStepFunction = async (uniqueName, stateMachineParams, stateMachineArn
 // Verify that key exists on S3
 const verifyKey = async (Bucket, Key) => {
     try {
-        const response = await s3.headObject({
-            Bucket,
-            Key}).promise();
+        await s3.headObject({Bucket, Key}).promise();
         console.log(`Found object ${Bucket}:${Key}`);
         return true;
     } catch (e) {
@@ -316,21 +331,22 @@ const verifyKey = async (Bucket, Key) => {
 
 module.exports = {
     DEBUG,
-    getAllKeys: getAllKeys,
-    getObject: getObject,
-    getObjectWithRetry: getObjectWithRetry,
-    getS3Content: getS3Content,
-    getS3ContentWithRetry: getS3ContentWithRetry,
-    getS3ContentMetadata: getS3ContentMetadata,
-    putObjectWithRetry: putObjectWithRetry,
-    putObject: putObject,
-    putS3Content: putS3Content,
-    removeKey: removeKey,
-    streamObject: streamObject,
-    partition: partition,
-    invokeFunction: invokeFunction,
-    invokeAsync: invokeAsync,
-    startStepFunction: startStepFunction,
-    verifyKey: verifyKey,
+    getAllKeys,
+    getObject,
+    getObjectWithRetry,
+    getObjectDataArray,
+    getS3Content,
+    getS3ContentWithRetry,
+    putObjectWithRetry,
+    putObject,
+    putS3Content,
+    removeKey,
+    streamObject,
+    partition,
+    invokeFunction,
+    invokeAsync,
+    startStepFunction,
+    verifyKey,
+    sleep,
     copyS3Content
 };

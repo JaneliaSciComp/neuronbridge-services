@@ -1,8 +1,11 @@
 'use strict';
 
-const {getIntermediateSearchResultsKey, getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getAllKeys, getObjectWithRetry, streamObject, removeKey, DEBUG} = require('./utils');
+const AWS = require('aws-sdk');
+const {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey} = require('./searchutils');
+const {streamObject, removeKey, DEBUG} = require('./utils');
 const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
+
+var docClient = new AWS.DynamoDB.DocumentClient();
 
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
@@ -19,36 +22,33 @@ const mergeResults = (rs1, rs2) => {
     }
 }
 
-exports.searchReducer = async (event, context) => {
+exports.searchCombiner = async (event) => {
     // Parameters
     if (DEBUG) console.log(event);
-    const bucket = event.bucket;
-    const searchId = event.searchId;
-    const searchInputFolder = event.searchInputFolder;
-    const searchInputName = event.searchInputName;
-    const numBatches = event.numBatches;
-    const maxResultsPerMask =  event.maxResultsPerMask;
-
-    const fullSearchInputName = `${searchInputFolder}/${searchInputName}`;
-    const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
-
-    // Fetch all keys
-    const allKeys  = await getAllKeys({
-        Bucket: bucket,
-        Prefix: intermediateSearchResultsPrefix
-    });
-    const allBatchResultsKeys = new Set(allKeys);
+    
+    const { jobId, tasksTableName } = event;
+    const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
+    const fullSearchInputName = maskKeys[0];
+    const searchInputName = fullSearchInputName.substring(fullSearchInputName.lastIndexOf("/")+1);
 
     let allBatchResults = {};
-    for(let batchIndex = 0; batchIndex < numBatches; batchIndex++) {
-        const batchResultsKey = getIntermediateSearchResultsKey(fullSearchInputName, batchIndex);
-        if (!allBatchResultsKeys.has(batchResultsKey)) {
-            console.log(`Skip ${batchResultsKey} because this batch may not have finished`);
-            // skip this batch if it has not completed
-            continue;
-        }
-        const batchResults = await getObjectWithRetry(bucket, batchResultsKey, 3);
+
+    const params = {
+        TableName: tasksTableName,
+        ConsistentRead: true,
+        KeyConditionExpression: 'jobId = :jobId',
+        FilterExpression: 'results <> :emptyList',
+        ExpressionAttributeValues: {
+            ':jobId': jobId,
+            ':emptyList': '[ ]'
+        },
+      };
+      
+    const queryResult = await docClient.query(params).promise()
+
+    for(const item of queryResult.Items) {
         try {
+            const batchResults = JSON.parse(item.results)
             batchResults.forEach(batchResult => {
                 if (allBatchResults[batchResult.maskId]) {
                     allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
@@ -67,9 +67,11 @@ exports.searchReducer = async (event, context) => {
         }
     }
 
-    const nTotalMatches = Object.values(allBatchResults).map(rsByMask => {
+    const matchCounts = Object.values(allBatchResults).map(rsByMask => {
         return rsByMask.results.length;
-    }).reduce((a, n) => a  + n, 0);
+    });
+
+    const nTotalMatches = matchCounts.reduce((a, n) => a  + n, 0);
 
     const allMatches = Object.values(allBatchResults).map(rsByMask => {
         const results = rsByMask.results;
@@ -83,7 +85,7 @@ exports.searchReducer = async (event, context) => {
 
     // write down the results
     const outputUri = await streamObject(
-        bucket,
+        searchBucket,
         getSearchResultsKey(fullSearchInputName),
         allMatches.length > 1
             ? allMatches
@@ -107,7 +109,12 @@ exports.searchReducer = async (event, context) => {
 
     if (!DEBUG) {
         const intermediateSearchResultsPrefix = getIntermediateSearchResultsPrefix(fullSearchInputName);
-        await removeKey(bucket, intermediateSearchResultsPrefix);
+        await removeKey(searchBucket, intermediateSearchResultsPrefix);
+        // TODO: delete items from DynamoDB using BatchWriteItem
     }
-    return event;
+
+    return {
+        ...event,
+        matchCounts
+    };
 }

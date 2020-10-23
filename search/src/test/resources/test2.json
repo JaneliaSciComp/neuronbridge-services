@@ -1,11 +1,14 @@
 {
+  "libraryBucket": "janelia-flylight-color-depth-dev",
   "libraries": [
     "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/searchable_neurons"
   ],
-  "searchInputFolder": "colorDepthTestData/test2",
-  "searchInputName": "mask3900813784977233932.png",
+  "searchBucket": "janelia-neuronbridge-searches-dev",
+  "maskKeys": [
+    "colorDepthTestData/test2/mask3900813784977233932.png"
+  ],
   "dataThreshold": 100,
-  "maskThreshold": 100,
+  "maskThresholds": [ 100 ],
   "pixColorFluctuation": 2,
   "xyShift": 2,
   "mirrorMask": true
