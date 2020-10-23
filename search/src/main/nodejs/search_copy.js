@@ -155,19 +155,22 @@ async function createNewSearchFromImage(image, event, identityId) {
   // copy image to upload
   await copyS3Content(
     searchBucket,
-    `/${originalBucket}/${originalPath}/${originalImage}`,
+    `/${originalBucket}${originalPath}${originalImage}`,
     `${newSearchFolder}/${originalImage}`
   );
 
   // convert image.thumbnailURL to new bucket location
-  const [, thumbnailBucket, thumbnailPath, thumbnailUpload] = image.thumbnailURL.match(
-    /^.*s3.amazonaws.com\/([^/]*)(.*?)([^/]*)$/
+  const [, thumbnailBucket, thumbnailPath, thumbnailUpload, extension] = image.thumbnailURL.match(
+    /^.*s3.amazonaws.com\/([^/]*)(.*?)([^/]*?)([^.]*)$/
   );
+
+  const newThumbnailName = `upload_thumbnail.${extension}`;
+
   // copy image thumbnail to new bucket
   await copyS3Content(
     searchBucket,
-    `/${thumbnailBucket}/${thumbnailPath}/${thumbnailUpload}`,
-    `${newSearchFolder}/upload_thumbnail.png`
+    `/${thumbnailBucket}${thumbnailPath}${thumbnailUpload}${extension}`,
+    `${newSearchFolder}/${newThumbnailName}`
   );
   //
   // generate mip channel for this image
@@ -175,7 +178,7 @@ async function createNewSearchFromImage(image, event, identityId) {
   const channelPath = `private/${identityId}/${newSearchId}/generatedMIPS/${channelName}`;
   await copyS3Content(
     searchBucket,
-    `/${originalBucket}/${originalPath}/${originalImage}`,
+    `/${originalBucket}${originalPath}${originalImage}`,
     channelPath
   );
 
@@ -186,15 +189,15 @@ async function createNewSearchFromImage(image, event, identityId) {
     step: ALIGNMENT_JOB_COMPLETED,
     owner: ownerId,
     identityId: identityId,
-    searchDir: newSearchFolder,
+    searchDir: newSearchId,
     upload: originalImage,
     simulateMIPGeneration: false,
-    uploadThumbnail: thumbnailUpload
+    uploadThumbnail: newThumbnailName
   };
   // save new data object- in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
 
-  return { event, image, identityId, newSearchMeta };
+  return { newSearchMeta };
 }
 
 exports.searchCopy = async (event) => {
