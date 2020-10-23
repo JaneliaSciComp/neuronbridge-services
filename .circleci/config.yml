@@ -56,10 +56,10 @@ workflows:
   build:
     jobs:
       - build-search-java:
-        filters:
-          branches:
-            only: master
+          filters:
+            branches:
+              only: master
       - build-search-nodejs:
-        filters:
-          branches:
-            only: master
+          filters:
+            branches:
+              only: master
