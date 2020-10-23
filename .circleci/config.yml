@@ -51,16 +51,15 @@ jobs:
       - run: npm test
       - run: npx eslint src/main/nodejs
 
-main_only: &main_only
-  filters:
-    branches:
-      only: master
-
 workflows:
-    version: 2
-    build:
-      jobs:
-        - build-search-java:
-          <<: *main_only
-        - build-search-nodejs:
-          <<: *main_only
+  version: 2
+  build:
+    jobs:
+      - build-search-java:
+        filters:
+          branches:
+            only: master
+      - build-search-nodejs:
+        filters:
+          branches:
+            only: master
