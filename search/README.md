@@ -2,9 +2,23 @@
 
 The color depth search is run in parallel using the [burst compute](https://github.com/JaneliaSciComp/burst-compute) framework.
 
+## Deploy to AWS
+
+Deploy to a given stage, e.g. dev or prod:
+```
+npm run sls -- deploy -s <stage>
+```
+
+## Linting
+
+Run the linter to detect problems:
+```
+npx eslint src/main/nodejs
+```
+
 ## Unit testing
 
-Simply run:
+Run unit tests:
 ```
 npm test
 ```
