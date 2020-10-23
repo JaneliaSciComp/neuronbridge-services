@@ -85,34 +85,25 @@ async function copyAlignment(searchData) {
     identityId,
     searchDir,
     searchInputFolder,
-    upload,
     uploadThumbnail,
-    searchMask
   } = searchData;
   // generate a new id for the search directory
   const newSearchDir = uuidv1();
   const newSearchInputFolder = `private/${identityId}/${newSearchDir}`;
 
-  // copy uploaded image
-  await copyS3Content(
-    searchBucket,
-    `/${searchBucket}/${searchInputFolder}/${upload}`,
-    `${newSearchInputFolder}/${upload}`
-  );
-  // copy thumbnail image
-  await copyS3Content(
-    searchBucket,
-    `/${searchBucket}/${searchInputFolder}/${uploadThumbnail}`,
-    `${newSearchInputFolder}/${uploadThumbnail}`
-  );
-  // copy display image
-  await copyS3Content(
-    searchBucket,
-    `/${searchBucket}/${searchInputFolder}/${searchMask}`,
-    `${newSearchInputFolder}/${searchMask}`
-  );
+  // only copy the upload thumbnail and the MIP channels as the original upload image
+  // is a) no longer needed and b) possibly missing. These are all the files that we
+  // need to start a new search.
 
-// copy MIP channels
+  if (uploadThumbnail) {
+    // copy thumbnail image
+    await copyS3Content(
+      searchBucket,
+      `/${searchBucket}/${searchInputFolder}/${uploadThumbnail}`,
+      `${newSearchInputFolder}/${uploadThumbnail}`
+    );
+  }
+  // copy MIP channels
   const channelsPath = `private/${identityId}/${searchDir}/generatedMIPS`;
   const channelsList = await getAllKeys({
     Bucket: searchBucket,
@@ -124,14 +115,17 @@ async function copyAlignment(searchData) {
     channelsList.map(async channel => {
       const newChannel = channel.split("/").pop();
       const newChannelPath = `${newChannelsPath}/${newChannel}`;
-      await copyS3Content(searchBucket, `${searchBucket}/${channel}`, newChannelPath);
+      await copyS3Content(
+        searchBucket,
+        `${searchBucket}/${channel}`,
+        newChannelPath
+      );
     })
   );
 
   // create new data object to store in dynamoDB
   const newSearchData = {
     step: ALIGNMENT_JOB_COMPLETED,
-    searchType: searchData.searchType,
     owner: searchData.owner,
     identityId: searchData.identityId,
     searchDir: newSearchDir,
@@ -141,7 +135,7 @@ async function copyAlignment(searchData) {
   };
   // save new data object- in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
-  return { searchData, newSearchData, newSearchMeta, channelsList };
+  return { newSearchData, newSearchMeta };
 }
 
 async function createNewSearchFromMatch(matchId) {
