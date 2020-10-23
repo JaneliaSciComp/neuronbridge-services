@@ -60,7 +60,7 @@ exports.searchStarter = async (event) => {
         let httpStatusCode;
         let returnedResults;
         if (statusResult && !!statusResult.errorMessage) {
-            httpStatusCode = 403;
+            httpStatusCode = statusResult.statusCode || 500;
             returnedResults = {
                 errorMessage: statusResult.errorMessage,
                 submissionResults: results
@@ -124,6 +124,7 @@ const startColorDepthSearch = async (searchParams) => {
             errorMessage: `Color depth search was not started because ${limitsMessage}`
         });
         return {
+            statusCode: 403,
             errorMessage: `Color depth search was not started because ${limitsMessage}`
         };
     } else {
@@ -174,6 +175,7 @@ const startAlignment = async (searchParams) => {
             errorMessage: `Alignment was not started because ${limitsMessage}`
         });
         return {
+            statusCode: 403,
             errorMessage: `Alignment was not started because ${limitsMessage}`
         };
     } else {
@@ -286,6 +288,7 @@ const submitAlignmentJob = async (searchParams) => {
             errorMessage: `Error submitting alignment job for ${searchParams.id}:${fullSearchInputImage} - ${submitError.message}`
         });
         return {
+            statusCode: 404,
             errorMessage: `Error submitting alignment job: ${submitError.message}`
         };
     }
