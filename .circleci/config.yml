@@ -55,12 +55,12 @@ main_only: &main_only
   filters:
     branches:
       only: master
-      
+
 workflows:
     version: 2
     build:
       jobs:
-        - build-search-java
+        - build-search-java:
           <<: *staging_only
-        - build-search-nodejs
+        - build-search-nodejs:
           <<: *staging_only
