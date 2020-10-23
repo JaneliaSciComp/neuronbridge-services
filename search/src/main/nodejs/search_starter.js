@@ -10,8 +10,10 @@ const {generateMIPs} = require('./mockMIPGeneration');
 const dispatchFunction = process.env.SEARCH_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
-const perDaySearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
-const concurrentSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
+const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
+const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
+const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1
+const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 
 const bc = new AWS.Batch();
@@ -91,7 +93,7 @@ const getNewRecords = async (e) => {
 }
 
 const startColorDepthSearch = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentSearchLimits, perDaySearchLimits);
+    const limitsMessage = await checkLimits(searchParams, concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits);
     if (limitsMessage) {
         console.log(`No color depth search started because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
@@ -139,7 +141,7 @@ const startColorDepthSearch = async (searchParams) => {
 }
 
 const startAlignment = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentSearchLimits, perDaySearchLimits);
+    const limitsMessage = await checkLimits(searchParams, concurrentAlignmentLimits, perDayAlignmentLimits);
     if (limitsMessage) {
         console.log(`No job invoked because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({

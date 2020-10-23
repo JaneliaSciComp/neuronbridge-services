@@ -204,6 +204,8 @@ functions:
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
+      MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
       ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
     events:
       - httpApi:
