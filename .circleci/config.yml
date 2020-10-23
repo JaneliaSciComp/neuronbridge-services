@@ -1,12 +1,8 @@
 version: 2
-jobs:
-  build:
 
-    branches:
-      only:
-       - master
-   
-    working_directory: ~/neuronbridge-services
+jobs:
+  build-search-java:
+    working_directory: ~/neuronbridge-services/search
 
     docker:
       - image: circleci/openjdk:8u171-jdk
@@ -15,21 +11,56 @@ jobs:
       TERM: dumb
 
     steps:
-
       - checkout
 
       - restore_cache:
           keys: 
-            - neuronbridge-{{ checksum "search/pom.xml" }}
+            - neuronbridge-{{ checksum "pom.xml" }}
             # fallback to using the latest cache if no exact match is found
             - neuronbridge
       
-      - run: mvn clean install -f search/pom.xml
+      - run: mvn install
       
       - save_cache:
-          key: neuronbridge-{{ checksum "search/pom.xml" }}
+          key: neuronbridge-{{ checksum "pom.xml" }}
           paths:
             - ~/.m2
 
-      - run: mvn package -f search/pom.xml
+    build-search-nodejs:
+      working_directory: ~/neuronbridge-services/search
+  
+      docker:
+        - image: circleci/node:12.13.0
 
+      steps:
+        - checkout
+
+        - restore_cache:
+            keys: 
+              - neuronbridge-nodejs-{{ checksum "package-lock.json" }}
+              # fallback to using the latest cache if no exact match is found
+              - neuronbridge-nodejs
+        
+        - run: npm install
+        
+        - save_cache:
+            key: neuronbridge-nodejs-{{ checksum "package-lock.json" }}
+            paths:
+              - node_modules
+
+        - run: npm test
+        - run: npx eslint src/main/nodejs
+
+main_only: &main_only
+  filters:
+    branches:
+      only: master
+      
+workflows:
+    version: 2
+    build:
+      jobs:
+        - build-search-java
+          <<: *staging_only
+        - build-search-nodejs
+          <<: *staging_only
