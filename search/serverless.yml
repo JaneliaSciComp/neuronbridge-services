@@ -103,6 +103,10 @@ provider:
     - Effect: Allow
       Action:
         - s3:PutObject
+        - s3:GetObjectVersionTagging
+        - s3:PutObject
+        - s3:PutObjectTagging
+        - s3:PutObjectVersionTagging
       Resource:
         - "arn:aws:s3:::${self:custom.searchBucket}/"
         - "arn:aws:s3:::${self:custom.searchBucket}/*"

@@ -4,6 +4,7 @@ const AWS = require('aws-sdk');
 const moment = require('moment');
 
 const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
+const {tagS3Content} = require('./utils');
 const {getAllKeys, DEBUG} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 
@@ -56,6 +57,9 @@ const monitorAlignmentJob = async (alignJobParams) => {
     }
     const job = jobDescriptions.jobs.find(j => j.jobId === jobId);
     if (job) {
+        if (DEBUG) {
+            console.log(`Job ${job.jobId} ${job.status}`);
+        }
         const timestamp = new Date();
         if (job.status === 'SUCCEEDED') {
             await updateSearchMetadata({
@@ -63,6 +67,11 @@ const monitorAlignmentJob = async (alignJobParams) => {
                 step: ALIGNMENT_JOB_COMPLETED,
                 alignFinished: timestamp.toISOString()
             });
+            console.log('Get metadata for search ID ', searchId);
+            const searchMetadata = await getSearchMetadata(searchId);
+            const tags = {TagSet: [{Key: "LIFECYCLE", 
+                                    Value: "DELETE"}]}
+            await tagS3Content(alignJobParams.bucket, [searchMetadata.searchInputFolder,searchMetadata.searchInputName].join('/'), tags);
             return {
                 ...alignJobParams,
                 completed: true,

@@ -109,12 +109,12 @@ const getS3ContentMetadata = async (bucket, key) => {
 // Tag an existing object in S3
 const tagS3Content = async (Bucket, Key, Tags) => {
     try {
-         console.log(`Tagging ${Bucket}:${Key} with ${Tags}`);
-         const res = await s3.putObjectTagging({Bucket: Bucket,
-                                                Key: Key,
-                                                Tagging: Tags
-                                               }).promise();
-         console.log(`Tagged ${Bucket}:${Key} with ${Tags}`, res);
+        if (DEBUG)
+            console.log(`Tagging ${Bucket}:${Key} with ${Tags}`);
+        const res = await s3.putObjectTagging({Bucket: Bucket,
+                                               Key: Key,
+                                               Tagging: Tags
+                                              }).promise();
     } catch (e) {
         console.error(`Error tagging ${Bucket}:${Key}`, e);
         throw e;
@@ -341,6 +341,7 @@ module.exports = {
     putObjectWithRetry: putObjectWithRetry,
     putObject: putObject,
     putS3Content: putS3Content,
+    tagS3Content: tagS3Content,
     removeKey: removeKey,
     streamObject: streamObject,
     partition: partition,
