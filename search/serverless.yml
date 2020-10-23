@@ -49,7 +49,6 @@ custom:
         field: listAllSearches
         request: "dynamodb-listAllSearches-request-template.vtl"
         response: "dynamodb-listAllSearches-response-template.vtl"
-
       - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
         type: Mutation
         field: createSearch
@@ -226,13 +225,6 @@ functions:
           path: /searches
           authorizer:
             name: neuronBridgeJwtAuthorizer
-      - stream:
-          type: dynamodb
-          arn:
-            Fn::GetAtt:
-              - SearchTable
-              - StreamArn
-          batchSize: 1
 
   search-java:
     package:
@@ -355,7 +347,6 @@ stepFunctions:
             Type: Pass
             End: true
 
-
 resources:
   Outputs:
     SearchLambdaFunction:
@@ -374,7 +365,6 @@ resources:
       Description: The ARN of the jobMonitorStateMachine 
       Value:
         Ref: JobMonitorStateMachine
-
 
   Resources:
     SearchTable:
