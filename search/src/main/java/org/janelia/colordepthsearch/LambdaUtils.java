@@ -9,15 +9,15 @@ import java.util.List;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.fasterxml.jackson.databind.SerializationFeature;
-//import com.amazonaws.xray.interceptors.TracingInterceptor;
-//import software.amazon.awssdk.core.client.config.ClientOverrideConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.core.sync.ResponseTransformer;
 import software.amazon.awssdk.regions.Region;
+import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.ListObjectsRequest;
@@ -43,12 +43,15 @@ class LambdaUtils {
         final Region region = Region.of(LambdaUtils.getMandatoryEnv("AWS_REGION"));
         LOG.debug("Environment:\n  region: {}", region);
         return S3Client.builder().region(region).build();
-        // return S3Client.builder()
-        //         .region(region)
-        //         .overrideConfiguration(ClientOverrideConfiguration.builder()
-        //             .addExecutionInterceptor(new TracingInterceptor())
-        //             .build()
-        // ).build();
+    }
+
+    static DynamoDbClient createDynamoDB() {
+        final Region region = Region.of(LambdaUtils.getMandatoryEnv("AWS_REGION"));
+        LOG.debug("Environment:\n  region: {}", region);
+        return DynamoDbClient.builder()
+                .region(region)
+                //.endpointOverride(URI.create(endpoint))
+                .build();
     }
 
     static String getMandatoryEnv(String name) {
@@ -66,8 +69,14 @@ class LambdaUtils {
     }
 
     static String toJson(Object object) {
+        boolean prettyPrint = "true".equals(LambdaUtils.getOptionalEnv("PRETTY_JSON", null));
+        return toJson(object, prettyPrint);
+    }
+
+    static private String toJson(Object object, boolean prettyPrint) {
         try {
-            return JSON_MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(object);
+            ObjectWriter writer = prettyPrint ? JSON_MAPPER.writerWithDefaultPrettyPrinter() : JSON_MAPPER.writer();
+            return writer.writeValueAsString(object);
         } catch (Exception e) {
             LOG.error("Serialization error", e);
             return "{\"error\":\"Could not serialize object\"}";
@@ -144,6 +153,27 @@ class LambdaUtils {
         } else {
             return Collections.emptyList();
         }
+
+        // TODO: the above code is incorrect, we should use the V2 API and continuation token like this:
+//            LOG.info("Finding images in library bucket {} with prefix {}", libraryBucket, library);
+//            ListObjectsV2Request.Builder builder = ListObjectsV2Request.builder().bucket(libraryBucket).prefix(library);
+//            ListObjectsV2Request req = builder.build();
+//            ListObjectsV2Response result;
+//            do {
+//                result = s3.listObjectsV2(req);
+//                keys.addAll(result.contents().stream()
+//                        .map(S3Object::key) // get the keys
+//                        .filter(k -> !k.endsWith("/")) // exclude the folders
+//                        .collect(Collectors.toList()));
+//                // If there are more than maxKeys keys in the bucket, get a continuation token and list the next objects.
+//                req = builder.continuationToken(result.continuationToken()).build();
+//                // Return as soon as we have the items we're looking for
+//                if (keys.size() >= endIndex) {
+//                    return keys.subList(startIndex, endIndex);
+//                }
+//            }
+//            while (result.isTruncated());
+
     }
 
 }

@@ -279,7 +279,7 @@ const invokeFunction = async (functionName, parameters) => {
     const params = {
         FunctionName: functionName,
         Payload: JSON.stringify(parameters),
-        //LogType: "Tail"
+        LogType: "Tail"
     };
     try {
         return await lambda.invoke(params).promise();
@@ -320,9 +320,7 @@ const startStepFunction = async (uniqueName, stateMachineParams, stateMachineArn
 // Verify that key exists on S3
 const verifyKey = async (Bucket, Key) => {
     try {
-        const response = await s3.headObject({
-            Bucket,
-            Key}).promise();
+        await s3.headObject({Bucket, Key}).promise();
         console.log(`Found object ${Bucket}:${Key}`);
         return true;
     } catch (e) {
@@ -333,23 +331,22 @@ const verifyKey = async (Bucket, Key) => {
 
 module.exports = {
     DEBUG,
-    sleep: sleep,
-    getObjectDataArray: getObjectDataArray,
-    getAllKeys: getAllKeys,
-    getObject: getObject,
-    getObjectWithRetry: getObjectWithRetry,
-    getS3Content: getS3Content,
-    getS3ContentWithRetry: getS3ContentWithRetry,
-    getS3ContentMetadata: getS3ContentMetadata,
-    putObjectWithRetry: putObjectWithRetry,
-    putObject: putObject,
-    putS3Content: putS3Content,
-    removeKey: removeKey,
-    streamObject: streamObject,
-    partition: partition,
-    invokeFunction: invokeFunction,
-    invokeAsync: invokeAsync,
-    startStepFunction: startStepFunction,
-    verifyKey: verifyKey,
+    getAllKeys,
+    getObject,
+    getObjectWithRetry,
+    getObjectDataArray,
+    getS3Content,
+    getS3ContentWithRetry,
+    putObjectWithRetry,
+    putObject,
+    putS3Content,
+    removeKey,
+    streamObject,
+    partition,
+    invokeFunction,
+    invokeAsync,
+    startStepFunction,
+    verifyKey,
+    sleep,
     copyS3Content
 };
