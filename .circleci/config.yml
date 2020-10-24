@@ -20,7 +20,7 @@ jobs:
             # fallback to using the latest cache if no exact match is found
             - neuronbridge
       
-      - run: mvn install
+      - run: ./mvnw package test
       
       - save_cache:
           key: neuronbridge-java-{{ checksum "pom.xml" }}
@@ -28,7 +28,7 @@ jobs:
             - ~/.m2
 
   build-search-nodejs:
-    working_directory: ~/neuronbridge-services
+    working_directory: ~/neuronbridge-services/search
   
     docker:
       - image: circleci/node:12.13.0
