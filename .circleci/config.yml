@@ -11,29 +11,31 @@ jobs:
       TERM: dumb
 
     steps:
-      - checkout
+      - checkout:
+          path: ~/neuronbridge-services
 
       - restore_cache:
           keys: 
-            - neuronbridge-{{ checksum "pom.xml" }}
+            - neuronbridge-java-{{ checksum "pom.xml" }}
             # fallback to using the latest cache if no exact match is found
             - neuronbridge
       
       - run: mvn install
       
       - save_cache:
-          key: neuronbridge-{{ checksum "pom.xml" }}
+          key: neuronbridge-java-{{ checksum "pom.xml" }}
           paths:
             - ~/.m2
 
   build-search-nodejs:
-    working_directory: ~/neuronbridge-services/search
+    working_directory: ~/neuronbridge-services
   
     docker:
       - image: circleci/node:12.13.0
 
     steps:
-      - checkout
+      - checkout:
+          path: ~/neuronbridge-services
 
       - restore_cache:
           keys: 
