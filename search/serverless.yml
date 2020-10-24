@@ -189,6 +189,64 @@ package:
 
 functions:
 
+  appStarter:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/app_starter.appStarter
+    memorySize: 256
+    timeout: 25
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      CDS_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
+      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
+      MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
+      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
+    events:
+      - httpApi:
+          method: POST
+          path: /searches
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+  cdsStarter:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_dispatch.cdsStarter
+    memorySize: 256
+    timeout: 25
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      DISPATCH_FUNCTION_ARN: ${self:custom.dispatchFunction}
+      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
+      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
+      BATCH_SIZE: ${self:custom.searchBatchSize}
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
+      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
+      MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
+      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
+    events:
+      - httpApi:
+          method: POST
+          path: /searches
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
   combiner:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_combiner.searchCombiner
@@ -235,70 +293,6 @@ functions:
       - httpApi:
           method: POST
           path: /copy
-          authorizer:
-            name: neuronBridgeJwtAuthorizer
-
-  searchDispatch:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_dispatch.searchDispatch
-    memorySize: 256
-    timeout: 25
-    maximumEventAge: 120
-    maximumRetryAttempts: 1
-    environment:
-      DEBUG: ${self:custom.debug}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      DISPATCH_FUNCTION_ARN: ${self:custom.dispatchFunction}
-      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
-      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
-      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
-      BATCH_SIZE: ${self:custom.searchBatchSize}
-      MAX_PARALLELISM: ${self:custom.searchParallelization}
-      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
-      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
-      MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
-      MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
-      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
-    events:
-      - httpApi:
-          method: POST
-          path: /searches
-          authorizer:
-            name: neuronBridgeJwtAuthorizer
-
-  searchStarter:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_starter.searchStarter
-    memorySize: 256
-    timeout: 25
-    maximumEventAge: 120
-    maximumRetryAttempts: 1
-    environment:
-      DEBUG: ${self:custom.debug}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      DISPATCH_FUNCTION_ARN: ${self:custom.dispatchFunction}
-      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
-      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
-      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
-      BATCH_SIZE: ${self:custom.searchBatchSize}
-      MAX_PARALLELISM: ${self:custom.searchParallelization}
-      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
-      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
-      MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
-      MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
-      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
-    events:
-      - httpApi:
-          method: POST
-          path: /searches
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
