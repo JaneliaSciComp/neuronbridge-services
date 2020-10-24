@@ -13,7 +13,7 @@ npm run sls -- deploy -s <stage>
 
 Run the linter to detect problems:
 ```
-npx eslint src/main/nodejs
+npm run lint
 ```
 
 ## Unit testing

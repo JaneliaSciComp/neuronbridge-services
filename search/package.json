@@ -6,6 +6,7 @@
   "scripts": {
     "sls": "./node_modules/serverless/bin/serverless.js",
     "test": "jest",
+    "lint": "npx eslint src/main/nodejs",
     "search": "AWS_SDK_LOAD_CONFIG=true DISABLE_XRAY=true node src/main/nodejs/search_client.js"
   },
   "dependencies": {
