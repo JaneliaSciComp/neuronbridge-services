@@ -1,11 +1,10 @@
 'use strict';
 
 const utils = require('./utils');
-const AWS = require('aws-sdk');
 
 const suffix = "_denormalized.json";
 
-exports.denormalize = async (event, context) => {
+exports.denormalize = async (event) => {
  
     const bucket = event.bucket;
     const prefix = event.folder;

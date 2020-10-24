@@ -337,6 +337,7 @@ module.exports = {
     getObjectDataArray,
     getS3Content,
     getS3ContentWithRetry,
+    getS3ContentMetadata,
     putObjectWithRetry,
     putObject,
     putS3Content,

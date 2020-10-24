@@ -354,7 +354,7 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
 }
 
 const getDisplayableMIPKey = (mipKey) => {
-    const reg = /.+(?<mipName>\/[^\/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\..*$)/;
+    const reg = /.+(?<mipName>\/[^/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\..*$)/;
     let groups = mipKey.match(reg).groups;
     if (groups) {
         let displayableKeyName = "";

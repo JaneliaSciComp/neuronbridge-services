@@ -6,6 +6,7 @@ const Jimp = require('jimp');
 const {getSearchMetadataKey, getSearchKey, getSearchMaskId} = require('./searchutils');
 const {
   getS3ContentWithRetry,
+  getS3ContentMetadata,
   putS3Content,
   getObject,
   putObject,
