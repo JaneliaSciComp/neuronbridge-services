@@ -10,10 +10,9 @@ custom:
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
   # Resources from burst-compute
-  burstComputeStage: dev
+  burstComputeStage: ${self:provider.stage}
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
   dispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
-
   searchBatchSize: 40
   searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
@@ -190,11 +189,86 @@ package:
 
 functions:
 
-  denormalize:
+  combiner:
     runtime: nodejs12.x
-    handler: src/main/nodejs/denormalize.denormalize
+    handler: src/main/nodejs/search_combiner.searchCombiner
+    memorySize: 384
+    timeout: ${self:custom.cdsTimeoutInSeconds}
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+
+  monitor:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/monitor.isJobDone
     memorySize: 128
-    timeout: 900
+    timeout: 180
+    environment:
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      DEBUG: ${self:custom.debug}
+
+  search:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/batch_search.batchSearch
+    memorySize: 256
+    # 5 minute timeout
+    timeout: 300
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
+      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
+
+  searchCopy:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_copy.searchCopy
+    memorySize: 128
+    timeout: 10
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+    events:
+      - httpApi:
+          method: POST
+          path: /copy
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+  searchDispatch:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_dispatch.searchDispatch
+    memorySize: 256
+    timeout: 25
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      DISPATCH_FUNCTION_ARN: ${self:custom.dispatchFunction}
+      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
+      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
+      BATCH_SIZE: ${self:custom.searchBatchSize}
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
+      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
+      MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
+      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
+    events:
+      - httpApi:
+          method: POST
+          path: /searches
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
 
   searchStarter:
     runtime: nodejs12.x
@@ -228,57 +302,6 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-  search-java:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.BatchSearch
-    memorySize: 384
-    timeout: ${self:custom.cdsTimeoutInSeconds}
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
-      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
-
-  search:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/batch_search.batchSearch
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
-      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
-
-  combiner:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_combiner.searchCombiner
-    memorySize: 384
-    timeout: ${self:custom.cdsTimeoutInSeconds}
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-
-  searchCopy:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/search_copy.searchCopy
-    memorySize: 128
-    timeout: 10
-    maximumEventAge: 120
-    maximumRetryAttempts: 1
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-    events:
-      - httpApi:
-          method: POST
-          path: /copy
-          authorizer:
-            name: neuronBridgeJwtAuthorizer
-
   searchUpdate:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_update.searchUpdate
@@ -288,24 +311,6 @@ functions:
       DEBUG: ${self:custom.debug}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
-  monitor:
-    runtime: nodejs12.x
-    handler: src/main/nodejs/monitor.isSearchDone
-    memorySize: 128
-    timeout: 180
-    environment:
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      DEBUG: ${self:custom.debug}
-
-  em2lmGradScorer:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.AWSLambdaEM2LMGradientScoreCalc
-    memorySize: 256
-    # 5 minute timeout
-    timeout: 300
 
 stepFunctions:
   validate: true # enable pre-deployment definition validation

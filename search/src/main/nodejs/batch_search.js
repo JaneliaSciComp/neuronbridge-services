@@ -1,7 +1,5 @@
 'use strict';
 
-//ported from https://github.com/JaneliaSciComp/neuronbridge-services/commit/61266d14196dfc63ec739b257bda2bbcd193474b
-
 const AWS = require('aws-sdk');
 const tiff = require('geotiff');
 const path = require('path');
@@ -75,7 +73,6 @@ exports.batchSearch = async (event) => {
     await writeCDSResults(ret, tasksTableName, jobId, batchId)
 
     return cdsResults.length;
-
 }
 
 const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => {

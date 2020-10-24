@@ -284,7 +284,7 @@ const invokeFunction = async (functionName, parameters) => {
     try {
         return await lambda.invoke(params).promise();
     } catch (e) {
-        console.error('Error invoking', params, e);
+        console.error(`Error invoking ${functionName}`, params, e);
         throw e;
     }
 }
@@ -300,7 +300,7 @@ const invokeAsync = async (functionName, parameters) => {
     try {
         return await lambda.invokeAsync(params).promise();
     } catch (e) {
-        console.error('Error invoking', params, e);
+        console.error(`Error invoking async ${functionName}`, params, e);
         throw e;
     }
 }
