@@ -31,15 +31,15 @@ exports.batchSearch = async (event) => {
         minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
     }
 
-    if (batchParams.libraries == null) {
-        console.log('No images to search');
+    if (!batchParams.libraries) {
+        console.log('No target images to search');
         return 0;
     }
-    if (batchParams.maskKeys == null) {
+    if (!batchParams.maskKeys) {
         console.log('No masks to search');
         return 0;
     }
-    if (batchParams.maskThresholds == null) {
+    if (!batchParams.maskThresholds) {
         console.log('No mask thresholds specified')
         return 0;
     }
@@ -323,7 +323,7 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
         const re = new RegExp("\\." + mipExt + "$");
         mipImageKey = getDisplayableMIPKey(mipKey).replace(re, ".png");
     }
-    const mipThumbnailKey = mipImageKey.replace("\\.png$", ".jpg");
+    const mipThumbnailKey = mipImageKey.replace("\\.(png|tif)$", ".jpg");
     const mipDirNames = mipKey.split("/");
     const nPathComponents = mipDirNames.length;
     let mip = {

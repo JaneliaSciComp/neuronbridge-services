@@ -69,8 +69,12 @@ const cdsStarter = async (event) => {
     const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;
     const libraryBucket = searchInputParams.libraryBucket || defaultLibraryBucket;
 
-    const searchInputFolder = searchParams.searchInputFolder;
-    const batchSize = parseInt(searchParams.batchSize) || defaultBatchSize();
+    const searchInputName = searchInputParams.searchMask
+        ? searchInputParams.searchMask
+        : searchInputParams.searchInputName
+
+    const searchInputFolder = searchInputParams.searchInputFolder;
+    const batchSize = parseInt(searchInputParams.batchSize) || defaultBatchSize();
     const maskKey = `${searchInputFolder}/${searchInputName}`;
     await checkSearchMask(searchId, searchBucket, maskKey);
     const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
@@ -114,31 +118,20 @@ const cdsStarter = async (event) => {
         });
         throw new Error(errMsg);
     }
-    // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
-    const searchableTargetsPromise =  await libraries
-        .map(async l => {
-            return await {
-                ...l,
-                searchableKeys: await getKeys(libraryBucket, l.lkey)
-            };
-        });
-    const searchableTargets = await Promise.all(searchableTargetsPromise);
-    const allTargets = searchableTargets.flatMap(l => l.searchableKeys);
-    console.log(`Retrieved ${allTargets.length} targets`);
 
     const jobParams = {
         searchId,
-        dataThreshold: parseInt(searchParams.dataThreshold) || DEFAULTS.dataThreshold,
-        pixColorFluctuation: parseFloat(searchParams.pixColorFluctuation) || DEFAULTS.pixColorFluctuation,
-        xyShift: parseInt(searchParams.xyShift) || DEFAULTS.xyShift,
-        mirrorMask: searchParams.mirrorMask || DEFAULTS.mirrorMask,
-        minMatchingPixRatio: searchParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio,
-        maskThresholds: [parseInt(searchParams.maskThreshold) || DEFAULTS.maskThreshold],
-        maxResultsPerMask: searchParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask,
+        dataThreshold: parseInt(searchInputParams.dataThreshold) || DEFAULTS.dataThreshold,
+        pixColorFluctuation: parseFloat(searchInputParams.pixColorFluctuation) || DEFAULTS.pixColorFluctuation,
+        xyShift: parseInt(searchInputParams.xyShift) || DEFAULTS.xyShift,
+        mirrorMask: searchInputParams.mirrorMask || DEFAULTS.mirrorMask,
+        minMatchingPixRatio: searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio,
+        maskThresholds: [parseInt(searchInputParams.maskThreshold) || DEFAULTS.maskThreshold],
+        maxResultsPerMask: searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask,
         searchBucket,
         maskKeys: [maskKey],
         libraryBucket,
-        libraries: allTargets
+        libraries: libraries.map(l => l.lkey)
     }
     // Schedule the burst compute job
     const dispatchParams = {
@@ -153,10 +146,15 @@ const cdsStarter = async (event) => {
     };
     console.log('Starting ColorDepthSearch with:', dispatchParams);
     const cdsInvocationResult = await invokeFunction(parallelDispatchFunction, dispatchParams);
-    console.log("Started ColorDepthSearch", cdsInvocationResult);
-    const jobId = cdsInvocationResult.jobId;
-    const numBatches = cdsInvocationResult.numBatches;
-    const branchingFactor = cdsInvocationResult.branchingFactor;
+    if (cdsInvocationResult.FunctionError) {
+        const errMsg = "Error launching burst compute job"
+        console.log(`${errMsg}: ${cdsInvocationResult.FunctionError}`)
+        throw new Error(errMsg)
+    }
+    console.log("Started ColorDepthSearch", cdsInvocationResult.Payload);
+    const jobId = cdsInvocationResult.Payload.jobId;
+    const numBatches = cdsInvocationResult.Payload.numBatches;
+    const branchingFactor = cdsInvocationResult.Payload.branchingFactor;
     // Persist the search metadata on S3
     const now = new Date();
     const searchMetadata = {
