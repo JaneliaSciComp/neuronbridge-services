@@ -40,22 +40,14 @@ const DEFAULTS = {
   batchSize: 40
 };
 
-const libraryBucket = process.env.LIBRARY_BUCKET;
-const searchBucket = process.env.SEARCH_BUCKET;
-const dispatchFunction = process.env.PARALLEL_DISPATCH_FUNCTION_ARN;
+const defaultLibraryBucket = process.env.LIBRARY_BUCKET;
+const defaultSearchBucket = process.env.SEARCH_BUCKET;
+const parallelDispatchFunction = process.env.PARALLEL_DISPATCH_FUNCTION_ARN;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const reduceFunction = process.env.REDUCE_FUNCTION;
 const searchTimeoutSecs = process.env.SEARCH_TIMEOUT_SECS;
-const jobDefinition = process.env.JOB_DEFINITION;
-const jobQueue = process.env.JOB_QUEUE;
 
 const maxParallelism = process.env.MAX_PARALLELISM || DEFAULTS.maxParallelism;
-const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
-const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
-const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1
-const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
-
-const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 
 const defaultBatchSize = () => {
   if (process.env.BATCH_SIZE) {
@@ -66,9 +58,17 @@ const defaultBatchSize = () => {
   }
 };
 
-const cdsStarter = async (searchInputName, searchParams) => {
-    const searchInputParams = await getSearchInputParams(searchParams);
+const cdsStarter = async (event) => {
+    // This next log statement is parsed by the analyzer. DO NOT CHANGE.
+    console.log('Input event:', JSON.stringify(event));
+
+    const searchInputParams = await getSearchInputParams(event);
+    if (DEBUG) console.log('Input params:', searchInputParams);
+
     const searchId = searchInputParams.searchId;
+    const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;
+    const libraryBucket = searchInputParams.libraryBucket || defaultLibraryBucket;
+
     const searchInputFolder = searchParams.searchInputFolder;
     const batchSize = parseInt(searchParams.batchSize) || defaultBatchSize();
     const maskKey = `${searchInputFolder}/${searchInputName}`;
@@ -114,7 +114,20 @@ const cdsStarter = async (searchInputName, searchParams) => {
         });
         throw new Error(errMsg);
     }
+    // this is the parent of leaf node (each leaf node corresponds to a batch) so start the batch
+    const searchableTargetsPromise =  await libraries
+        .map(async l => {
+            return await {
+                ...l,
+                searchableKeys: await getKeys(libraryBucket, l.lkey)
+            };
+        });
+    const searchableTargets = await Promise.all(searchableTargetsPromise);
+    const allTargets = searchableTargets.flatMap(l => l.searchableKeys);
+    console.log(`Retrieved ${allTargets.length} targets`);
+
     const jobParams = {
+        searchId,
         dataThreshold: parseInt(searchParams.dataThreshold) || DEFAULTS.dataThreshold,
         pixColorFluctuation: parseFloat(searchParams.pixColorFluctuation) || DEFAULTS.pixColorFluctuation,
         xyShift: parseInt(searchParams.xyShift) || DEFAULTS.xyShift,
@@ -122,12 +135,10 @@ const cdsStarter = async (searchInputName, searchParams) => {
         minMatchingPixRatio: searchParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio,
         maskThresholds: [parseInt(searchParams.maskThreshold) || DEFAULTS.maskThreshold],
         maxResultsPerMask: searchParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask,
-        maskPrefix: searchBucket,
+        searchBucket,
         maskKeys: [maskKey],
         libraryBucket,
-        searchBucket,
-        libraries,
-        searchId
+        libraries: allTargets
     }
     // Schedule the burst compute job
     const dispatchParams = {
@@ -141,7 +152,7 @@ const cdsStarter = async (searchInputName, searchParams) => {
         endIndex: totalSearches,
     };
     console.log('Starting ColorDepthSearch with:', dispatchParams);
-    const cdsInvocationResult = await invokeAsync(dispatchFunction, dispatchParams);
+    const cdsInvocationResult = await invokeAsync(parallelDispatchFunction, dispatchParams);
     console.log("Started ColorDepthSearch", cdsInvocationResult);
     const jobId = cdsInvocationResult.jobId;
     const numBatches = cdsInvocationResult.numBatches;
