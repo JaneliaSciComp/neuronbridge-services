@@ -20,7 +20,7 @@ const {
 } = require('./awsappsyncutils');
 const {generateMIPs} = require('./mockMIPGeneration');
 
-const dispatchFunction = process.env.DISPATCH_FUNCTION_ARN;
+const cdsDispatchFunction = process.env.CDS_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
 const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
@@ -149,7 +149,7 @@ const startColorDepthSearch = async (searchParams) => {
             });
         }
         searchParams.searchBucket = searchBucket;
-        const cdsInvocationResult = await invokeAsync(dispatchFunction, searchParams);
+        const cdsInvocationResult = await invokeAsync(cdsDispatchFunction, searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
         return cdsInvocationResult;
     }

@@ -199,7 +199,7 @@ functions:
     environment:
       DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
-      CDS_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-searchDispatch
+      CDS_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-cdsStarter
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority

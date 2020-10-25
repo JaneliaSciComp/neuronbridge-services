@@ -12,7 +12,7 @@ const {
     getObject,
     getS3ContentWithRetry,
     getS3ContentMetadata,
-    invokeAsync,
+    invokeFunction,
     putObject,
     putS3Content,
     startStepFunction,
@@ -152,7 +152,7 @@ const cdsStarter = async (event) => {
         endIndex: totalSearches,
     };
     console.log('Starting ColorDepthSearch with:', dispatchParams);
-    const cdsInvocationResult = await invokeAsync(parallelDispatchFunction, dispatchParams);
+    const cdsInvocationResult = await invokeFunction(parallelDispatchFunction, dispatchParams);
     console.log("Started ColorDepthSearch", cdsInvocationResult);
     const jobId = cdsInvocationResult.jobId;
     const numBatches = cdsInvocationResult.numBatches;
