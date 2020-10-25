@@ -195,8 +195,7 @@ const runMaskSearches = async (params) => {
 
     let results = [];
     let i;
-    for (i = 0; i < params.libraryKeys.length; i++)
-    {
+    for (i = 0; i < params.libraryKeys.length; i++) {
         const libMetadata = getLibraryMIPMetadata(params.awsLibrariesBucket, params.awsLibrariesThumbnailsBucket, params.libraryKeys[i]);
         const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], masks.maskpos_st, masks.maskpos_ed);
         if (tarImage.data != null) {
@@ -320,10 +319,12 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
     if (mipExt == null) {
         mipImageKey = getDisplayableMIPKey(mipKey);
     } else {
-        const re = new RegExp("\\." + mipExt + "$");
-        mipImageKey = getDisplayableMIPKey(mipKey).replace(re, ".png");
+        const re = new RegExp('\\.' + mipExt + '$');
+        mipImageKey = getDisplayableMIPKey(mipKey).replace(re, '.png');
     }
-    const mipThumbnailKey = mipImageKey.replace("\\.(png|tif)$", ".jpg");
+    console.log("!!!!!!!!! MIPIMAGEKEY ", mipImageKey);
+    const mipThumbnailKey = mipImageKey.replace(new RegExp('\\.(png|tif)$'), '.jpg');
+    console.log("!!!!!!!!! mipThumbnailKey ", mipThumbnailKey);
     const mipDirNames = mipKey.split("/");
     const nPathComponents = mipDirNames.length;
     let mip = {
