@@ -278,9 +278,9 @@ functions:
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
-  searchCopy:
+  searchCopyAlignment:
     runtime: nodejs12.x
-    handler: src/main/nodejs/search_copy.searchCopy
+    handler: src/main/nodejs/search_copy.searchCopyAlignment
     memorySize: 128
     timeout: 10
     maximumEventAge: 120
@@ -292,9 +292,47 @@ functions:
     events:
       - httpApi:
           method: POST
-          path: /copy
+          path: /copy_alignment
           authorizer:
             name: neuronBridgeJwtAuthorizer
+
+  searchCreateDefaultChannel:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_create_default_channel.searchCreateDefaultChannel
+    memorySize: 128
+    timeout: 10
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+    events:
+      - httpApi:
+          method: POST
+          path: /create_default_channel
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+  searchNewFromImage:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/search_new_from_image.searchNewFromImage
+    memorySize: 128
+    timeout: 10
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+    events:
+      - httpApi:
+          method: POST
+          path: /new_from_image
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+
 
   searchUpdate:
     runtime: nodejs12.x
