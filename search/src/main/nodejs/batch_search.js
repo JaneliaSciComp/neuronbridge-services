@@ -316,11 +316,11 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
 
     // displayable mips are always png and the thumbnails jpg
     let mipImageKey;
-    if (mipExt == null) {
-        mipImageKey = getDisplayableMIPKey(mipKey);
+    console.log("!!!!!!!!! MIPKEY ", mipKey, mipExt);
+    if (!mipExt) {
+        mipImageKey = getDisplayableMIPKey(mipKey) + '.png';
     } else {
-        const re = new RegExp('\\.' + mipExt + '$');
-        mipImageKey = getDisplayableMIPKey(mipKey).replace(re, '.png');
+        mipImageKey = getDisplayableMIPKey(mipKey).replace(/\..*$/, '.png');
     }
     console.log("!!!!!!!!! MIPIMAGEKEY ", mipImageKey);
     const mipThumbnailKey = mipImageKey.replace(new RegExp('\\.(png|tif)$'), '.jpg');
