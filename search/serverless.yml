@@ -10,7 +10,7 @@ custom:
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
   # Resources from burst-compute
-  burstComputeStage: ${self:provider.stage}
+  burstComputeStage: dev
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
   parallelDispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
   searchBatchSize: 40
