@@ -31,7 +31,7 @@ const getAllKeys = async params => {
 // Retrieve a file from S3
 const getObjectDataArray = async (bucket, key, defaultValue) => {
     try {
-        const s3Content = getS3Content(bucket, key);
+        const s3Content = await getS3Content(bucket, key);
         return s3Content.buffer;
     } catch (e) {
         if (defaultValue === undefined) {
