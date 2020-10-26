@@ -393,7 +393,7 @@ resources:
     SearchLambdaFunction:
       Description: The ARN of the search function
       Value:
-        Ref: SearchJavaLambdaFunction
+        Ref: SearchLambdaFunction
     MonitorLambdaFunction:
       Description: The ARN of the monitor function
       Value:
