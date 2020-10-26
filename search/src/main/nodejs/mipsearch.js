@@ -1,47 +1,5 @@
 'use strict'
 
-const arrayForType = (format, bitsPerSample, size) => {
-    switch (format) {
-        case 1: // unsigned integer data
-            switch (bitsPerSample) {
-                case 8:
-                    return new Uint8Array(size);
-                case 16:
-                    return new Uint16Array(size);
-                case 32:
-                    return new Uint32Array(size);
-                default:
-                    break;
-            }
-            break;
-        case 2: // twos complement signed integer data
-            switch (bitsPerSample) {
-                case 8:
-                    return new Int8Array(size);
-                case 16:
-                    return new Int16Array(size);
-                case 32:
-                    return new Int32Array(size);
-                default:
-                    break;
-            }
-            break;
-        case 3: // floating point data
-            switch (bitsPerSample) {
-                case 32:
-                    return new Float32Array(size);
-                case 64:
-                    return new Float64Array(size);
-                default:
-                    break;
-            }
-            break;
-        default:
-            break;
-    }
-    throw Error('Unsupported data format/bitsPerSample');
-}
-
 /**
  * Calculate the Z-gap between two RGB pixels
  * @param red1 - red component of the first pixel
@@ -334,14 +292,11 @@ const calculateScore = (params) => {
 
 const generateShiftedMasks = (input, xyshift, imageWidth, imageHeight) => {
     let out = [];
-    let maskid = 0;
     let i, xx, yy;
-
     for (i = 2; i <= xyshift; i += 2) {
         for (xx = -i; xx <= i; xx += i) {
             for (yy = -i; yy <= i; yy += i) {
                 out.push(shiftMaskPosArray(input, xx, yy, imageWidth, imageHeight));
-                maskid++;
             }
         }
     }
@@ -379,7 +334,7 @@ const generateMirroredMask = (input, ypitch) => {
 const getMaskPosArray = (mskarray, width, height, thresm) => {
     let sumpx = mskarray.length / 3;
     let pos = [];
-    let pix, red, green, blue, pi;
+    let red, green, blue, pi;
     for (pi = 0; pi < sumpx; pi++) {
         let x = pi % width;
         let y = Math.floor(pi / width);

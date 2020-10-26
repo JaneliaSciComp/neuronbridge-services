@@ -219,7 +219,6 @@ const runMaskSearches = async (params) => {
 
 const loadMIPRange = async (bucketName, key, start, end) => {
     const mipPath = path.parse(key);
-    const mipName = mipPath.name;
     const mipExt = mipPath.ext;
 
     const imgfile = await getObjectDataArray(bucketName, key);
@@ -257,10 +256,10 @@ const loadMIPRange = async (bucketName, key, start, end) => {
 
         const ifd = tarimage.getFileDirectory();
 
-        let positive = 0;
         const b_end = end > 0 ? end * 3 : outdatasize;
 
         if (ifd.Compression == 32773) {
+            // PackBits compression
             for (let s = 0; s < ifd.StripOffsets.length; s++) {
                 const stripoffset = ifd.StripOffsets[s];
                 const byteCount = ifd.StripByteCounts[s];
@@ -283,12 +282,13 @@ const loadMIPRange = async (bucketName, key, start, end) => {
                     break;
             }
         } else {
+            // RAW TIFF
             for (let s = 0; s < ifd.StripOffsets.length; s++) {
                 const stripoffset = ifd.StripOffsets[s];
                 const byteCount = ifd.StripByteCounts[s];
 
                 for (let i = stripoffset; i < byteCount; ++i) {
-                    outdata[outoffset] = dataView.getUint8(i);
+                    outdata[outoffset] = input.getUint8(i);
                     outoffset++;
                     if (outoffset >= b_end) break;
                 }
@@ -349,7 +349,7 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
 }
 
 const getDisplayableMIPKey = (mipKey) => {
-    const reg = /.+(?<mipName>\/[^\/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\..*$)/;
+    const reg = /.+(?<mipName>\/[^/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\..*$)/;
     let groups = mipKey.match(reg).groups;
     if (groups) {
         let displayableKeyName = "";
