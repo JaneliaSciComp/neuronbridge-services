@@ -17,7 +17,7 @@ custom:
   searchParallelization: 10000
   cognitoUserPoolId: us-east-1_owgI6RY6Y
   neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
-  cdsTimeoutInSeconds: 300
+  cdsTimeoutInSeconds: 600
   version: 3.0.0
   tracing: false
   debug: true
@@ -252,7 +252,6 @@ functions:
     memorySize: 128
     timeout: 180
     environment:
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       DEBUG: ${self:custom.debug}
 
@@ -262,6 +261,18 @@ functions:
     memorySize: 256
     # 5 minute timeout
     timeout: 300
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
+      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
+
+  searchJava:
+    package:
+      artifact: target/neuronbridge-search-${self:custom.version}.jar
+    runtime: java8
+    handler: org.janelia.colordepthsearch.BatchSearch
+    memorySize: 384
+    timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       DEBUG: ${self:custom.debug}
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
@@ -344,7 +355,7 @@ resources:
     SearchLambdaFunction:
       Description: The ARN of the search function
       Value:
-        Ref: SearchLambdaFunction
+        Ref: SearchJavaLambdaFunction
     MonitorLambdaFunction:
       Description: The ARN of the monitor function
       Value:

@@ -1,7 +1,6 @@
 'use strict';
 
 const AWSXRay = require('aws-xray-sdk-core');
-// const AWS = process.env.DISABLE_XRAY ? require('aws-sdk') : AWSXRay.captureAWS(require('aws-sdk'));
 const AWS = require('aws-sdk');
 const stream = require('stream');
 
@@ -32,12 +31,9 @@ const getAllKeys = async params => {
 // Retrieve a file from S3
 const getObjectDataArray = async (bucket, key, defaultValue) => {
     try {
-        if (DEBUG)
-            console.log(`Getting object from ${bucket}:${key}`);
-        const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
-        return response.Body.buffer;
+        const s3Content = getS3Content(bucket, key);
+        return s3Content.buffer;
     } catch (e) {
-        console.error(`Error getting object ${bucket}:${key}`, e);
         if (defaultValue === undefined) {
             throw e; // rethrow it
         } else {

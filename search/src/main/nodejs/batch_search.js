@@ -33,18 +33,22 @@ exports.batchSearch = async (event) => {
 
     if (!batchParams.libraries) {
         console.log('No target images to search');
+        await writeCDSResults([], tasksTableName, jobId, batchId)
         return 0;
     }
     if (!batchParams.maskKeys) {
         console.log('No masks to search');
+        await writeCDSResults([], tasksTableName, jobId, batchId)
         return 0;
     }
     if (!batchParams.maskThresholds) {
         console.log('No mask thresholds specified')
+        await writeCDSResults([], tasksTableName, jobId, batchId)
         return 0;
     }
     if (batchParams.maskThresholds.length != batchParams.maskKeys.length) {
         console.log('Number of mask thresholds does not match number of masks');
+        await writeCDSResults([], tasksTableName, jobId, batchId)
         return 0;
     }
     const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);    
@@ -240,8 +244,7 @@ const loadMIPRange = async (bucketName, key, start, end) => {
             outdata[3*i+1] = rgba.getUint8(4*i+1);
             outdata[3*i+2] = rgba.getUint8(4*i+2);
         }
-    }
-    else if (mipExt === '.tif' || mipExt === '.tiff') {
+    } else if (mipExt === '.tif' || mipExt === '.tiff') {
         const tartiff = await tiff.fromArrayBuffer(imgfile);
         const tarimage = await tartiff.getImage();
 

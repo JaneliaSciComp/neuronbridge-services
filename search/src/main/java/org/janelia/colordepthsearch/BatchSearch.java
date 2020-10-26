@@ -35,6 +35,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
 
     @Override
     public Integer handleRequest(BatchSearchParameters params, Context context) {
+        long startTime = System.currentTimeMillis();
         if (StringUtils.isNotBlank(params.getJobId())) {
             MDC.put("jobId", params.getJobId());
         }
@@ -49,11 +50,10 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         if (tableName != null && params.getJobId() != null && params.getBatchId() != null) {
             DynamoDbClient dynamoDbClient = LambdaUtils.createDynamoDB();
             writeCDSResults(results, dynamoDbClient, tableName, params.getJobId(), params.getBatchId());
-        }
-        else {
+        } else {
             LOG.error("Could not write results to DynamoDB. Missing tableName, jobId, and/or batchId.");
         }
-
+        LOG.info("Completed batch {}:{} in {}s", params.getJobId(), params.getBatchId(), (System.currentTimeMillis() - startTime) / 1000.);
         return cdsResults.size();
     }
 
