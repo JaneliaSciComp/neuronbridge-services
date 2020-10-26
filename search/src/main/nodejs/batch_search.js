@@ -313,18 +313,15 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
     const mipPath = path.parse(mipKey);
     const mipName = mipPath.name;
     const mipExt = mipPath.ext;
-
     // displayable mips are always png and the thumbnails jpg
     let mipImageKey;
-    console.log("!!!!!!!!! MIPKEY ", mipKey, mipExt);
     if (!mipExt) {
         mipImageKey = getDisplayableMIPKey(mipKey) + '.png';
     } else {
-        mipImageKey = getDisplayableMIPKey(mipKey).replace(/\..*$/, '.png');
+        // keep in mind that the ext returned by path contains the dot
+        mipImageKey = getDisplayableMIPKey(mipKey).replace(new RegExp('\\' + mipExt +  '$'), '.png');
     }
-    console.log("!!!!!!!!! MIPIMAGEKEY ", mipImageKey);
     const mipThumbnailKey = mipImageKey.replace(new RegExp('\\.(png|tif)$'), '.jpg');
-    console.log("!!!!!!!!! mipThumbnailKey ", mipThumbnailKey);
     const mipDirNames = mipKey.split("/");
     const nPathComponents = mipDirNames.length;
     let mip = {
