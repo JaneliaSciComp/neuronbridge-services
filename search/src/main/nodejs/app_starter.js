@@ -228,6 +228,7 @@ const submitAlignmentJob = async (searchParams) => {
     console.log('Search input metadata', searchInputMetadata);
     const searchInputSize = searchInputMetadata.ContentLength;
     const searchInputContentType = searchInputMetadata.ContentType;
+    const comparisonAlgorithm = searchInputMetadata.algorithm || "Max";
     let estimatedMemory;
     if (searchInputContentType === 'application/zip') {
         estimatedMemory = searchInputSize / (1024. * 1024.) * 8 * 3.5;
@@ -249,7 +250,8 @@ const submitAlignmentJob = async (searchParams) => {
     let jobParameters = {
         search_id: searchParams.id,
         input_filename: fullSearchInputImage,
-        output_folder: searchParams.searchInputFolder
+        output_folder: searchParams.searchInputFolder,
+        comparison_alg: comparisonAlgorithm
     };
     if (searchParams.userDefinedImageParams) {
         const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '1';

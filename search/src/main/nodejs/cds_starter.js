@@ -1,30 +1,18 @@
 'use strict';
 
-const AWS = require('aws-sdk');
-const Jimp = require('jimp');
-const {
-    getSearchKey,
-    getSearchMaskId,
-    getSearchMetadataKey
-} = require('./searchutils');
+const {getSearchMetadataKey} = require('./searchutils');
 const {
     DEBUG,
     getObject,
-    getS3ContentWithRetry,
-    getS3ContentMetadata,
     invokeFunction,
     putObject,
-    putS3Content,
-    startStepFunction,
     verifyKey
 } = require('./utils');
 const {
     SEARCH_IN_PROGRESS,
     getSearchMetadata,
-    lookupSearchMetadata,
     updateSearchMetadata
 } = require('./awsappsyncutils');
-const {generateMIPs} = require('./mockMIPGeneration');
 
 const DEFAULTS = {
   maskThreshold: 100,

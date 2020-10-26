@@ -1,10 +1,7 @@
 'use strict';
 
 const AWS = require('aws-sdk');
-const moment = require('moment');
 
-const {getIntermediateSearchResultsPrefix, getIntermediateSearchResultsKey, getSearchProgressKey} = require('./searchutils');
-const {getAllKeys, DEBUG} = require('./utils');
 const {getSearchMetadata, updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
 
 const bc = new AWS.Batch({
@@ -70,7 +67,7 @@ const monitorAlignmentJob = async (alignJobParams) => {
             if (job.attempts && job.attempts.length > 0) {
                 let reason = job.attempts[0].container && job.attempts[0].container.reason;
                 if (reason) {
-                    if (!!errorMessage) {
+                    if (errorMessage) {
                         errorMessage = `${errorMessage}; ${reason}`;
                     } else {
                         errorMessage = reason;

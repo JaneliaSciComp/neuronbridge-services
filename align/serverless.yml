@@ -132,6 +132,7 @@ resources:
           xy_resolution: "0"
           z_resolution: "0"
           reference_channel: "Signal_amount"
+          comparison_alg: "Max"
           force_voxel_size: false
           nslots: ${self:custom.defaultAlignmentThreads}
         ContainerProperties:
@@ -159,6 +160,8 @@ resources:
             - "Ref::z_resolution"
             - "--reference-channel"
             - "Ref::reference_channel"
+            - "--comparison_alg"
+            - "Ref::comparison_alg"
             - "--forceVxSize"
             - "Ref::force_voxel_size"
             - "--nslots"
