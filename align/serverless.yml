@@ -121,7 +121,7 @@ resources:
         RetryStrategy:
           Attempts: 1
         Timeout:
-          AttemptDurationSeconds: 7200
+          AttemptDurationSeconds: 9000
         Parameters:
           iam_role: auto
           debug_flag: ${self:custom.debug}
@@ -190,6 +190,8 @@ resources:
               Value: ${file(../search/serverless.yml):service}-${self:provider.stage}-searchUpdate
             - Name: ALIGNMENT_MEMORY
               Value: 8G
+            - Name: PREALIGN_TIMEOUT
+              Value: 7200
           ReadonlyRootFilesystem: true
           Privileged: true
           LinuxParameters:
