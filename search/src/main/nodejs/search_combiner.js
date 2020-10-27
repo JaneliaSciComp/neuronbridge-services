@@ -7,6 +7,29 @@ const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
+const mergeBatchResults = async (items, allBatchResults) => {
+    for(const item of items) {
+        try {
+            const batchResults = JSON.parse(item.results);
+            batchResults.forEach(batchResult => {
+                if (allBatchResults[batchResult.maskId]) {
+                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+                } else {
+                    allBatchResults[batchResult.maskId] = batchResult;
+                }
+            });
+        } catch (e) {
+            // write down the error
+            await updateSearchMetadata({
+                id: searchId,
+                errorMessage: e.name + ': ' + e.message
+            });
+            // rethrow the error
+            throw e;
+        }
+    }
+}
+
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
         return {
@@ -42,31 +65,17 @@ exports.searchCombiner = async (event) => {
         ExpressionAttributeValues: {
             ':jobId': jobId,
             ':emptyList': '[ ]'
-        },
-      };
-      
-    const queryResult = await docClient.query(params).promise()
-
-    for(const item of queryResult.Items) {
-        try {
-            const batchResults = JSON.parse(item.results)
-            batchResults.forEach(batchResult => {
-                if (allBatchResults[batchResult.maskId]) {
-                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
-                } else {
-                    allBatchResults[batchResult.maskId] = batchResult;
-                }
-            });
-        } catch (e) {
-            // write down the error
-            await updateSearchMetadata({
-                id: searchId,
-                errorMessage: e.name + ': ' + e.message
-            });
-            // rethrow the error
-            throw e;
         }
-    }
+    };
+
+    let queryResult;
+    do {
+        // eslint-disable-next-line no-await-in-loop
+        queryResult = await docClient.query(params).promise();
+        console.log(`Merging ${queryResult.Items.length} results`, queryResult.LastEvaluatedKey);
+        mergeBatchResults(queryResult.Items, allBatchResults);
+        params.ExclusiveStartKey = queryResult.LastEvaluatedKey;
+    } while (queryResult.LastEvaluatedKey);
 
     const matchCounts = Object.values(allBatchResults).map(rsByMask => {
         return rsByMask.results.length;
