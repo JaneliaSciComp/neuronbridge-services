@@ -1,31 +1,29 @@
-'use strict';
-
-const AWS = require('aws-sdk');
-const Jimp = require('jimp');
-const {getSearchKey, getSearchMaskId} = require('./searchutils');
-const {
+import AWS from 'aws-sdk';
+import Jimp from 'jimp';
+import {getSearchKey, getSearchMaskId} from './searchutils';
+import {
     getS3ContentWithRetry,
     getS3ContentMetadata,
     invokeAsync,
     putS3Content,
     startStepFunction,
-} = require('./utils');
-const {
+} from './utils';
+import {
     ALIGNMENT_JOB_SUBMITTED,
     ALIGNMENT_JOB_COMPLETED,
     SEARCH_IN_PROGRESS,
     getSearchMetadata,
     lookupSearchMetadata,
     updateSearchMetadata
-} = require('./awsappsyncutils');
-const {generateMIPs} = require('./mockMIPGeneration');
+} from './awsappsyncutils';
+import {generateMIPs} from './mockMIPGeneration';
 
 const cdsDispatchFunction = process.env.CDS_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
-const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1
+const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1;
 const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
-const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1
+const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1;
 const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 const searchBucket = process.env.SEARCH_BUCKET;
@@ -33,13 +31,13 @@ const s3Retries = process.env.S3_RETRIES || 3;
 
 const bc = new AWS.Batch();
 
-const appStarter = async (event) => {
+export const appStarter = async (event) => {
     console.log(event);
     let sourceIsHttpApiGateway;
     let eventBody;
     if (event.body) {
         eventBody = JSON.parse(event.body);
-        console.log("Parsed body", eventBody)
+        console.log("Parsed body", eventBody);
         sourceIsHttpApiGateway = true;
     } else {
         eventBody = event;
@@ -85,11 +83,11 @@ const appStarter = async (event) => {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify(returnedResults)
-        }
+        };
     } else {
         return results;
     }
-}
+};
 
 const getNewRecords = async (e) => {
     if (e.Records) {
@@ -121,7 +119,7 @@ const getNewRecords = async (e) => {
     } else {
         return [];
     }
-}
+};
 
 const startColorDepthSearch = async (searchParams) => {
     const limitsMessage = await checkLimits(searchParams, concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits, s => s.step === SEARCH_IN_PROGRESS);
@@ -139,7 +137,7 @@ const startColorDepthSearch = async (searchParams) => {
         console.log('Start ColorDepthSearch', searchParams);
         const searchInputName = searchParams.searchMask
             ? searchParams.searchMask
-            : searchParams.searchInputName
+            : searchParams.searchInputName;
 
         searchParams.displayableMask = await createDisplayableMask(searchBucket, searchParams.searchInputFolder, searchInputName);
         if (searchParams.displayableMask) {
@@ -153,7 +151,7 @@ const startColorDepthSearch = async (searchParams) => {
         console.log('Started ColorDepthSearch', cdsInvocationResult);
         return cdsInvocationResult;
     }
-}
+};
 
 const createDisplayableMask = async (bucket, prefix, key) => {
     if (/\.(tiff?|gif|jpe?g|bmp)$/.test(key)) {
@@ -177,7 +175,7 @@ const createDisplayableMask = async (bucket, prefix, key) => {
     } else {
         return key;
     }
-}
+};
 
 const startAlignment = async (searchParams) => {
     const limitsMessage = await checkLimits(searchParams, concurrentAlignmentLimits, perDayAlignmentLimits, s => s.step === ALIGNMENT_JOB_SUBMITTED);
@@ -198,7 +196,7 @@ const startAlignment = async (searchParams) => {
             return await submitAlignmentJob(searchParams);
         }
     }
-}
+};
 
 const checkLimits = async (searchParams, concurrentSearches, perDayLimits, searchesFilter) => {
     if (concurrentSearches < 0 && perDayLimits < 0) {
@@ -220,7 +218,7 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits, searc
         return `it is already running ${currentSearches.length} searches - the maximum allowed concurrent searches`;
     }
     return null;
-}
+};
 
 const submitAlignmentJob = async (searchParams) => {
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
@@ -231,9 +229,9 @@ const submitAlignmentJob = async (searchParams) => {
     const comparisonAlgorithm = searchInputMetadata.algorithm || "Max";
     let estimatedMemory;
     if (searchInputContentType === 'application/zip') {
-        estimatedMemory = searchInputSize / (1024. * 1024.) * 8 * 3.5;
+        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 8 * 3.5;
     } else {
-        estimatedMemory = searchInputSize / (1024. * 1024.) * 3.5;
+        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 3.5;
     }
     const cpus = 16;
     const mem = Math.max(16 * 1024, Math.ceil(estimatedMemory));
@@ -255,7 +253,7 @@ const submitAlignmentJob = async (searchParams) => {
     };
     if (searchParams.userDefinedImageParams) {
         const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '1';
-        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '1'
+        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '1';
         const refChannel = searchParams.referenceChannel;
         jobParameters.force_voxel_size = 'true';
         jobParameters.xy_resolution = xyRes;
@@ -307,8 +305,4 @@ const submitAlignmentJob = async (searchParams) => {
             errorMessage: `Error submitting alignment job: ${submitError.message}`
         };
     }
-}
-
-module.exports = {
-    appStarter
-}
+};

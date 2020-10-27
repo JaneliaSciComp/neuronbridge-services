@@ -1,17 +1,15 @@
-'use strict';
-
-const AWS = require('aws-sdk');
-const AWSAppSyncClient = require("aws-appsync").default;
-const AUTH_TYPE = require('aws-appsync').AUTH_TYPE;
-const gql = require("graphql-tag");
+import AWS  from 'aws-sdk';
+import AWSAppSyncClient from "aws-appsync";
+import { AUTH_TYPE } from 'aws-appsync';
+import gql from "graphql-tag";
 require("isomorphic-fetch");
 
 const DEBUG = !!process.env.DEBUG;
 
-exports.ALIGNMENT_JOB_SUBMITTED = 1;
-exports.ALIGNMENT_JOB_COMPLETED = 2;
-exports.SEARCH_IN_PROGRESS = 3;
-exports.SEARCH_COMPLETED = 4;
+export const ALIGNMENT_JOB_SUBMITTED = 1;
+export const ALIGNMENT_JOB_COMPLETED = 2;
+export const SEARCH_IN_PROGRESS = 3;
+export const SEARCH_COMPLETED = 4;
 
 const appSyncClient = new AWSAppSyncClient({
     url: process.env.APPSYNC_API_URL,
@@ -23,7 +21,7 @@ const appSyncClient = new AWSAppSyncClient({
     disableOffline: true
 });
 
-exports.getSearchMetadata = async (searchId) => {
+export const getSearchMetadata = async (searchId) => {
     const result = await appSyncClient.query({
         query: gql(`query getSearch($searchId: ID!) {
             getSearch(id: $searchId) {
@@ -72,18 +70,18 @@ exports.getSearchMetadata = async (searchId) => {
     const searchResult = toSearchResult(result.data.getSearch);
     console.log("Found search result", searchResult);
     return searchResult;
-}
+};
 
-exports.lookupSearchMetadata = async (searchFilterParams) => {
+export const lookupSearchMetadata = async (searchFilterParams) => {
     let searchFilter = {};
     if (searchFilterParams.currentSearchId) {
-        searchFilter.id = {ne: searchFilterParams.currentSearchId}
+        searchFilter.id = {ne: searchFilterParams.currentSearchId};
     }
     if (searchFilterParams.identityId) {
-        searchFilter.identityId = {eq: searchFilterParams.identityId}
+        searchFilter.identityId = {eq: searchFilterParams.identityId};
     }
     if (searchFilterParams.owner) {
-        searchFilter.owner = {eq: searchFilterParams.owner}
+        searchFilter.owner = {eq: searchFilterParams.owner};
     }
     if (searchFilterParams.lastUpdated) {
         const lastUpdated = searchFilterParams.lastUpdated;
@@ -141,9 +139,9 @@ exports.lookupSearchMetadata = async (searchFilterParams) => {
         .filter(s => searchFilterParams.withNoErrorsOnly ? !s.errorMessage : true);
     console.log("Found searches", searches);
     return searches;
-}
+};
 
-exports.createSearchMetadata = async (searchData) => {
+export const createSearchMetadata = async (searchData) => {
   const result = await appSyncClient.mutate({
     mutation: gql(`mutation createSearch($createInput: CreateSearchInput!) {
       createSearch(input: $createInput) {
@@ -184,9 +182,9 @@ exports.createSearchMetadata = async (searchData) => {
   });
   const newSearch = toSearchResult(result.data.createSearch);
   return newSearch;
-}
+};
 
-exports.updateSearchMetadata = async (searchData) => {
+export const updateSearchMetadata = async (searchData) => {
     if (!searchData.id) {
         if (DEBUG) console.log('Update not invoked because no search ID was set');
         return searchData;
@@ -233,7 +231,7 @@ exports.updateSearchMetadata = async (searchData) => {
     const updatedSearch = toSearchResult(result.data.updateSearch);
     console.log("Updated search result", updatedSearch);
     return updatedSearch;
-}
+};
 
 const toSearchResult = (searchData) => {
     if (!searchData) {
@@ -251,5 +249,5 @@ const toSearchResult = (searchData) => {
         searchInputName: `${searchData.upload}`,
         ...searchMask,
         ...searchData
-    }
-}
+    };
+};

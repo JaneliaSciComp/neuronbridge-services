@@ -4,21 +4,21 @@
 // npm run-script search <stackName> <inputfile> [batchSize] [numLevels]
 // npm run-script search <stackName> report [jobId]
 //
-'use strict'
-const util = require('util')
-var fs = require('fs')
+import util from 'util';
+import fs from 'fs';
+import AWS from 'aws-sdk';
+import { mean, median, min, max, std } from 'mathjs';
+import { invokeFunction } from './utils';
+
 const readFile = util.promisify(fs.readFile)
-const sleep = util.promisify(setTimeout)
-const AWS = require('aws-sdk')
+const sleep = util.promisify(setTimeout);
 const cwLogs = new AWS.CloudWatchLogs()
-const { mean, median, min, max, std } = require('mathjs')
-const { invokeFunction } = require('./utils')
 
 const TRACE = false
 const DEBUG = false
 
-// This is a guess about how long the first dispatcher took in order to start the state machine. 
-// If this is not large enough, we may not find all the dispatchers. 
+// This is a guess about how long the first dispatcher took in order to start the state machine.
+// If this is not large enough, we may not find all the dispatchers.
 const STATE_MACHINE_START_TIME_ESTIMATE = 30000
 
 // Wait until the given monitor is done, then return the final execution
@@ -119,7 +119,7 @@ function isReport(logEvent) {
 
 function getRequestId(logEvent, requests) {
   // First check for a START message where the request id is easily parsed
-  //START RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Version: $LATEST 
+  //START RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Version: $LATEST
   const match = logEvent.message.match(/START RequestId: (\S+) /);
   if (match) {
     return match[1]
@@ -139,7 +139,7 @@ function getRequestId(logEvent, requests) {
 }
 
 function parseReport(logEvent) {
-  //REPORT RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Duration: 28823.03 ms Billed Duration: 28900 ms Memory Size: 384 MB Max Memory Used: 181 MB Init Duration: 601.37 ms 
+  //REPORT RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Duration: 28823.03 ms Billed Duration: 28900 ms Memory Size: 384 MB Max Memory Used: 181 MB Init Duration: 601.37 ms
   const match = logEvent.message.match(/.*?Duration: ([\d.]+ \w+)\s+Billed Duration: ([\d.]+ \w+)\s+Memory Size: (\d+ \w+)\s+Max Memory Used: (\d+ \w+)(\s+Init Duration: ([\d.]+ \w+))?/);
   if (!match) {
     console.log('Could not parse report: ', logEvent.message)
@@ -296,7 +296,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
     start: combinerStarted,
     end: combinerEnded
   })
-  
+
 
   console.log('Fetching dispatcher log streams...')
   const dispatcherLogStreams = await getStreams(dispatchFunction, new Date(stateMachineStarted.getTime() - STATE_MACHINE_START_TIME_ESTIMATE), stateMachineEnded)
@@ -307,7 +307,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
   const dispatchTimes = {}
   const dispatchElapsedTimes = []
   for (const logStream of dispatcherLogStreams) {
-    
+
     const logGroupName = `/aws/lambda/${dispatchFunction}`
     const logStreamName = logStream.logStreamName
     const requests = await getRequestLogs(logGroupName, logStreamName)
@@ -358,7 +358,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
       if (r.lastEventTime > lastDispatcherTime) {
         lastDispatcherTime = r.lastEventTime
       }
-  
+
       if (rootDispatcher && inputEvent) {
         input = JSON.parse(inputEvent)
       }
@@ -387,7 +387,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
 
   console.log('Fetching worker log streams...')
   const workerLogStreams = await getStreams(searchFunction, firstDispatcherTime, stateMachineEnded)
-  
+
   if (totalTasks !== workerLogStreams.length) {
     console.log(`WARNING: Number of worker logs (${workerLogStreams.length}) does not match number of workers (${totalTasks}).`)
   }
@@ -548,7 +548,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
     console.log(`        totalCombinerDelay:    ${pad(totalCombinerDelay)}`)
   }
   console.log(`      totalCombinerElapsed:    ${pad(totalCombinerElapsed)}`)
-  
+
   return {
     input: input,
     aggregate: ["Dispatcher", "Workers"],
@@ -616,7 +616,7 @@ async function main () {
 
     const response = JSON.parse(cdsInvocationResult.Payload)
     const execution = await waitForMonitor(stateMachineName, response.jobId)
-      
+
     if (execution && execution.status==='SUCCEEDED') {
       console.log("Search complete.")
       console.log("Results may lag due to eventual consistency. To attempt analysis, run:")

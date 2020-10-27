@@ -9,3 +9,6 @@ parserOptions:
 rules:
   no-console: off
   radix: off
+  semi: 2
+  no-trailing-spaces: 2
+  block-spacing: 2

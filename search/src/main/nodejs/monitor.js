@@ -1,8 +1,6 @@
-'use strict';
+import AWS from 'aws-sdk';
 
-const AWS = require('aws-sdk');
-
-const {getSearchMetadata, updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
+import { getSearchMetadata, updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} from './awsappsyncutils';
 
 const bc = new AWS.Batch({
     apiVersion: '2016-08-10'
@@ -24,7 +22,7 @@ const isJobDone = async (event) =>  {
             withErrors: true
         };
     }
-}
+};
 
 const monitorAlignmentJob = async (alignJobParams) => {
     const searchId = alignJobParams.searchId;
@@ -104,7 +102,7 @@ const monitorAlignmentJob = async (alignJobParams) => {
             withErrors: true
         };
     }
-}
+};
 
 module.exports = {
     isJobDone

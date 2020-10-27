@@ -1,6 +1,4 @@
-'use strict';
-
-const {updateSearchMetadata} = require('./awsappsyncutils');
+import {updateSearchMetadata} from './awsappsyncutils';
 
 exports.searchUpdate = async (event) => {
     console.log(event);
@@ -21,4 +19,4 @@ exports.searchUpdate = async (event) => {
         searchData.errorMessage = event.errorMessage;
     }
     return await updateSearchMetadata(searchData);
-}
+};

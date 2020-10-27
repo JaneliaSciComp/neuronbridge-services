@@ -20,6 +20,7 @@
     "mathjs": "^7.2.0",
     "moment": "^2.25.3",
     "stream": "0.0.2",
+    "upng-js": "^2.1.0",
     "uuid": "^8.2.0"
   },
   "devDependencies": {
@@ -34,6 +35,7 @@
     "jest": "^26.4.2",
     "serverless": "^2.6.0",
     "serverless-appsync-plugin": "^1.4.0",
+    "serverless-bundle": "^3.2.1",
     "serverless-step-functions": "^2.26.0"
   }
 }

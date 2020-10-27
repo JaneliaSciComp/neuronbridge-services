@@ -1,9 +1,7 @@
-'use strict';
-
-const AWS = require('aws-sdk');
-const {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey} = require('./searchutils');
-const {streamObject, removeKey, DEBUG} = require('./utils');
-const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
+import AWS from 'aws-sdk';
+import {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey} from './searchutils';
+import {streamObject, removeKey, DEBUG} from './utils';
+import {updateSearchMetadata, SEARCH_COMPLETED} from './awsappsyncutils';
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
@@ -20,12 +18,12 @@ const mergeResults = (rs1, rs2) => {
         console.log(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
         throw new Error(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
     }
-}
+};
 
 exports.searchCombiner = async (event) => {
     // Parameters
     if (DEBUG) console.log(event);
-    
+
     const { jobId, tasksTableName } = event;
     const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
     const fullSearchInputName = maskKeys[0];
@@ -43,12 +41,12 @@ exports.searchCombiner = async (event) => {
             ':emptyList': '[ ]'
         },
       };
-      
-    const queryResult = await docClient.query(params).promise()
+
+    const queryResult = await docClient.query(params).promise();
 
     for(const item of queryResult.Items) {
         try {
-            const batchResults = JSON.parse(item.results)
+            const batchResults = JSON.parse(item.results);
             batchResults.forEach(batchResult => {
                 if (allBatchResults[batchResult.maskId]) {
                     allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
@@ -99,7 +97,7 @@ exports.searchCombiner = async (event) => {
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
     // write down the progress - done
-    const now = new Date()
+    const now = new Date();
     await updateSearchMetadata({
         id: searchId,
         step: SEARCH_COMPLETED,
@@ -117,4 +115,4 @@ exports.searchCombiner = async (event) => {
         ...event,
         matchCounts
     };
-}
+};
