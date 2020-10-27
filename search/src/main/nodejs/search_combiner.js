@@ -7,7 +7,7 @@ const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
-const mergeBatchResults = async (items, allBatchResults) => {
+const mergeBatchResults = async (searchId, items, allBatchResults) => {
     for(const item of items) {
         try {
             const batchResults = JSON.parse(item.results);
@@ -73,7 +73,7 @@ exports.searchCombiner = async (event) => {
         // eslint-disable-next-line no-await-in-loop
         queryResult = await docClient.query(params).promise();
         console.log(`Merging ${queryResult.Items.length} results`, queryResult.LastEvaluatedKey);
-        mergeBatchResults(queryResult.Items, allBatchResults);
+        mergeBatchResults(searchId, queryResult.Items, allBatchResults);
         params.ExclusiveStartKey = queryResult.LastEvaluatedKey;
     } while (queryResult.LastEvaluatedKey);
 
