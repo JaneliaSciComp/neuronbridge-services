@@ -7,7 +7,7 @@
     "sls": "./node_modules/serverless/bin/serverless.js",
     "test": "jest",
     "lint": "npx eslint src/main/nodejs",
-    "search": "AWS_SDK_LOAD_CONFIG=true DISABLE_XRAY=true node src/main/nodejs/search_client.js"
+    "search": "AWS_SDK_LOAD_CONFIG=true DISABLE_XRAY=true babel-node --presets @babel/env src/main/nodejs/search_client.js"
   },
   "dependencies": {
     "aws-appsync": "^4.0.0",
@@ -25,6 +25,7 @@
     "uuid": "^8.2.0"
   },
   "devDependencies": {
+    "@babel/node": "^7.12.1",
     "aws-sdk": "^2.720.0",
     "eslint": "^7.10.0",
     "eslint-config-airbnb-base": "^14.2.0",
