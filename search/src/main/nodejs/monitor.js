@@ -9,7 +9,7 @@ const bc = new AWS.Batch({
 });
 
 const isJobDone = async (event) =>  {
-    console.log(event);
+    console.log('Input event:', JSON.stringify(event));
     try {
         return await monitorAlignmentJob(event);
     } catch (e) {

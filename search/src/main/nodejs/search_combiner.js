@@ -23,9 +23,10 @@ const mergeResults = (rs1, rs2) => {
 }
 
 exports.searchCombiner = async (event) => {
-    // Parameters
-    if (DEBUG) console.log(event);
     
+    console.log('Input event:', JSON.stringify(event));
+    
+    // Parameters
     const { jobId, tasksTableName } = event;
     const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
     const fullSearchInputName = maskKeys[0];
