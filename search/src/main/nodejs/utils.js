@@ -3,6 +3,7 @@
 const AWSXRay = require('aws-xray-sdk-core');
 const AWS = require('aws-sdk');
 const stream = require('stream');
+const backOff = require("exponential-backoff").backOff;
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
@@ -14,7 +15,6 @@ const lambda = process.env.DISABLE_XRAY ? new AWS.Lambda() : AWSXRay.captureAWSC
 const stepFunction = new AWS.StepFunctions();
 
 const DEBUG = !!process.env.DEBUG;
-const RETRY_DELAY = 500;
 
 // Retrieve all the keys in a particular bucket
 const getAllKeys = async params => {
@@ -28,10 +28,10 @@ const getAllKeys = async params => {
     return allKeys;
 };
 
-// Retrieve a file from S3
+// Retrieve a file from S3 
 const getObjectDataArray = async (bucket, key, defaultValue) => {
     try {
-        const s3Content = await getS3Content(bucket, key);
+        const s3Content = await getS3ContentWithRetry(bucket, key, 3);
         return s3Content.buffer;
     } catch (e) {
         if (defaultValue === undefined) {
@@ -67,18 +67,19 @@ const sleep = async (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+const retryOptions = {
+    jitter : "full",
+    maxDelay: 10000,
+}
+
 const getObjectWithRetry = async (bucket, key, retries) => {
-    for(let retry = 0; retry < retries; retry++) {
-        try {
-            return await getObject(bucket, key);
-        } catch (e) {
-            if (retry + 1 >= retries) {
-                console.error(`Error getting object ${bucket}:${key} after ${retries} retries`, e);
-                throw e;
-            }
-            await sleep(RETRY_DELAY);
+    return await backOff(() => getObject(bucket, key), {
+        ...retryOptions,
+        numOfAttempts: retries,
+        retry: (e, attemptNumber) => {
+            console.error(`Failed attempt #${attemptNumber} getting object ${bucket}:${key}`, e);
         }
-    }
+    });
 }
 
 // Retrieve a file from S3
@@ -95,17 +96,13 @@ const getS3Content = async (bucket, key) => {
 };
 
 const getS3ContentWithRetry = async (bucket, key, retries) => {
-    for(let retry = 0; retry < retries; retry++) {
-        try {
-            return await getS3Content(bucket, key);
-        } catch (e) {
-            if (retry + 1 >= retries) {
-                console.error(`Error getting content ${bucket}:${key} after ${retries} retries`, e);
-                throw e;
-            }
-            await sleep(RETRY_DELAY);
+    return await backOff(() => getS3Content(bucket, key), {
+        ...retryOptions,
+        numOfAttempts: retries,
+        retry: (e, attemptNumber) => {
+            console.error(`Failed attempt #${attemptNumber} getting object ${bucket}:${key}`, e);
         }
-    }
+    });
 }
 
 const getS3ContentMetadata = async (bucket, key) => {
@@ -120,17 +117,13 @@ const getS3ContentMetadata = async (bucket, key) => {
 };
 
 const putObjectWithRetry = async (bucket, key, data, retries) => {
-    for(let retry = 0; retry < retries; retry++) {
-        try {
-            return await putObject(bucket, key, data);
-        } catch (e) {
-            if (retry + 1 >= retries) {
-                console.error(`Error putting content ${bucket}:${key} after ${retries} retries`, e);
-                throw e;
-            }
-            await sleep(RETRY_DELAY);
+    return await backOff(() => putObject(bucket, key, data), {
+        ...retryOptions,
+        numOfAttempts: retries,
+        retry: (e, attemptNumber) => {
+            console.error(`Failed attempt #${attemptNumber} putting object ${bucket}:${key}`, e);
         }
-    }
+    });
 }
 
 // Write an object into S3 as JSON
