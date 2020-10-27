@@ -16,6 +16,12 @@ const stepFunction = new AWS.StepFunctions();
 
 const DEBUG = !!process.env.DEBUG;
 
+const retryOptions = {
+    jitter : "full",
+    maxDelay: 10000,
+    startingDelay: 200
+}
+
 // Retrieve all the keys in a particular bucket
 const getAllKeys = async params => {
     const allKeys = [];
@@ -65,11 +71,6 @@ const getObject = async (bucket, key, defaultValue) => {
 
 const sleep = async (ms) => {
     return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-const retryOptions = {
-    jitter : "full",
-    maxDelay: 10000,
 }
 
 const getObjectWithRetry = async (bucket, key, retries) => {
