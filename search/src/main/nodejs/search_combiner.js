@@ -72,7 +72,7 @@ exports.searchCombiner = async (event) => {
     do {
         // eslint-disable-next-line no-await-in-loop
         queryResult = await docClient.query(params).promise();
-        console.log(`Merging ${queryResult.Items.length} results`, queryResult.LastEvaluatedKey);
+        console.log(`Merging ${queryResult.Items.length} results`, '->', queryResult.LastEvaluatedKey ? queryResult.LastEvaluatedKey : 'end');
         mergeBatchResults(searchId, queryResult.Items, allBatchResults);
         params.ExclusiveStartKey = queryResult.LastEvaluatedKey;
     } while (queryResult.LastEvaluatedKey);
