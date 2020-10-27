@@ -18,7 +18,7 @@ const retryOptions = {
     jitter : "full",
     maxDelay: 10000,
     startingDelay: 200
-}
+};
 
 // Retrieve all the keys in a particular bucket
 export const getAllKeys = async params => {
