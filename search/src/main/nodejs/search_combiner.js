@@ -5,6 +5,29 @@ import {updateSearchMetadata, SEARCH_COMPLETED} from './awsappsyncutils';
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
+const mergeBatchResults = async (searchId, items, allBatchResults) => {
+    for(const item of items) {
+        try {
+            const batchResults = JSON.parse(item.results);
+            batchResults.forEach(batchResult => {
+                if (allBatchResults[batchResult.maskId]) {
+                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+                } else {
+                    allBatchResults[batchResult.maskId] = batchResult;
+                }
+            });
+        } catch (e) {
+            // write down the error
+            await updateSearchMetadata({
+                id: searchId,
+                errorMessage: e.name + ': ' + e.message
+            });
+            // rethrow the error
+            throw e;
+        }
+    }
+};
+
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
         return {
@@ -21,9 +44,9 @@ const mergeResults = (rs1, rs2) => {
 };
 
 exports.searchCombiner = async (event) => {
-    // Parameters
-    if (DEBUG) console.log(event);
+    if (DEBUG) console.log('Input event:', JSON.stringify(event));
 
+    // Parameters
     const { jobId, tasksTableName } = event;
     const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
     const fullSearchInputName = maskKeys[0];
@@ -42,7 +65,7 @@ exports.searchCombiner = async (event) => {
         },
       };
 
-    const queryResult = await docClient.query(params).promise();
+    let queryResult;
 
     for(const item of queryResult.Items) {
         try {
@@ -64,6 +87,14 @@ exports.searchCombiner = async (event) => {
             throw e;
         }
     }
+
+    do {
+        // eslint-disable-next-line no-await-in-loop
+        queryResult = await docClient.query(params).promise();
+        console.log(`Merging ${queryResult.Items.length} results`, queryResult.LastEvaluatedKey);
+        mergeBatchResults(searchId, queryResult.Items, allBatchResults);
+        params.ExclusiveStartKey = queryResult.LastEvaluatedKey;
+    } while (queryResult.LastEvaluatedKey);
 
     const matchCounts = Object.values(allBatchResults).map(rsByMask => {
         return rsByMask.results.length;

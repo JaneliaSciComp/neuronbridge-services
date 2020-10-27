@@ -100,7 +100,7 @@ async function getStreams(functionName, startTime, endTime) {
       }
     }
     streamsParams.nextToken = streamsResponse.nextToken
-    await sleep(50) // try to avoid rate limiting
+    await sleep(100) // try to avoid rate limiting
   } while (streamsParams.nextToken)
   return logStreams
 }
@@ -177,7 +177,7 @@ async function getRequestLogs(logGroupName, logStreamName) {
         }
       }
       else if (isEnd(logEvent)) {
-        // Ignore
+        // Ignored
       }
       else if (isReport(logEvent)) {
         const requestId = getRequestId(logEvent, requests)
@@ -201,7 +201,7 @@ async function getRequestLogs(logGroupName, logStreamName) {
         }
       }
     }
-    await sleep(50) // try to avoid rate limiting
+    await sleep(30) // try to avoid rate limiting
   } while (logEventsParams.nextToken)
 
   return requests
@@ -220,6 +220,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
   console.log('Reporting on ' + jobId)
 
   let input = null
+  let output = null
   const stages = []
 
   // Analyze state machine step history
@@ -241,6 +242,8 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
       stateMachineStarted = event.timestamp
     } else if (event.type === 'ExecutionSucceeded') {
       stateMachineEnded = event.timestamp
+      output = JSON.parse(event.executionSucceededEventDetails.output)
+      console.log(`Final state:`, output);
     } else if (event.type === 'TaskScheduled') {
       if (currState=='Monitor') {
         monitorStarted = event.timestamp
@@ -402,6 +405,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
 
     const logGroupName = `/aws/lambda/${searchFunction}`
     const logStreamName = logStream.logStreamName
+
     const requests = await getRequestLogs(logGroupName, logStreamName)
 
     let batchId = null
@@ -433,7 +437,6 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
       else {
         console.log(`No job id found in ${logStreamName}/${requestId}`)
       }
-
 
       if (r.firstEventTime < firstWorkerTime) {
         firstWorkerTime = r.firstEventTime
@@ -551,6 +554,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
 
   return {
     input: input,
+    output: output,
     aggregate: ["Dispatcher", "Workers"],
     stages: stages
   }
@@ -591,10 +595,11 @@ async function main () {
       combinerFunctionName: combinerFunction,
       jobParameters: searchParams,
       startIndex: 0,
-      endIndex: 44592,
+      endIndex: 182851,
+      maxParallelism: 4000,
       batchSize: Number.parseInt(args[2]),
       numLevels: Number.parseInt(args[3]),
-      searchTimeoutSecs: 120,
+      searchTimeoutSecs: 60*5,
     }
 
     const cdsInvocationResult = await invokeFunction(dispatchFunction, params)
