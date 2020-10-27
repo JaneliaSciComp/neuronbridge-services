@@ -119,8 +119,8 @@ function isReport(logEvent) {
 
 function getRequestId(logEvent, requests) {
   // First check for a START message where the request id is easily parsed
-  //START RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Version: $LATEST
-  const match = logEvent.message.match(/START RequestId: (\S+) /);
+  //START RequestId: 3e7c1b57-4e64-4b3d-ac59-9fc8fb0882cf Version: $LATEST 
+  const match = logEvent.message.match(/ RequestId: (\S+) /);
   if (match) {
     return match[1]
   }
@@ -173,11 +173,13 @@ async function getRequestLogs(logGroupName, logStreamName) {
         requests[requestId] = {
           firstEventTime: Number.MAX_SAFE_INTEGER,
           lastEventTime: 0,
-          logEvents: []
+          complete: false,
+          logEvents: [],
         }
       }
       else if (isEnd(logEvent)) {
-        // Ignored
+        const requestId = getRequestId(logEvent, requests)
+        requests[requestId].complete = true
       }
       else if (isReport(logEvent)) {
         const requestId = getRequestId(logEvent, requests)
@@ -188,11 +190,13 @@ async function getRequestLogs(logGroupName, logStreamName) {
         const requestId = getRequestId(logEvent, requests)
         const r = requests[requestId]
         if (r) {
-          if (logEvent.timestamp < r.firstEventTime) {
-            r.firstEventTime = logEvent.timestamp
-          }
-          if (logEvent.timestamp > r.lastEventTime) {
-            r.lastEventTime = logEvent.timestamp
+          if (!r.complete) {
+            if (logEvent.timestamp < r.firstEventTime) {
+              r.firstEventTime = logEvent.timestamp
+            }
+            if (logEvent.timestamp > r.lastEventTime) {
+              r.lastEventTime = logEvent.timestamp
+            }
           }
           r.logEvents.push(logEvent)
         }
