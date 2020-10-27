@@ -10,7 +10,7 @@ const {getObjectDataArray, getObject} = require('./utils');
 
 exports.batchSearch = async (event) => {
 
-    console.log(event);
+    console.log('Input event:', JSON.stringify(event));
 
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
 
@@ -32,24 +32,16 @@ exports.batchSearch = async (event) => {
     }
 
     if (!batchParams.libraries) {
-        console.log('No target images to search');
-        await writeCDSResults([], tasksTableName, jobId, batchId)
-        return 0;
+        throw new Error('No target images to search');
     }
     if (!batchParams.maskKeys) {
-        console.log('No masks to search');
-        await writeCDSResults([], tasksTableName, jobId, batchId)
-        return 0;
+        throw new Error('No masks to search');
     }
     if (!batchParams.maskThresholds) {
-        console.log('No mask thresholds specified')
-        await writeCDSResults([], tasksTableName, jobId, batchId)
-        return 0;
+        throw new Error('No mask thresholds specified')
     }
     if (batchParams.maskThresholds.length != batchParams.maskKeys.length) {
-        console.log('Number of mask thresholds does not match number of masks');
-        await writeCDSResults([], tasksTableName, jobId, batchId)
-        return 0;
+        throw new Error('Number of mask thresholds does not match number of masks');
     }
     const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);    
     console.log(`Loaded ${searchKeys.length} search keys`);
@@ -75,6 +67,7 @@ exports.batchSearch = async (event) => {
     const ret = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
 
     await writeCDSResults(ret, tasksTableName, jobId, batchId)
+    console.log("Wrote results to DynamoDB")
 
     return cdsResults.length;
 }
@@ -439,5 +432,5 @@ const writeCDSResults = async (results, tableName, jobId, batchId) => {
     };
 
     const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
-    await ddb.putItem(params).promise()
+    return await ddb.putItem(params).promise()
 }
