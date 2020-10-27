@@ -10,6 +10,6 @@ parserOptions:
 rules:
   no-console: off
   radix: off
-  semi: 2
-  no-trailing-spaces: 2
-  block-spacing: 2
+  semi: error
+  no-trailing-spaces: error
+  block-spacing: error
