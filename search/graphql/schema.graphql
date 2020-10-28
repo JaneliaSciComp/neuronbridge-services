@@ -42,9 +42,9 @@ type Search @aws_cognito_user_pools @aws_iam {
     userDefinedImageParams: Boolean
     channel: Int
     referenceChannel: String
-    voxelX: Int
-    voxelY: Int
-    voxelZ: Int
+    voxelX: Float
+    voxelY: Float
+    voxelZ: Float
     maskThreshold: Int
     dataThreshold: Int
     pixColorFluctuation: Float
@@ -104,9 +104,9 @@ input CreateSearchInput {
     userDefinedImageParams: Boolean
     channel: Int
     referenceChannel: String
-    voxelX: Int
-    voxelY: Int
-    voxelZ: Int
+    voxelX: Float
+    voxelY: Float
+    voxelZ: Float
     maskThreshold: Int
     dataThreshold: Int
     pixColorFluctuation: Float
