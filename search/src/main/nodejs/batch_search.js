@@ -1,5 +1,5 @@
 import AWS from 'aws-sdk';
-import GeoTIFF from 'geotiff';
+import { fromArrayBuffer } from 'geotiff';
 import path from 'path';
 import UPNG from 'upng-js';
 
@@ -239,7 +239,7 @@ const loadMIPRange = async (bucketName, key, start, end) => {
             outdata[3*i+2] = rgba.getUint8(4*i+2);
         }
     } else if (mipExt === '.tif' || mipExt === '.tiff') {
-        const tartiff = await GeoTIFF.fromArrayBuffer(imgfile);
+        const tartiff = await fromArrayBuffer(imgfile);
         const tarimage = await tartiff.getImage();
 
         width = tarimage.getWidth();
