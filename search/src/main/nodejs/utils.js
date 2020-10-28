@@ -1,4 +1,3 @@
-import AWSXRay from 'aws-xray-sdk-core';
 import AWS from 'aws-sdk';
 import stream from 'stream';
 import backOff from "exponential-backoff";
@@ -9,7 +8,7 @@ AWS.config.apiVersions = {
 };
 
 const s3 = new AWS.S3();
-const lambda = process.env.DISABLE_XRAY ? new AWS.Lambda() : AWSXRay.captureAWSClient(new AWS.Lambda());
+const lambda = new AWS.Lambda();
 const stepFunction = new AWS.StepFunctions();
 
 export const DEBUG = Boolean(process.env.DEBUG);

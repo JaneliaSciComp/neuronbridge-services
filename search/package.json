@@ -7,7 +7,7 @@
     "sls": "./node_modules/serverless/bin/serverless.js",
     "test": "jest",
     "lint": "npx eslint src/main/nodejs",
-    "search": "AWS_SDK_LOAD_CONFIG=true DISABLE_XRAY=true babel-node --presets @babel/env src/main/nodejs/search_client.js"
+    "search": "AWS_SDK_LOAD_CONFIG=true npx babel-node --presets @babel/env src/main/nodejs/search_client.js"
   },
   "dependencies": {
     "aws-appsync": "^4.0.0",

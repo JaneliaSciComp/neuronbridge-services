@@ -90,7 +90,6 @@ provider:
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
-    DISABLE_XRAY: true
   iamRoleStatements:
     - Effect: Allow
       Action:
