@@ -2,8 +2,14 @@ package org.janelia.colordepthsearch;
 
 import com.amazonaws.services.lambda.runtime.Context;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
+
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.janelia.colormipsearch.api.cdsearch.CDSMatches;
+import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithmProvider;
+import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithmProviderFactory;
+import org.janelia.colormipsearch.api.cdsearch.ColorMIPMatchScore;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearch;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResult;
 import org.janelia.colormipsearch.api.cdsearch.ColorMIPSearchResultUtils;
@@ -21,6 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 
 /**
@@ -31,7 +39,19 @@ import java.util.Map;
  */
 public class BatchSearch implements RequestHandler<BatchSearchParameters, Integer> {
 
+    private static class SearchTarget {
+        final String searchKey;
+        final String gradientKey;
+        final String zgapMaskKey;
+
+        SearchTarget(String searchKey, String gradientKey, String zgapMaskKey) {
+            this.searchKey = searchKey;
+            this.gradientKey = gradientKey;
+            this.zgapMaskKey = zgapMaskKey;
+        }
+    }
     private static final Logger LOG = LoggerFactory.getLogger(BatchSearch.class);
+
 
     @Override
     public Integer handleRequest(BatchSearchParameters params, Context context) {
@@ -90,20 +110,34 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
 
         ColorDepthSearchParameters jobParams = params.getJobParameters();
 
-        List<String> searchKeys = getSearchKeys(s3,
+        List<SearchTarget> searchTargets = getSearchTargets(s3,
                 jobParams.getLibraryBucket(),
                 jobParams.getLibraries(),
+                jobParams.getGradientsFolders(),
+                jobParams.getZgapMasksFolders(),
                 params.getStartIndex(),
                 params.getEndIndex());
-        LOG.info("Loaded {} search keys", searchKeys.size());
-        
-        ColorMIPSearch colorMIPSearch = new ColorMIPSearch(
-                0,
-                jobParams.getDataThreshold(),
-                jobParams.getPixColorFluctuation(),
-                jobParams.getXyShift(),
-                jobParams.isMirrorMask(),
-                jobParams.getMinMatchingPixRatio());
+        LOG.info("Loaded {} search keys", searchTargets.size());
+        ColorDepthSearchAlgorithmProvider<ColorMIPMatchScore> cdsAlgorithmProvider;
+        if (jobParams.isWithGradientScores()) {
+            cdsAlgorithmProvider = ColorDepthSearchAlgorithmProviderFactory.createPixMatchWithNegativeScoreCDSAlgorithmProvider(
+                    jobParams.isMirrorMask(),
+                    jobParams.getDataThreshold(),
+                    jobParams.getPixColorFluctuation(),
+                    jobParams.getXyShift(),
+                    jobParams.getNegativeRadius(),
+                    null
+            );
+        } else {
+            cdsAlgorithmProvider = ColorDepthSearchAlgorithmProviderFactory.createPixMatchCDSAlgorithmProvider(
+                    jobParams.isMirrorMask(),
+                    jobParams.getDataThreshold(),
+                    jobParams.getPixColorFluctuation(),
+                    jobParams.getXyShift()
+            );
+        }
+
+        ColorMIPSearch colorMIPSearch = new ColorMIPSearch(0., ColorDepthSearchParameters.DEFAULT_MASK_THRESHOLD, cdsAlgorithmProvider);
         AWSLambdaColorMIPSearch awsColorMIPSearch = new AWSLambdaColorMIPSearch(
                 new AWSMIPLoader(s3),
                 colorMIPSearch,
@@ -112,11 +146,13 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                 LambdaUtils.getOptionalEnv("SEARCHED_THUMBNAILS_BUCKET", jobParams.getLibraryBucket())
         );
 
-        LOG.debug("Comparing {} masks with {} library mips", jobParams.getMaskKeys().size(), searchKeys.size());
+        LOG.debug("Comparing {} masks with {} library mips", jobParams.getMaskKeys().size(), searchTargets.size());
         List<ColorMIPSearchResult> cdsResults = awsColorMIPSearch.findAllColorDepthMatches(
                 jobParams.getMaskKeys(),
                 jobParams.getMaskThresholds(),
-                searchKeys
+                searchTargets.stream().map(t -> t.searchKey).collect(Collectors.toList()),
+                searchTargets.stream().map(t -> t.gradientKey).collect(Collectors.toList()),
+                searchTargets.stream().map(t -> t.zgapMaskKey).collect(Collectors.toList())
         );
 
         long elapsed = System.currentTimeMillis() - start;
@@ -140,25 +176,51 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
         LOG.info("Results written to DynamoDB table {} with id={} and batchId={}", tableName, jobId, batchId);
     }
 
-    private List<String> getSearchKeys(S3Client s3, String libraryBucket, List<String> libraries, int startIndex, int endIndex) {
-        List<String> keys = new ArrayList<>();
+    private List<SearchTarget> getSearchTargets(S3Client s3,
+                                                String libraryBucket,
+                                                List<String> searcheableFolders,
+                                                List<String> gradientsFolders,
+                                                List<String> zgapMasksFolders,
+                                                int startIndex,
+                                                int endIndex) {
+        List<SearchTarget> searchTargets = new ArrayList<>();
         int i = 0;
-        for (String library : libraries) {
-            String keyListKey = library + "/keys_denormalized.json";
+        List<SearchTarget> searchTargetFolders = IntStream.range(0, searcheableFolders.size())
+                .boxed()
+                .map(index -> {
+                    String searcheableFolder = searcheableFolders.get(index);
+                    String gradientsFolder = CollectionUtils.size(gradientsFolders) < index
+                            ? null
+                            : IterableUtils.get(gradientsFolders, index);
+                    String zgapMasksFolder = CollectionUtils.size(zgapMasksFolders) < index
+                            ? null
+                            : IterableUtils.get(zgapMasksFolders, index);
+                    return new SearchTarget(searcheableFolder, gradientsFolder, zgapMasksFolder);
+                })
+                .collect(Collectors.toList());
+
+        for (SearchTarget searchTargetFolder : searchTargetFolders) {
+            String keyListKey = searchTargetFolder.searchKey + "/keys_denormalized.json";
             LOG.info("Retrieving keys in s3://{}/{}", libraryBucket, keyListKey);
             InputStream object = LambdaUtils.getObject(s3, libraryBucket, keyListKey);
-            List<String> libraryKeys = LambdaUtils.fromJson(object, List.class);
-            for (String key : libraryKeys) {
+            List<String> searchableKeys = LambdaUtils.fromJson(object, List.class);
+            for (String key : searchableKeys) {
                 i++;
                 if (i > startIndex && i <= endIndex) {
-                    keys.add(key);
+                    // replace the search folder and remove the extension
+                    String gradientKey = StringUtils.isNotBlank(searchTargetFolder.gradientKey)
+                        ? key.replace(searchTargetFolder.searchKey, searchTargetFolder.gradientKey).replaceAll("\\..*$", "")
+                        : null;
+                    String zgapMaskKey = StringUtils.isNotBlank(searchTargetFolder.zgapMaskKey)
+                            ? key.replace(searchTargetFolder.searchKey, searchTargetFolder.zgapMaskKey).replaceAll("\\..*$", "")
+                            : null;
+                    searchTargets.add(new SearchTarget(key, gradientKey, zgapMaskKey));
                 }
                 if (i >= endIndex) {
-                    return keys;
+                    return searchTargets;
                 }
             }
         }
-
         throw new IllegalStateException("Could not find items " + startIndex + "-" + endIndex + " in library keys");
     }
 }

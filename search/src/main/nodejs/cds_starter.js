@@ -74,9 +74,17 @@ export const cdsStarter = async (event) => {
             const searchableMIPSFolder = searchInputParamsWithLibraries.searchableMIPSFolder
                 ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
                 : `${libraryAlignmentSpace}${lname}`;
+            const gradientsFolder = searchInputParamsWithLibraries.gradientsFolder
+                ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.gradientsFolder}`
+                : null;
+            const zgapMasksFolder = searchInputParamsWithLibraries.zgapMasksFolder
+                ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.zgapMasksFolder}`
+                : null;
             const library = {
                 lname: lname,
-                lkey: searchableMIPSFolder
+                lkey: searchableMIPSFolder,
+                gradientsFolder: gradientsFolder,
+                zgapMasksFolder: zgapMasksFolder
             };
             console.log("Lookup library", library);
             return library;
@@ -117,7 +125,9 @@ export const cdsStarter = async (event) => {
         searchBucket,
         maskKeys: [maskKey],
         libraryBucket,
-        libraries: libraries.map(l => l.lkey)
+        libraries: libraries.map(l => l.lkey),
+        gradientsFolders: libraries.map(l => l.gradientsFolder),
+        zgapMasksFolders: libraries.map(l => l.zgapMasksFolder)
     };
     // Schedule the burst compute job
     const dispatchParams = {

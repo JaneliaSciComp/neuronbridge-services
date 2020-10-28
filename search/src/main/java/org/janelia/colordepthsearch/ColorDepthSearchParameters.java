@@ -9,16 +9,22 @@ import java.util.List;
  */
 public class ColorDepthSearchParameters {
 
+    final static int DEFAULT_MASK_THRESHOLD = 100;
+
     private String libraryBucket;
     private List<String> libraries;
+    private List<String> gradientsFolders;
+    private List<String> zgapMasksFolders;
     private String searchBucket;
     private List<String> maskKeys;
-    private Integer dataThreshold = 100;
     private List<Integer> maskThresholds;
+    private Integer dataThreshold = 100;
     private Double pixColorFluctuation = 2.0;
     private Integer xyShift = 0;
     private boolean mirrorMask = false;
     private Double minMatchingPixRatio = 2.;
+    private Integer negativeRadius = 20;
+    private boolean withGradientScores = false;
 
     public String getLibraryBucket() {
         return libraryBucket;
@@ -30,6 +36,22 @@ public class ColorDepthSearchParameters {
 
     public List<String> getLibraries() {
         return libraries;
+    }
+
+    public List<String> getGradientsFolders() {
+        return gradientsFolders;
+    }
+
+    public void setGradientsFolders(List<String> gradientsFolders) {
+        this.gradientsFolders = gradientsFolders;
+    }
+
+    public List<String> getZgapMasksFolders() {
+        return zgapMasksFolders;
+    }
+
+    public void setZgapMasksFolders(List<String> zgapMasksFolders) {
+        this.zgapMasksFolders = zgapMasksFolders;
     }
 
     public void setLibraries(List<String> libraries) {
@@ -123,5 +145,21 @@ public class ColorDepthSearchParameters {
 
     public void setMinMatchingPixRatio(Double minMatchingPixRatio) {
         this.minMatchingPixRatio = minMatchingPixRatio;
+    }
+
+    public Integer getNegativeRadius() {
+        return negativeRadius;
+    }
+
+    public void setNegativeRadius(Integer negativeRadius) {
+        this.negativeRadius = negativeRadius;
+    }
+
+    public boolean isWithGradientScores() {
+        return withGradientScores;
+    }
+
+    public void setWithGradientScores(boolean withGradientScores) {
+        this.withGradientScores = withGradientScores;
     }
 }
