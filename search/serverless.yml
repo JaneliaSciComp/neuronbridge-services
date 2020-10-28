@@ -4,6 +4,7 @@ service: janelia-neuronbridge-cds
 plugins:
   - serverless-step-functions
   - serverless-appsync-plugin
+  - serverless-bundle
 custom:
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
@@ -183,6 +184,9 @@ package:
     - src/test/**
     - src/main/java/**
     - src/main/resources/**
+    - README.md
+    - mvn*
+    - deploy.sh
   include:
     - src/main/nodejs/**
 

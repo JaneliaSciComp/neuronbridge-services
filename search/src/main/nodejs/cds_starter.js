@@ -1,18 +1,16 @@
-'use strict';
-
-const {getSearchMetadataKey} = require('./searchutils');
-const {
+import {getSearchMetadataKey} from './searchutils';
+import {
     DEBUG,
     getObject,
     invokeFunction,
     putObject,
     verifyKey
-} = require('./utils');
-const {
+} from './utils';
+import {
     SEARCH_IN_PROGRESS,
     getSearchMetadata,
     updateSearchMetadata
-} = require('./awsappsyncutils');
+} from './awsappsyncutils';
 
 const DEFAULTS = {
   maskThreshold: 100,
@@ -46,7 +44,7 @@ const defaultBatchSize = () => {
   }
 };
 
-const cdsStarter = async (event) => {
+export const cdsStarter = async (event) => {
     // This next log statement is parsed by the analyzer. DO NOT CHANGE.
     console.log('Input event:', JSON.stringify(event));
 
@@ -59,7 +57,7 @@ const cdsStarter = async (event) => {
 
     const searchInputName = searchInputParams.searchMask
         ? searchInputParams.searchMask
-        : searchInputParams.searchInputName
+        : searchInputParams.searchInputName;
 
     const searchInputFolder = searchInputParams.searchInputFolder;
     const batchSize = parseInt(searchInputParams.batchSize) || defaultBatchSize();
@@ -72,7 +70,7 @@ const cdsStarter = async (event) => {
             // for searching use MIPs from the searchableMIPs folder
             const libraryAlignmentSpace = searchInputParamsWithLibraries.libraryAlignmentSpace
                 ? `${searchInputParamsWithLibraries.libraryAlignmentSpace}/`
-                : ''
+                : '';
             const searchableMIPSFolder = searchInputParamsWithLibraries.searchableMIPSFolder
                 ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
                 : `${libraryAlignmentSpace}${lname}`;
@@ -120,7 +118,7 @@ const cdsStarter = async (event) => {
         maskKeys: [maskKey],
         libraryBucket,
         libraries: libraries.map(l => l.lkey)
-    }
+    };
     // Schedule the burst compute job
     const dispatchParams = {
         workerFunctionName: searchFunction,
@@ -135,9 +133,9 @@ const cdsStarter = async (event) => {
     console.log('Starting ColorDepthSearch with:', dispatchParams);
     const cdsInvocationResult = await invokeFunction(parallelDispatchFunction, dispatchParams);
     if (cdsInvocationResult.FunctionError) {
-        const errMsg = "Error launching burst compute job"
-        console.log(`${errMsg}: ${cdsInvocationResult.FunctionError}`)
-        throw new Error(errMsg)
+        const errMsg = "Error launching burst compute job";
+        console.log(`${errMsg}: ${cdsInvocationResult.FunctionError}`);
+        throw new Error(errMsg);
     }
     console.log("Started ColorDepthSearch", cdsInvocationResult.Payload);
     const jobId = cdsInvocationResult.Payload.jobId;
@@ -155,7 +153,7 @@ const cdsStarter = async (event) => {
         partitions: numBatches,
         jobId
     };
-    const searchMetadataKey = getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`)
+    const searchMetadataKey = getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`);
     await putObject(searchBucket, searchMetadataKey, searchMetadata);
     // Update search metadata if searchId is provided
     await updateSearchMetadata({
@@ -174,7 +172,7 @@ const cdsStarter = async (event) => {
     });
 
     return cdsInvocationResult;
-}
+};
 
 const getSearchInputParams = async (event) => {
     let searchMetadata;
@@ -213,7 +211,7 @@ const checkSearchMask = async (searchId, bucket, maskKey) => {
         });
         throw new Error(errMsg);
     }
-}
+};
 
 const setSearchLibraries = (searchData) => {
     switch (searchData.searchType) {
@@ -250,7 +248,3 @@ const getCount = async (libraryBucket, libraryKey) => {
     );
     return countMetadata.objectCount;
 };
-
-module.exports = {
-    cdsStarter
-}

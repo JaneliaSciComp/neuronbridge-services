@@ -1,15 +1,10 @@
-"use strict";
-
-const { v1: uuidv1 } = require("uuid");
-const {
-  copyS3Content,
-  getAllKeys
-} = require("./utils");
-const {
+import { v1 as uuidv1 } from "uuid";
+import { copyS3Content, getAllKeys } from "./utils";
+import {
   createSearchMetadata,
   getSearchMetadata,
   ALIGNMENT_JOB_COMPLETED
-} = require("./awsappsyncutils");
+} from "./awsappsyncutils";
 
 const searchBucket = process.env.SEARCH_BUCKET;
 
@@ -23,7 +18,7 @@ async function copyAlignment(searchData) {
     identityId,
     searchDir,
     searchInputFolder,
-    uploadThumbnail,
+    uploadThumbnail
   } = searchData;
   // generate a new id for the search directory
   const newSearchDir = uuidv1();
@@ -76,7 +71,7 @@ async function copyAlignment(searchData) {
   return { newSearchData, newSearchMeta };
 }
 
-exports.searchCopyAlignment = async (event) => {
+exports.searchCopyAlignment = async event => {
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,

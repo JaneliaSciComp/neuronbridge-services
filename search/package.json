@@ -7,11 +7,10 @@
     "sls": "./node_modules/serverless/bin/serverless.js",
     "test": "jest",
     "lint": "npx eslint src/main/nodejs",
-    "search": "AWS_SDK_LOAD_CONFIG=true DISABLE_XRAY=true node src/main/nodejs/search_client.js"
+    "search": "AWS_SDK_LOAD_CONFIG=true DISABLE_XRAY=true babel-node --presets @babel/env src/main/nodejs/search_client.js"
   },
   "dependencies": {
     "aws-appsync": "^4.0.0",
-    "aws-sdk": "^2.720.0",
     "aws-xray-sdk": "^3.0.1",
     "exponential-backoff": "^3.1.0",
     "geotiff": "^1.0.0-beta.14",
@@ -22,9 +21,12 @@
     "mathjs": "^7.2.0",
     "moment": "^2.25.3",
     "stream": "0.0.2",
+    "upng-js": "^2.1.0",
     "uuid": "^8.2.0"
   },
   "devDependencies": {
+    "@babel/node": "^7.12.1",
+    "aws-sdk": "^2.720.0",
     "eslint": "^7.10.0",
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-config-standard": "^14.1.1",
@@ -35,6 +37,7 @@
     "jest": "^26.4.2",
     "serverless": "^2.6.0",
     "serverless-appsync-plugin": "^1.4.0",
+    "serverless-bundle": "^3.2.1",
     "serverless-step-functions": "^2.26.0"
   }
 }

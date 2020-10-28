@@ -1,13 +1,9 @@
-"use strict";
-
-const { v1: uuidv1 } = require("uuid");
-const {
-  copyS3Content,
-} = require("./utils");
-const {
+import { v1 as uuidv1 } from "uuid";
+import { copyS3Content } from "./utils";
+import {
   createSearchMetadata,
   ALIGNMENT_JOB_COMPLETED
-} = require("./awsappsyncutils");
+} from "./awsappsyncutils";
 
 const searchBucket = process.env.SEARCH_BUCKET;
 
@@ -33,7 +29,13 @@ async function createNewSearchFromImage(image, event, identityId) {
   );
 
   // convert image.thumbnailURL to new bucket location
-  const [, thumbnailBucket, thumbnailPath, thumbnailUpload, extension] = image.thumbnailURL.match(
+  const [
+    ,
+    thumbnailBucket,
+    thumbnailPath,
+    thumbnailUpload,
+    extension
+  ] = image.thumbnailURL.match(
     /^.*s3.amazonaws.com\/([^/]*)(.*?)([^/]*?)([^.]*)$/
   );
 
@@ -73,7 +75,7 @@ async function createNewSearchFromImage(image, event, identityId) {
   return { newSearchMeta };
 }
 
-exports.searchNewFromImage = async (event) => {
+exports.searchNewFromImage = async event => {
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,

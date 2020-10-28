@@ -1,17 +1,15 @@
-"use strict";
-
-const Jimp = require("jimp");
-const {
+import Jimp from "jimp";
+import {
   getS3ContentWithRetry,
   copyS3Content,
   putS3Content,
-} = require("./utils");
-const { getSearchKey, getSearchMaskId } = require("./searchutils");
-const {
+} from "./utils";
+import { getSearchKey, getSearchMaskId } from "./searchutils";
+import {
   updateSearchMetadata,
   getSearchMetadata,
   ALIGNMENT_JOB_COMPLETED
-} = require("./awsappsyncutils");
+} from "./awsappsyncutils";
 
 const searchBucket = process.env.SEARCH_BUCKET;
 const s3Retries = process.env.S3_RETRIES || 3;
