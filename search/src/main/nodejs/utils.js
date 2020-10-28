@@ -1,6 +1,6 @@
 import AWS from 'aws-sdk';
 import stream from 'stream';
-import backOff from "exponential-backoff";
+import { backOff } from "exponential-backoff";
 
 AWS.config.apiVersions = {
     lambda: '2015-03-31',
