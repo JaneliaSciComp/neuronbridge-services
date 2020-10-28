@@ -71,7 +71,7 @@ async function copyAlignment(searchData) {
   return { newSearchData, newSearchMeta };
 }
 
-exports.searchCopyAlignment = async event => {
+export const searchCopyAlignment = async event => {
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,

@@ -43,7 +43,7 @@ const mergeResults = (rs1, rs2) => {
     }
 };
 
-exports.searchCombiner = async (event) => {
+export const searchCombiner = async (event) => {
     if (DEBUG) console.log('Input event:', JSON.stringify(event));
 
     // Parameters

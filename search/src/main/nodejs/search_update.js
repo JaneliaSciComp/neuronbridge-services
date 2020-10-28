@@ -1,6 +1,6 @@
 import {updateSearchMetadata} from './awsappsyncutils';
 
-exports.searchUpdate = async (event) => {
+export const searchUpdate = async (event) => {
     console.log(event);
     let searchData = {
         id: event.searchId,

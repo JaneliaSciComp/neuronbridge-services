@@ -9,7 +9,7 @@ const TEST_IMAGE_BUCKET = process.env.SEARCH_BUCKET;
 const TEST_IMAGE = 'colorDepthTestData/test1/mask1417367048598452966.png';
 const MIPS_FOLDER = 'generatedMIPS';
 
-exports.generateMIPs = async (searchParams) => {
+export const generateMIPs = async (searchParams) => {
     console.log('Generate fake MIPs for', searchParams);
     const nchannels = searchParams.channel;
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;

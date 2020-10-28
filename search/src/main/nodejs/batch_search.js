@@ -6,7 +6,7 @@ import UPNG from 'upng-js';
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {getObjectDataArray, getObject} from './utils';
 
-exports.batchSearch = async (event) => {
+export const batchSearch = async (event) => {
 
     console.log('Input event:', JSON.stringify(event));
 

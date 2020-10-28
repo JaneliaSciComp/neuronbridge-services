@@ -6,7 +6,7 @@ const bc = new AWS.Batch({
     apiVersion: '2016-08-10'
 });
 
-const isJobDone = async (event) =>  {
+export const isJobDone = async (event) =>  {
     console.log('Input event:', JSON.stringify(event));
     try {
         return await monitorAlignmentJob(event);
@@ -102,8 +102,4 @@ const monitorAlignmentJob = async (alignJobParams) => {
             withErrors: true
         };
     }
-};
-
-module.exports = {
-    isJobDone
 };

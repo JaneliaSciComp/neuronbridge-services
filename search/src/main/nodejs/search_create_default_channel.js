@@ -75,7 +75,7 @@ async function createDefaultChannel(searchData) {
   return { id };
 }
 
-exports.searchCreateDefaultChannel = async (event) => {
+export const searchCreateDefaultChannel = async (event) => {
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,

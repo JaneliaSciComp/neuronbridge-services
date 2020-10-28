@@ -353,7 +353,7 @@ const getMaskPosArray = (mskarray, width, height, thresm) => {
     return pos;
 };
 
-exports.GenerateColorMIPMasks = (params) => {
+export const GenerateColorMIPMasks = (params) => {
     let i;
 
     const width = params.width;
@@ -438,7 +438,7 @@ exports.GenerateColorMIPMasks = (params) => {
     };
 };
 
-exports.ColorMIPSearch = (targetImage, searchThreshold, zTolerance, params) => {
+export const ColorMIPSearch = (targetImage, searchThreshold, zTolerance, params) => {
     const queryImage = params.queryImage;
     const negQueryImage = params.negQueryImage;
     const maskPositions = params.maskPositions;

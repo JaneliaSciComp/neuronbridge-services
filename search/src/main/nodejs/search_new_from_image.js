@@ -75,7 +75,7 @@ async function createNewSearchFromImage(image, event, identityId) {
   return { newSearchMeta };
 }
 
-exports.searchNewFromImage = async event => {
+export const searchNewFromImage = async event => {
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,
