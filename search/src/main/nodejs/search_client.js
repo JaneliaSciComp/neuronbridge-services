@@ -366,8 +366,14 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
         lastDispatcherTime = r.lastEventTime;
       }
 
+      let dispatcherName;
       if (rootDispatcher && inputEvent) {
         input = JSON.parse(inputEvent);
+        dispatcherName = "Root Dispatcher";
+      }
+      else {
+        input = JSON.parse(inputEvent);
+        dispatcherName = `Dispatcher ${input.startIndex}-${input.endIndex}`;
       }
 
       const elapsedMs = r.lastEventTime - r.firstEventTime;
@@ -375,7 +381,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
 
       stages.push({
         category: "Dispatchers",
-        name: rootDispatcher ? "Root Dispatcher" : "Dispatcher",
+        name: dispatcherName,
         logGroupName: logGroupName,
         logStreamName: logStreamName,
         start: new Date(r.firstEventTime),
