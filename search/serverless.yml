@@ -335,8 +335,6 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-
-
   searchUpdate:
     runtime: nodejs12.x
     handler: src/main/nodejs/search_update.searchUpdate

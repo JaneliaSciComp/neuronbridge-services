@@ -61,7 +61,7 @@ export const searchCombiner = async (event) => {
         FilterExpression: 'results <> :emptyList',
         ExpressionAttributeValues: {
             ':jobId': jobId,
-            ':emptyList': '[ ]'
+            ':emptyList': '[]'
         },
       };
 
