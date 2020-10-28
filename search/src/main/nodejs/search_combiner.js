@@ -66,28 +66,6 @@ exports.searchCombiner = async (event) => {
       };
 
     let queryResult;
-
-    for(const item of queryResult.Items) {
-        try {
-            const batchResults = JSON.parse(item.results);
-            batchResults.forEach(batchResult => {
-                if (allBatchResults[batchResult.maskId]) {
-                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
-                } else {
-                    allBatchResults[batchResult.maskId] = batchResult;
-                }
-            });
-        } catch (e) {
-            // write down the error
-            await updateSearchMetadata({
-                id: searchId,
-                errorMessage: e.name + ': ' + e.message
-            });
-            // rethrow the error
-            throw e;
-        }
-    }
-
     do {
         // eslint-disable-next-line no-await-in-loop
         queryResult = await docClient.query(params).promise();
