@@ -1,8 +1,6 @@
-'use strict';
-
-const AWS = require('aws-sdk');
-const {getSearchMaskId, getSearchSubFolder} = require('./searchutils');
-const {updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} = require('./awsappsyncutils');
+import AWS from 'aws-sdk';
+import {getSearchMaskId, getSearchSubFolder} from './searchutils';
+import {updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} from './awsappsyncutils';
 
 const s3 = new AWS.S3();
 
@@ -41,4 +39,4 @@ exports.generateMIPs = async (searchParams) => {
         displayableMask: displayableMask,
         computedMIPs: mips
     });
-}
+};

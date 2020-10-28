@@ -1,5 +1,3 @@
-'use strict'
-
 /**
  * Calculate the Z-gap between two RGB pixels
  * @param red1 - red component of the first pixel
@@ -49,7 +47,7 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
     let RgGap = 0;
     let RbGap = 0;
 
-    if (blue1 > red1 && blue1 > green1) {//1,2
+    if (blue1 > red1 && blue1 > green1) { //1,2
         if (red1 > green1) {
             BR1 = blue1 + red1;//1
             if (blue1 != 0 && red1 != 0)
@@ -59,7 +57,7 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
             if (blue1 != 0 && green1 != 0)
                 bg1 = green1 / blue1;
         }
-    } else if (green1 > blue1 && green1 > red1) {//3,4
+    } else if (green1 > blue1 && green1 > red1) { //3,4
         if (blue1 > red1) {
             GB1 = green1 + blue1;//3
             if (green1 != 0 && blue1 != 0)
@@ -69,7 +67,7 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
             if (green1 != 0 && red1 != 0)
                 gr1 = red1 / green1;
         }
-    } else if (red1 > blue1 && red1 > green1) {//5,6
+    } else if (red1 > blue1 && red1 > green1) { //5,6
         if (green1 > blue1) {
             RG1 = red1 + green1;//5
             if (red1 != 0 && green1 != 0)
@@ -82,31 +80,31 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
     }
 
     if (blue2 > red2 && blue2 > green2) {
-        if (red2 > green2) {//1, data
+        if (red2 > green2) { //1, data
             BR2 = blue2 + red2;
             if (blue2 != 0 && red2 != 0)
                 br2 = red2 / blue2;
-        } else {//2, data
+        } else { //2, data
             BG2 = blue2 + green2;
             if (blue2 != 0 && green2 != 0)
                 bg2 = green2 / blue2;
         }
     } else if (green2 > blue2 && green2 > red2) {
-        if (blue2 > red2) {//3, data
+        if (blue2 > red2) { //3, data
             GB2 = green2 + blue2;
             if (green2 != 0 && blue2 != 0)
                 gb2 = blue2 / green2;
-        } else {//4, data
+        } else { //4, data
             GR2 = green2 + red2;
             if (green2 != 0 && red2 != 0)
                 gr2 = red2 / green2;
         }
     } else if (red2 > blue2 && red2 > green2) {
-        if (green2 > blue2) {//5, data
+        if (green2 > blue2) { //5, data
             RG2 = red2 + green2;
             if (red2 != 0 && green2 != 0)
                 rg2 = green2 / red2;
-        } else {//6, data
+        } else { //6, data
             RB2 = red2 + blue2;
             if (red2 != 0 && blue2 != 0)
                 rb2 = blue2 / red2;
@@ -114,8 +112,8 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
     }
 
     ///////////////////////////////////////////////////////
-    if (BR1 > 0) {//1, mask// 2 color advance core
-        if (BR2 > 0) {//1, data
+    if (BR1 > 0) { //1, mask// 2 color advance core
+        if (BR2 > 0) { //1, data
             if (br1 > 0 && br2 > 0) {
                 if (br1 != br2) {
                     pxGap = br2 - br1;
@@ -126,15 +124,15 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
                 if (br1 == 255 & br2 == 255)
                     pxGap = 1000;
             }
-        } else if (BG2 > 0) {//2, data
+        } else if (BG2 > 0) { //2, data
             if (br1 < 0.44 && bg2 < 0.54) {
                 BrGap = br1 - BrBg;//BrBg=0.354862745;
                 BgGap = bg2 - BrBg;//BrBg=0.354862745;
                 pxGap = BrGap + BgGap;
             }
         }
-    } else if (BG1 > 0) {//2, mask/////////////////////////////
-        if (BG2 > 0) {//2, data, 2,mask
+    } else if (BG1 > 0) { //2, mask/////////////////////////////
+        if (BG2 > 0) { //2, data, 2,mask
             if (bg1 > 0 && bg2 > 0) {
                 if (bg1 != bg2) {
                     pxGap = bg2 - bg1;
@@ -145,21 +143,21 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
                 if (bg1 == 255 & bg2 == 255)
                     pxGap = 1000;
             }
-        } else if (GB2 > 0) {//3, data, 2,mask
+        } else if (GB2 > 0) { //3, data, 2,mask
             if (bg1 > 0.8 && gb2 > 0.8) {
                 BgGap = BgGb - bg1;//BgGb=0.996078431;
                 GbGap = BgGb - gb2;//BgGb=0.996078431;
                 pxGap = BgGap + GbGap;
             }
-        } else if (BR2 > 0) {//1, data, 2,mask
+        } else if (BR2 > 0) { //1, data, 2,mask
             if (bg1 < 0.54 && br2 < 0.44) {
                 BgGap = bg1 - BrBg;//BrBg=0.354862745;
                 BrGap = br2 - BrBg;//BrBg=0.354862745;
                 pxGap = BrGap + BgGap;
             }
         }
-    } else if (GB1 > 0) {//3, mask/////////////////////////////
-        if (GB2 > 0) {//3, data, 3mask
+    } else if (GB1 > 0) { //3, mask/////////////////////////////
+        if (GB2 > 0) { //3, data, 3mask
             if (gb1 > 0 && gb2 > 0) {
                 if (gb1 != gb2) {
                     pxGap = gb2 - gb1;
@@ -169,21 +167,21 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
                 if (gb1 == 255 & gb2 == 255)
                     pxGap = 1000;
             }
-        } else if (BG2 > 0) {//2, data, 3mask
+        } else if (BG2 > 0) { //2, data, 3mask
             if (gb1 > 0.8 && bg2 > 0.8) {
                 BgGap = BgGb - gb1;//BgGb=0.996078431;
                 GbGap = BgGb - bg2;//BgGb=0.996078431;
                 pxGap = BgGap + GbGap;
             }
-        } else if (GR2 > 0) {//4, data, 3mask
+        } else if (GR2 > 0) { //4, data, 3mask
             if (gb1 < 0.7 && gr2 < 0.7) {
                 GbGap = gb1 - GbGr;//GbGr=0.505882353;
                 GrGap = gr2 - GbGr;//GbGr=0.505882353;
                 pxGap = GbGap + GrGap;
             }
         }//2,3,4 data, 3mask
-    } else if (GR1 > 0) {//4mask/////////////////////////////
-        if (GR2 > 0) {//4, data, 4mask
+    } else if (GR1 > 0) { //4mask/////////////////////////////
+        if (GR2 > 0) { //4, data, 4mask
             if (gr1 > 0 && gr2 > 0) {
                 if (gr1 != gr2) {
                     pxGap = gr2 - gr1;
@@ -193,21 +191,21 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
                 if (gr1 == 255 & gr2 == 255)
                     pxGap = 1000;
             }
-        } else if (GB2 > 0) {//3, data, 4mask
+        } else if (GB2 > 0) { //3, data, 4mask
             if (gr1 < 0.7 && gb2 < 0.7) {
                 GrGap = gr1 - GbGr;//GbGr=0.505882353;
                 GbGap = gb2 - GbGr;//GbGr=0.505882353;
                 pxGap = GrGap + GbGap;
             }
-        } else if (RG2 > 0) {//5, data, 4mask
+        } else if (RG2 > 0) { //5, data, 4mask
             if (gr1 > 0.8 && rg2 > 0.8) {
                 GrGap = GrRg - gr1;//GrRg=0.996078431;
                 RgGap = GrRg - rg2;
                 pxGap = GrGap + RgGap;
             }
         }//3,4,5 data
-    } else if (RG1 > 0) {//5, mask/////////////////////////////
-        if (RG2 > 0) {//5, data, 5mask
+    } else if (RG1 > 0) { //5, mask/////////////////////////////
+        if (RG2 > 0) { //5, data, 5mask
             if (rg1 > 0 && rg2 > 0) {
                 if (rg1 != rg2) {
                     pxGap = rg2 - rg1;
@@ -218,21 +216,21 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
                     pxGap = 1000;
             }
 
-        } else if (GR2 > 0) {//4 data, 5mask
+        } else if (GR2 > 0) { //4 data, 5mask
             if (rg1 > 0.8 && gr2 > 0.8) {
                 GrGap = GrRg - gr2;//GrRg=0.996078431;
                 RgGap = GrRg - rg1;//GrRg=0.996078431;
                 pxGap = GrGap + RgGap;
             }
-        } else if (RB2 > 0) {//6 data, 5mask
+        } else if (RB2 > 0) { //6 data, 5mask
             if (rg1 < 0.7 && rb2 < 0.7) {
                 RgGap = rg1 - RgRb;//RgRb=0.505882353;
                 RbGap = rb2 - RgRb;//RgRb=0.505882353;
                 pxGap = RbGap + RgGap;
             }
         }//4,5,6 data
-    } else if (RB1 > 0) {//6, mask/////////////////////////////
-        if (RB2 > 0) {//6, data, 6mask
+    } else if (RB1 > 0) { //6, mask/////////////////////////////
+        if (RB2 > 0) { //6, data, 6mask
             if (rb1 > 0 && rb2 > 0) {
                 if (rb1 != rb2) {
                     pxGap = rb2 - rb1;
@@ -242,7 +240,7 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
                 if (rb1 == 255 & rb2 == 255)
                     pxGap = 1000;
             }
-        } else if (RG2 > 0) {//5, data, 6mask
+        } else if (RG2 > 0) { //5, data, 6mask
             if (rg2 < 0.7 && rb1 < 0.7) {
                 RgGap = rg2 - RgRb;//RgRb=0.505882353;
                 RbGap = rb1 - RgRb;//RgRb=0.505882353;
@@ -252,7 +250,7 @@ const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
     }//2 color advance core
 
     return pxGap;
-}
+};
 
 const calculateScore = (params) => {
     const src = params.source;
@@ -288,7 +286,7 @@ const calculateScore = (params) => {
     }
 
     return posi;
-}
+};
 
 const generateShiftedMasks = (input, xyshift, imageWidth, imageHeight) => {
     let out = [];
@@ -302,7 +300,7 @@ const generateShiftedMasks = (input, xyshift, imageWidth, imageHeight) => {
     }
 
     return out;
-}
+};
 
 const shiftMaskPosArray = (src, xshift, yshift, imageWidth, imageHeight) => {
     let pos = [];
@@ -317,7 +315,7 @@ const shiftMaskPosArray = (src, xshift, yshift, imageWidth, imageHeight) => {
             pos.push(-1);
     }
     return pos;
-}
+};
 
 const generateMirroredMask = (input, ypitch) => {
     let out = [];
@@ -329,7 +327,7 @@ const generateMirroredMask = (input, ypitch) => {
         out.push(val + (ypitch - 1) - 2 * x);
     }
     return out;
-}
+};
 
 const getMaskPosArray = (mskarray, width, height, thresm) => {
     let sumpx = mskarray.length / 3;
@@ -353,7 +351,7 @@ const getMaskPosArray = (mskarray, width, height, thresm) => {
     }
 
     return pos;
-}
+};
 
 exports.GenerateColorMIPMasks = (params) => {
     let i;
@@ -438,7 +436,7 @@ exports.GenerateColorMIPMasks = (params) => {
         maskpos_st: maskpos_st,
         maskpos_ed: maskpos_ed
     };
-}
+};
 
 exports.ColorMIPSearch = (targetImage, searchThreshold, zTolerance, params) => {
     const queryImage = params.queryImage;
@@ -538,4 +536,4 @@ exports.ColorMIPSearch = (targetImage, searchThreshold, zTolerance, params) => {
         matchingPixNum: posi,
         matchingPixNumToMaskRatio: posipersent
     };
-}
+};

@@ -1,12 +1,10 @@
-'use strict';
+import AWS from 'aws-sdk';
+import tiff from 'geotiff';
+import path from 'path';
+import UPNG from 'upng-js';
 
-const AWS = require('aws-sdk');
-const tiff = require('geotiff');
-const path = require('path');
-const UPNG = require('./UPNG');
-
-const {GenerateColorMIPMasks, ColorMIPSearch} = require('./mipsearch');
-const {getObjectDataArray, getObject} = require('./utils');
+import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
+import {getObjectDataArray, getObject} from './utils';
 
 exports.batchSearch = async (event) => {
 
@@ -29,7 +27,7 @@ exports.batchSearch = async (event) => {
         xyShift: jobParameters.xyShift || 0,
         mirrorMask: jobParameters.mirrorMask || false,
         minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
-    }
+    };
 
     if (!batchParams.libraries) {
         throw new Error('No target images to search');
@@ -38,12 +36,12 @@ exports.batchSearch = async (event) => {
         throw new Error('No masks to search');
     }
     if (!batchParams.maskThresholds) {
-        throw new Error('No mask thresholds specified')
+        throw new Error('No mask thresholds specified');
     }
     if (batchParams.maskThresholds.length != batchParams.maskKeys.length) {
         throw new Error('Number of mask thresholds does not match number of masks');
     }
-    const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);    
+    const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);
     console.log(`Loaded ${searchKeys.length} search keys`);
 
     console.log(`Comparing ${batchParams.maskKeys.length} masks with ${searchKeys.length} library mips`);
@@ -63,14 +61,14 @@ exports.batchSearch = async (event) => {
     console.log(`Found ${cdsResults.length} matches.`);
 
     const matchedMetadata = cdsResults.map(perMaskMetadata)
-        .sort(function(a, b) {return a.matchingPixels < b.matchingPixels ? 1 : -1;});
+        .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
     const ret = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
 
-    await writeCDSResults(ret, tasksTableName, jobId, batchId)
-    console.log("Wrote results to DynamoDB")
+    await writeCDSResults(ret, tasksTableName, jobId, batchId);
+    console.log("Wrote results to DynamoDB");
 
     return cdsResults.length;
-}
+};
 
 const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => {
     const searchableTargetsPromise =  await libraries
@@ -82,7 +80,7 @@ const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => 
     const searchableTargets = await Promise.all(searchableTargetsPromise);
     const allTargets = searchableTargets.flatMap(l => l.searchableKeys);
     return allTargets.slice(startIndex, endIndex);
-}
+};
 
 const getKeys = async (libraryBucket, libraryKey) => {
     console.log("Get keys from:", libraryKey);
@@ -90,17 +88,20 @@ const getKeys = async (libraryBucket, libraryKey) => {
         libraryBucket,
         `${libraryKey}/keys_denormalized.json`,
         []);
-}
+};
 
 const groupBy = (...keys) => xs =>
-    xs.reduce(updateGB(...keys), [])
+    xs.reduce(updateGB(...keys), []);
 
 const updateGB = (...keys) => (acc, e) => {
-    const foundI = acc.findIndex( d => keys.every( key => d[key] === e[key]))
-    const divided = divProps(...keys)(e)
-    return foundI === -1  ? [...acc, {...divided.labels, results:[divided.results]}]
-        : (acc[foundI].results = [...acc[foundI].results, divided.results], acc)
-}
+    const foundI = acc.findIndex( d => keys.every( key => d[key] === e[key]));
+    const divided = divProps(...keys)(e);
+  if (foundI === -1) {
+    return [...acc, {...divided.labels, results:[divided.results]}];
+  }
+  acc[foundI].results = [...acc[foundI].results, divided.results];
+  return acc;
+};
 
 const divProps =(...keys) => e =>
     Object.entries(e).reduce(
@@ -108,7 +109,7 @@ const divProps =(...keys) => e =>
             keys.includes(k)? {...acc, labels:{...acc.labels, [k]:v}}
                 : {...acc, results:{...acc.results, [k]:v}}
         , {labels:{}, results:{}}
-    )
+    );
 
 const perMaskMetadata = (params) => {
     return {
@@ -143,7 +144,7 @@ const perMaskMetadata = (params) => {
         gradientAreaGap: params.gradientAreaGap,
         normalizedScore: params.matchingPixels
     };
-}
+};
 
 const findAllColorDepthMatches = async (params) => {
     const maskKeys = params.maskKeys;
@@ -166,7 +167,7 @@ const findAllColorDepthMatches = async (params) => {
         }));
     }
     return results.flat();
-}
+};
 
 const runMaskSearches = async (params) => {
     const maskMetadata = getMaskMIPMetdata(params.awsMasksBucket, params.maskKey);
@@ -197,7 +198,7 @@ const runMaskSearches = async (params) => {
         const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], masks.maskpos_st, masks.maskpos_ed);
         if (tarImage.data != null) {
             const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, masks);
-            const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.;
+            const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 results.push({
                     maskMIP: maskMetadata,
@@ -212,7 +213,7 @@ const runMaskSearches = async (params) => {
         }
     }
     return results;
-}
+};
 
 const loadMIPRange = async (bucketName, key, start, end) => {
     const mipPath = path.parse(key);
@@ -293,7 +294,7 @@ const loadMIPRange = async (bucketName, key, start, end) => {
     }
 
     return {data: outdata, width: width, height: height};
-}
+};
 
 const getMaskMIPMetdata = (awsMasksBucket, mipKey) => {
     const mipPath = path.parse(mipKey);
@@ -303,7 +304,7 @@ const getMaskMIPMetdata = (awsMasksBucket, mipKey) => {
         imageName: mipKey,
         imageURL: `https://s3.amazonaws.com/${awsMasksBucket}/${mipKey}`
     };
-}
+};
 
 const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket, mipKey) => {
     const mipPath = path.parse(mipKey);
@@ -342,7 +343,7 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
     } else {
         return populateLMMetadataFromName(mipName, mip);
     }
-}
+};
 
 const getDisplayableMIPKey = (mipKey) => {
     const reg = /.+(?<mipName>\/[^/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\..*$)/;
@@ -371,11 +372,11 @@ const getDisplayableMIPKey = (mipKey) => {
             .replace("searchable_neurons", "")
             .replace("//", "/");
     }
-}
+};
 
 const isEmLibrary = (lname) => {
     return lname != null && lname.match(/flyem/i) && lname.match(/hemibrain/i);
-}
+};
 
 const populateLMMetadataFromName = (mipName, mipMetadata) => {
     const mipNameComponents = mipName.split("-");
@@ -406,7 +407,7 @@ const populateLMMetadataFromName = (mipName, mipMetadata) => {
     }
 
     return mipMetadata;
-}
+};
 
 const populateEMMetadataFromName = (mipName, mipMetadata) => {
     const mipNameComponents = mipName.split("-");
@@ -414,12 +415,12 @@ const populateEMMetadataFromName = (mipName, mipMetadata) => {
     mipMetadata["publishedName"] = bodyID;
     mipMetadata["gender"] = "f"; // default to female for now
     return mipMetadata;
-}
+};
 
 const writeCDSResults = async (results, tableName, jobId, batchId) => {
 
     const TTL_DELTA = 60 * 60; // 1 hour TTL
-    const ttl = (Math.floor(+new Date() / 1000) + TTL_DELTA).toString()
+    const ttl = (Math.floor(+new Date() / 1000) + TTL_DELTA).toString();
 
     const params = {
         TableName: tableName,
@@ -432,5 +433,5 @@ const writeCDSResults = async (results, tableName, jobId, batchId) => {
     };
 
     const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
-    return await ddb.putItem(params).promise()
-}
+    return await ddb.putItem(params).promise();
+};

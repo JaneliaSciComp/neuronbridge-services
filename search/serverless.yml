@@ -4,6 +4,7 @@ service: janelia-neuronbridge-cds
 plugins:
   - serverless-step-functions
   - serverless-appsync-plugin
+  - serverless-bundle
 custom:
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
@@ -89,7 +90,6 @@ provider:
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
-    DISABLE_XRAY: true
   iamRoleStatements:
     - Effect: Allow
       Action:
@@ -183,6 +183,9 @@ package:
     - src/test/**
     - src/main/java/**
     - src/main/resources/**
+    - README.md
+    - mvn*
+    - deploy.sh
   include:
     - src/main/nodejs/**
 

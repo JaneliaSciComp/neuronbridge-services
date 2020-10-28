@@ -1,9 +1,7 @@
-'use strict';
-
-const AWS = require('aws-sdk');
-const {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey} = require('./searchutils');
-const {streamObject, removeKey, DEBUG} = require('./utils');
-const {updateSearchMetadata, SEARCH_COMPLETED} = require('./awsappsyncutils');
+import AWS from 'aws-sdk';
+import {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey} from './searchutils';
+import {streamObject, removeKey, DEBUG} from './utils';
+import {updateSearchMetadata, SEARCH_COMPLETED} from './awsappsyncutils';
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
@@ -28,7 +26,7 @@ const mergeBatchResults = async (searchId, items, allBatchResults) => {
             throw e;
         }
     }
-}
+};
 
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
@@ -43,12 +41,11 @@ const mergeResults = (rs1, rs2) => {
         console.log(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
         throw new Error(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
     }
-}
+};
 
 exports.searchCombiner = async (event) => {
-    
-    console.log('Input event:', JSON.stringify(event));
-    
+    if (DEBUG) console.log('Input event:', JSON.stringify(event));
+
     // Parameters
     const { jobId, tasksTableName } = event;
     const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
@@ -64,9 +61,9 @@ exports.searchCombiner = async (event) => {
         FilterExpression: 'results <> :emptyList',
         ExpressionAttributeValues: {
             ':jobId': jobId,
-            ':emptyList': '[]'
-        }
-    };
+            ':emptyList': '[ ]'
+        },
+      };
 
     let queryResult;
     do {
@@ -109,7 +106,7 @@ exports.searchCombiner = async (event) => {
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
     // write down the progress - done
-    const now = new Date()
+    const now = new Date();
     await updateSearchMetadata({
         id: searchId,
         step: SEARCH_COMPLETED,
@@ -127,4 +124,4 @@ exports.searchCombiner = async (event) => {
         ...event,
         matchCounts
     };
-}
+};
