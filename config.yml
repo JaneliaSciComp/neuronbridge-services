@@ -8,7 +8,7 @@ config:
   searchBucket: janelia-neuronbridge-searches-${env:SEARCH_DATA_LEVEL, 'dev'}
   perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
   perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 5}
-  concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 20}
+  concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 1}
   concurrentAlignmentLimits: ${env:CONCURRENT_ALIGNMENT_LIMITS, 1}
   tracing: true
   debug: ${env:DEBUG, false}
