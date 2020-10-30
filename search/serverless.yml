@@ -201,8 +201,14 @@ functions:
     maximumRetryAttempts: 1
     environment:
       DEBUG: ${self:custom.debug}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
-      CDS_DISPATCH_FUNCTION: ${self:service}-${self:provider.stage}-cdsStarter
+      PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
+      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
+      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
+      BATCH_SIZE: ${self:custom.searchBatchSize}
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
@@ -233,11 +239,9 @@ functions:
       SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
       REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
-      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
       BATCH_SIZE: ${self:custom.searchBatchSize}
       MAX_PARALLELISM: ${self:custom.searchParallelization}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
   combiner:
     runtime: nodejs12.x

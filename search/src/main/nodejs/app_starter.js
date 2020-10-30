@@ -4,7 +4,6 @@ import {getSearchKey, getSearchMaskId} from './searchutils';
 import {
     getS3ContentWithRetry,
     getS3ContentMetadata,
-    invokeAsync,
     putS3Content,
     startStepFunction,
 } from './utils';
@@ -17,8 +16,8 @@ import {
     updateSearchMetadata
 } from './awsappsyncutils';
 import {generateMIPs} from './mockMIPGeneration';
+import {cdsStarter} from './cds_starter';
 
-const cdsDispatchFunction = process.env.CDS_DISPATCH_FUNCTION;
 const jobDefinition = process.env.JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
 const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1;
@@ -147,7 +146,7 @@ const startColorDepthSearch = async (searchParams) => {
             });
         }
         searchParams.searchBucket = searchBucket;
-        const cdsInvocationResult = await invokeAsync(cdsDispatchFunction, searchParams);
+        const cdsInvocationResult = await cdsStarter(searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
         return cdsInvocationResult;
     }
