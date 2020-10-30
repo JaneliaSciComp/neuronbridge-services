@@ -1,5 +1,6 @@
-# neuronbridge-services
-AWS Services for NeuronBridge
+# AWS Services for NeuronBridge
+
+[![CircleCI](https://circleci.com/gh/JaneliaSciComp/neuronbridge-services.svg?style=svg)](https://circleci.com/gh/JaneliaSciComp/neuronbridge-services)
 
 ## Deployment
 
