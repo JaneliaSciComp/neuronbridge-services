@@ -16,7 +16,12 @@ export const DEBUG = Boolean(process.env.DEBUG);
 const retryOptions = {
     jitter : "full",
     maxDelay: 10000,
-    startingDelay: 200
+    startingDelay: 200,
+    numOfAttempts: 3
+};
+
+export const sleep = async (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
 };
 
 // Retrieve all the keys in a particular bucket
@@ -31,75 +36,43 @@ export const getAllKeys = async params => {
     return allKeys;
 };
 
-export const getObjectDataArray = async (bucket, key, defaultValue) => {
-    try {
-        const s3Content = await getS3ContentWithRetry(bucket, key, 3);
-        return s3Content.buffer;
-    } catch (e) {
-        if (defaultValue === undefined) {
-            throw e; // rethrow it
-        } else {
-            return defaultValue;
-        }
-    }
-};
-
-// Retrieve a JSON file from S3
-export const getObject = async (bucket, key, defaultValue) => {
-    try {
-        if (DEBUG)
-            console.log(`Getting object from ${bucket}:${key}`);
-        const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
-        const data = response.Body.toString();
-        const jsonObject = JSON.parse(data);
-        if (DEBUG)
-            console.log(`Got object from ${bucket}:${key}:`, jsonObject);
-        return jsonObject;
-    } catch (e) {
-        console.error(`Error getting object ${bucket}:${key}`, e);
-        if (defaultValue === undefined) {
-            throw e; // rethrow it
-        } else {
-            return defaultValue;
-        }
-    }
-};
-
-export const sleep = async (ms) => {
-    return new Promise(resolve => setTimeout(resolve, ms));
-};
-
-export const getObjectWithRetry = async (bucket, key, retries) => {
-    return await backOff(() => getObject(bucket, key), {
-        ...retryOptions,
-        numOfAttempts: retries,
-        retry: (e, attemptNumber) => {
-            console.error(`Failed attempt #${attemptNumber} getting object ${bucket}:${key}`, e);
-        }
-    });
-};
-
-// Retrieve a file from S3
-export const getS3Content = async (bucket, key) => {
+const getS3Content = async (bucket, key) => {
     try {
         if (DEBUG)
             console.log(`Getting content from ${bucket}:${key}`);
         const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
         return response.Body;
     } catch (e) {
-        console.error(`Error getting content ${bucket}:${key}`, e);
+        if (DEBUG) console.error(`Error getting content ${bucket}:${key}`, e);
         throw e; // rethrow it
     }
 };
 
-export const getS3ContentWithRetry = async (bucket, key, retries) => {
+// Retrieve a file from S3
+export const getS3ContentWithRetry = async (bucket, key) => {
     return await backOff(() => getS3Content(bucket, key), {
         ...retryOptions,
-        numOfAttempts: retries,
         retry: (e, attemptNumber) => {
-            console.error(`Failed attempt #${attemptNumber} getting object ${bucket}:${key}`, e);
+            console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} getting object ${bucket}:${key}`, e);
+            return true;
         }
     });
+};
+
+export const getObjectDataArray = async (bucket, key) => {
+    try {
+        const s3Content = await getS3ContentWithRetry(bucket, key);
+        return s3Content.buffer;
+    } catch (e) {
+        if (DEBUG) console.error(`Error getting object data array from ${bucket}:${key}`, e);
+        throw e; // rethrow it
+    }
+};
+
+// Retrieve a JSON file from S3
+export const getObjectWithRetry = async (bucket, key) => {
+    const body = await getS3ContentWithRetry(bucket, key);
+    return JSON.parse(body.toString());
 };
 
 export const getS3ContentMetadata = async (bucket, key) => {
@@ -113,12 +86,12 @@ export const getS3ContentMetadata = async (bucket, key) => {
     }
 };
 
-export const putObjectWithRetry = async (bucket, key, data, retries) => {
+export const putObjectWithRetry = async (bucket, key, data) => {
     return await backOff(() => putObject(bucket, key, data), {
         ...retryOptions,
-        numOfAttempts: retries,
         retry: (e, attemptNumber) => {
-            console.error(`Failed attempt #${attemptNumber} putting object ${bucket}:${key}`, e);
+            console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} putting object ${bucket}:${key}`, e);
+            return true;
         }
     });
 };
@@ -139,7 +112,7 @@ export const putObject = async (Bucket, Key, data) => {
         }
     } catch (e) {
         console.error('Error putting object', data, `to ${Bucket}:${Key}`, e);
-        throw e;
+        throw e; // rethrow it
     }
     return `s3://${Bucket}/${Key}`;
 };
@@ -160,7 +133,7 @@ export const putS3Content = async (Bucket, Key, contentType, content) => {
             console.log(`Put content to ${Bucket}:${Key}`, res);
         }
     } catch (e) {
-        console.error('Error putting content', `to ${Bucket}:${Key}`, e);
+        if (DEBUG) console.error('Error putting content', `to ${Bucket}:${Key}`, e);
         throw e;
     }
     return `s3://${Bucket}/${Key}`;
@@ -181,7 +154,7 @@ export const copyS3Content = async (Bucket, Source, Key) => {
         }
     } catch (e) {
         console.error(`Error copying content to ${Bucket}:${Key} from ${Source}`, e);
-        throw e;
+        throw e; // rethrow it
     }
     return `s3://${Bucket}/${Key}`;
 
@@ -193,9 +166,22 @@ export const removeKey = async (Bucket, Key) => {
         const res = await s3.deleteObject({
             Bucket,
             Key}).promise();
-        console.log(`DeleteObject ${Bucket}:${Key}`, res);
+        console.log(`Removed object ${Bucket}:${Key}`, res);
     } catch (e) {
-        console.error(`Error deleting object ${Bucket}:${Key}`, e);
+        if (DEBUG) console.error(`Error removing object ${Bucket}:${Key}`, e);
+        throw e; // rethrow it
+    }
+};
+
+// Verify that key exists on S3
+export const verifyKey = async (Bucket, Key) => {
+    try {
+        await s3.headObject({Bucket, Key}).promise();
+        console.log(`Found object ${Bucket}:${Key}`);
+        return true;
+    } catch (e) {
+        console.error(`Error looking up ${Bucket}:${Key}`, e);
+        return false;
     }
 };
 
@@ -271,7 +257,7 @@ export const invokeFunction = async (functionName, parameters) => {
         return await lambda.invoke(params).promise();
     } catch (e) {
         console.error(`Error invoking ${functionName}`, params, e);
-        throw e;
+        throw e; // rethrow it
     }
 };
 
@@ -287,7 +273,7 @@ export const invokeAsync = async (functionName, parameters) => {
         return await lambda.invokeAsync(params).promise();
     } catch (e) {
         console.error(`Error invoking async ${functionName}`, params, e);
-        throw e;
+        throw e; // rethrow it
     }
 };
 
@@ -301,16 +287,4 @@ export const startStepFunction = async (uniqueName, stateMachineParams, stateMac
     const result = await stepFunction.startExecution(params).promise();
     console.log("Step function started: ", result.executionArn);
     return result;
-};
-
-// Verify that key exists on S3
-export const verifyKey = async (Bucket, Key) => {
-    try {
-        await s3.headObject({Bucket, Key}).promise();
-        console.log(`Found object ${Bucket}:${Key}`);
-        return true;
-    } catch (e) {
-        console.error(`Error looking up ${Bucket}:${Key}`, e);
-        return false;
-    }
 };

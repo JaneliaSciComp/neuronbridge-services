@@ -1,7 +1,7 @@
 import {getSearchMetadataKey} from './searchutils';
 import {
     DEBUG,
-    getObject,
+    getObjectWithRetry,
     invokeFunction,
     putObject,
     verifyKey
@@ -251,10 +251,9 @@ const setSearchLibraries = (searchData) => {
 
 const getCount = async (libraryBucket, libraryKey) => {
     if (DEBUG) console.log("Get count from:", libraryKey);
-    const countMetadata = await getObject(
+    const countMetadata = await getObjectWithRetry(
         libraryBucket,
-        `${libraryKey}/counts_denormalized.json`,
-        { objectCount: 0 }
+        `${libraryKey}/counts_denormalized.json`
     );
     return countMetadata.objectCount;
 };
