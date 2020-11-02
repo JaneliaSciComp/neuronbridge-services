@@ -230,7 +230,7 @@ const submitAlignmentJob = async (searchParams) => {
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 8;
         console.log(`Estimate memory for zip files to ${estimatedMemory}`);
     } else if (fullSearchInputImage.toLowerCase().endsWith('.h5j')) {
-        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 30;
+        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 32;
         console.log(`Estimate memory for h5j files to ${estimatedMemory}`);
     } else {
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4;
@@ -257,7 +257,7 @@ const submitAlignmentJob = async (searchParams) => {
         input_filename: fullSearchInputImage,
         output_folder: searchParams.searchInputFolder,
         comparison_alg: comparisonAlgorithm,
-        nslots: cpus
+        nslots: cpus + ''
     };
     if (searchParams.userDefinedImageParams) {
         const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '1';
