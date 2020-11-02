@@ -26,7 +26,6 @@ const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1;
 const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 const searchBucket = process.env.SEARCH_BUCKET;
-const s3Retries = process.env.S3_RETRIES || 3;
 
 const bc = new AWS.Batch();
 
@@ -157,7 +156,7 @@ const createDisplayableMask = async (bucket, prefix, key) => {
         const fullKey = `${prefix}/${key}`;
         try {
             console.log(`Convert ${bucket}:${key} to PNG`);
-            const imageContent = await getS3ContentWithRetry(bucket, fullKey, s3Retries);
+            const imageContent = await getS3ContentWithRetry(bucket, fullKey);
             const pngMime = "image/png";
             const pngExt = ".png";
             const image = await Jimp.read(imageContent);

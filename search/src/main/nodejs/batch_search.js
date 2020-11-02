@@ -4,15 +4,15 @@ import path from 'path';
 import UPNG from 'upng-js';
 
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
-import {getObjectDataArray, getObject} from './utils';
+import {getObjectDataArray, getObjectWithRetry} from './utils';
 
 export const batchSearch = async (event) => {
 
-    console.log('Input event:', JSON.stringify(event));
 
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
 
-    // The next two log statements are parsed by the analyzer. DO NOT CHANGE.
+    // The next three log statements are parsed by the analyzer. DO NOT CHANGE.
+    console.log('Input event:', JSON.stringify(event));
     console.log(`Job Id: ${jobId}`);
     console.log(`Batch Id: ${batchId}`);
 
@@ -84,10 +84,7 @@ const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => 
 
 const getKeys = async (libraryBucket, libraryKey) => {
     console.log("Get keys from:", libraryKey);
-    return await getObject(
-        libraryBucket,
-        `${libraryKey}/keys_denormalized.json`,
-        []);
+    return await getObjectWithRetry(libraryBucket, `${libraryKey}/keys_denormalized.json`);
 };
 
 const groupBy = (...keys) => xs =>
@@ -188,8 +185,6 @@ const runMaskSearches = async (params) => {
         mirrorMask: params.mirrorMask,
         mirrorNegMask: false
     });
-
-    console.log(`maskpos: ${masks.maskPositions.length}`);
 
     let results = [];
     let i;

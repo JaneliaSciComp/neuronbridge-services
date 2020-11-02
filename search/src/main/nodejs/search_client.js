@@ -8,7 +8,7 @@ import util from 'util';
 import fs from 'fs';
 import AWS from 'aws-sdk';
 import { mean, median, min, max, std } from 'mathjs';
-import { invokeFunction } from './utils';
+import { invokeFunction, getObjectWithRetry } from './utils';
 
 const readFile = util.promisify(fs.readFile);
 const sleep = util.promisify(setTimeout);
@@ -211,6 +211,10 @@ async function getRequestLogs(logGroupName, logStreamName) {
   return requests;
 }
 
+function pad(n) {
+  return Math.round(n).toString().padStart(7, ' ') + ' ms';
+}
+
 // Generate a complete performance report for a burst-parallel execution
 async function report(dispatchFunction, searchFunction, stateMachineName, jobId) {
 
@@ -303,7 +307,6 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
     start: combinerStarted,
     end: combinerEnded
   });
-
 
   console.log('Fetching dispatcher log streams...');
   const dispatcherLogStreams = await getStreams(dispatchFunction, new Date(stateMachineStarted.getTime() - STATE_MACHINE_START_TIME_ESTIMATE), stateMachineEnded);
@@ -410,18 +413,22 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
   let lastWorkerTime = 0;
   const workerElapsedTimes = [];
   const workerStartTimes = [];
+  let i = 0;
 
   for (const logStream of workerLogStreams) {
 
+    i += 2;
     const logGroupName = `/aws/lambda/${searchFunction}`;
     const logStreamName = logStream.logStreamName;
+    console.log(`Fetching logs for ${i}/${workerLogStreams.length} - ${logStreamName}`);
 
     const requests = await getRequestLogs(logGroupName, logStreamName);
 
     let batchId = null;
     let workerJobId = null;
+    const requestIds = Object.keys(requests);
 
-    for(const requestId of Object.keys(requests)) {
+    for(const requestId of requestIds) {
       const r = requests[requestId];
 
       for(const logEvent of r.logEvents) {
@@ -534,10 +541,6 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
     });
   }
 
-  function pad (n) {
-    return Math.round(n).toString().padStart(7, ' ') + ' ms';
-  }
-
   console.log(`totalElapsed:                 ${pad(totalElapsed)}`);
   console.log(`  totalStateMachineElapsed:   ${pad(totalStateMachineElapsed)}`);
   console.log(`    userTimeElapsed:          ${pad(userTimeElapsed)}`);
@@ -600,12 +603,29 @@ async function main () {
       return;
     }
 
+    const getCount = async (libraryBucket, libraryKey) => {
+      if (DEBUG) console.log("Get count from:", libraryKey);
+      const countMetadata = await getObjectWithRetry(
+          libraryBucket,
+          `${libraryKey}/counts_denormalized.json`
+      );
+      return countMetadata.objectCount;
+    };
+
+    const librariesPromises = await searchParams.libraries
+      .map(async libraryPrefix => {
+          return await getCount(searchParams.libraryBucket, libraryPrefix);
+      });
+    const libraries =  await Promise.all(librariesPromises);
+    const totalSearches = libraries.reduce((acc, lsize) => acc + lsize, 0);
+    console.log(`Will search ${totalSearches} images`);
+
     const params = {
       workerFunctionName: workerFunction,
       combinerFunctionName: combinerFunction,
       jobParameters: searchParams,
       startIndex: 0,
-      endIndex: 182851,
+      endIndex: totalSearches,
       maxParallelism: 4000,
       batchSize: Number.parseInt(args[2]),
       numLevels: Number.parseInt(args[3]),
