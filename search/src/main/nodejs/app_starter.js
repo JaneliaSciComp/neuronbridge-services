@@ -228,12 +228,21 @@ const submitAlignmentJob = async (searchParams) => {
     const comparisonAlgorithm = searchInputMetadata.algorithm === 'avg' ? 'Median' : 'Max';
     let estimatedMemory;
     if (searchInputContentType === 'application/zip') {
-        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 8 * 3.5;
+        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 8;
+        console.log(`Estimate memory for zip files to ${estimatedMemory}`);
+    } else if (fullSearchInputImage.toLowerCase().endsWith('.h5j')) {
+        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 30;
+        console.log(`Estimate memory for h5j files to ${estimatedMemory}`);
     } else {
-        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 3.5;
+        estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4;
     }
-    const cpus = 16;
     const mem = Math.max(16 * 1024, Math.ceil(estimatedMemory));
+    let cpus;
+    if (mem >= 32 * 1024) {
+        cpus = 32;
+    } else {
+        cpus = 16;
+    }
     console.log(`Estimated memory for ${fullSearchInputImage}: ${estimatedMemory}, allocated memory: ${mem}`);
     const jobResources = {
         'vcpus': cpus,
@@ -248,7 +257,8 @@ const submitAlignmentJob = async (searchParams) => {
         search_id: searchParams.id,
         input_filename: fullSearchInputImage,
         output_folder: searchParams.searchInputFolder,
-        comparison_alg: comparisonAlgorithm
+        comparison_alg: comparisonAlgorithm,
+        nslots: cpus
     };
     if (searchParams.userDefinedImageParams) {
         const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '1';
