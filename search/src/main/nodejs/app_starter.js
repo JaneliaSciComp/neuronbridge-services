@@ -230,6 +230,9 @@ const submitAlignmentJob = async (searchParams) => {
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 8;
         console.log(`Estimate memory for zip files to ${estimatedMemory}`);
     } else if (fullSearchInputImage.toLowerCase().endsWith('.h5j')) {
+        // for h5j we consider a compression factor of "only" 32
+        // so in some cases this may result in OOM because there are situations when
+        // the compression factor may be ~200x
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 32;
         console.log(`Estimate memory for h5j files to ${estimatedMemory}`);
     } else {
