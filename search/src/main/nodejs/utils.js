@@ -20,7 +20,7 @@ const retryOptions = {
     numOfAttempts: 3
 };
 
-export const sleep = async (ms) => {
+export const sleep = async ms => {
     return new Promise(resolve => setTimeout(resolve, ms));
 };
 

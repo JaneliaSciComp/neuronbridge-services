@@ -8,7 +8,6 @@ import {getObjectDataArray, getObjectWithRetry} from './utils';
 
 export const batchSearch = async (event) => {
 
-
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
 
     // The next three log statements are parsed by the analyzer. DO NOT CHANGE.
@@ -349,30 +348,11 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
 const getDisplayableMIPKey = (mipKey) => {
     const reg = /.+(?<mipName>\/[^/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\..*$)/;
     let groups = mipKey.match(reg).groups;
-    if (groups) {
-        let displayableKeyName = "";
-        let namePos = 0;
-        if (groups.cdmSuffix) {
-            const removableGroupStart = mipKey.indexOf(groups.cdmSuffix);
-            if (removableGroupStart > 0) {
-                displayableKeyName +=
-                    mipKey.substring(namePos, removableGroupStart)
-                        .replace("searchable_neurons", "")
-                        .replace("//", "/");
-
-                namePos = removableGroupStart + groups.cdmSuffix.length;
-            }
-        }
-        displayableKeyName +=
-            mipKey.substring(namePos)
-                .replace("searchable_neurons", "")
-                .replace("//", "/");
-        return displayableKeyName;
-    } else {
-        return mipKey
-            .replace("searchable_neurons", "")
-            .replace("//", "/");
-    }
+    const removableGroupStart = groups && groups.cdmSuffix ? mipKey.indexOf(groups.cdmSuffix) : -1;
+    const mipName = removableGroupStart > 0 ? mipKey.substring(0, removableGroupStart) : mipKey;
+    return mipName
+        .replace(/searchable_neurons\/\d+/, "")
+        .replace("//", "/");
 };
 
 const isEmLibrary = (lname) => {
