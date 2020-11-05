@@ -45,7 +45,6 @@ const defaultBatchSize = () => {
 };
 
 export const cdsStarter = async (event) => {
-    // This next log statement is parsed by the analyzer. DO NOT CHANGE.
     console.log('Input event:', JSON.stringify(event));
 
     const searchInputParams = await getSearchInputParams(event);
