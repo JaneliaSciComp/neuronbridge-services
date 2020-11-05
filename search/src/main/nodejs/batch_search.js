@@ -82,9 +82,15 @@ const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => 
     return allTargets.slice(startIndex, endIndex);
 };
 
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
+
 const getKeys = async (libraryBucket, libraryKey) => {
-    console.log("Get keys from:", libraryKey);
-    return await getObjectWithRetry(libraryBucket, `${libraryKey}/keys_denormalized.json`);
+    const randomPrefix = getRandomInt(0, 99);
+    const keyName = `${libraryKey}/KEYS/${randomPrefix}/keys_denormalized.json`;
+    console.log(`Get keys from: ${keyName}`);
+    return await getObjectWithRetry(libraryBucket, keyName);
 };
 
 const groupBy = (...keys) => xs =>
