@@ -240,8 +240,11 @@ const submitAlignmentJob = async (searchParams) => {
     }
     const mem = Math.max(16 * 1024, Math.ceil(estimatedMemory));
     let cpus;
-    if (mem >= 32 * 1024) {
-        cpus = 32;
+    // 122G is the max memory for an r4.4xlarge
+    // if memory is larger than 122G I assume it goes to an m4.10xlarge which has 40 vcpus
+    // so it makes sense to bump up the number of cpus
+    if (mem > 122 * 1024) {
+        cpus = 40;
     } else {
         cpus = 16;
     }
@@ -263,10 +266,11 @@ const submitAlignmentJob = async (searchParams) => {
         nslots: cpus + ''
     };
     if (searchParams.userDefinedImageParams) {
-        const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '1';
-        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '1';
+        const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '0';
+        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '0';
         const refChannel = searchParams.referenceChannel;
-        jobParameters.force_voxel_size = 'true';
+        // resolution values must be set
+        jobParameters.force_voxel_size = searchParams.voxelX ? 'true' : 'false';
         jobParameters.xy_resolution = xyRes;
         jobParameters.z_resolution = zRes;
         jobParameters.reference_channel = refChannel;
