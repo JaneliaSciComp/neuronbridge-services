@@ -19,7 +19,7 @@ const DEBUG = false;
 
 // This is a guess about how long the first dispatcher took in order to start the state machine.
 // If this is not large enough, we may not find all the dispatchers.
-const STATE_MACHINE_START_TIME_ESTIMATE = 30000;
+const STATE_MACHINE_START_TIME_ESTIMATE = 10000;
 
 // Wait until the given monitor is done, then return the final execution
 async function waitForMonitor(stateMachineName, monitorUniqueName) {
@@ -100,7 +100,7 @@ async function getStreams(functionName, startTime, endTime) {
       }
     }
     streamsParams.nextToken = streamsResponse.nextToken;
-    await sleep(100); // try to avoid rate limiting
+    await sleep(60); // try to avoid rate limiting
   } while (streamsParams.nextToken);
   return logStreams;
 }
@@ -417,7 +417,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
 
   for (const logStream of workerLogStreams) {
 
-    i += 2;
+    i += 1;
     const logGroupName = `/aws/lambda/${searchFunction}`;
     const logStreamName = logStream.logStreamName;
     console.log(`Fetching logs for ${i}/${workerLogStreams.length} - ${logStreamName}`);
@@ -476,6 +476,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
       const elapsedMs = r.lastEventTime - r.firstEventTime;
       workerElapsedTimes.push(elapsedMs);
 
+
       stages.push({
         category: "Workers",
         name: "Worker "+batchId,
@@ -485,6 +486,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
         end: new Date(r.lastEventTime),
         report: r.report
       });
+
     }
   }
 
@@ -564,6 +566,29 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
     console.log(`        totalCombinerDelay:    ${pad(totalCombinerDelay)}`);
   }
   console.log(`      totalCombinerElapsed:    ${pad(totalCombinerElapsed)}`);
+
+
+  // Sort stages chronologically
+  stages.sort(function(a,b) {
+    if (a.start < b.start) return -1;
+    if (a.start > b.start) return 1;
+    return 0;
+  });
+
+  // Add duplicate labels
+  const seenWorkers = {};
+  for (const stage of stages) {
+    if (stage.category==="Workers") {
+      if (stage.name in seenWorkers) {
+        seenWorkers[stage.name]++;
+        const index = seenWorkers[stage.name];
+        stage.name += " #"+index;
+      }
+      else {
+        seenWorkers[stage.name] = 1;
+      }
+    }
+  }
 
   return {
     input: input,
