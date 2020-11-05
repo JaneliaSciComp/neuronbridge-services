@@ -316,7 +316,9 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
         mipImageKey = getDisplayableMIPKey(mipKey) + '.png';
     } else {
         // keep in mind that the ext returned by path contains the dot
-        mipImageKey = getDisplayableMIPKey(mipKey).replace(new RegExp('\\' + mipExt +  '$'), '.png');
+        // because there are cases when displayable mip does not have the extension
+        // we remove it first to guarantee is never there and then append it to guarantee it will always append it
+        mipImageKey = getDisplayableMIPKey(mipKey).replace(new RegExp('\\' + mipExt +  '$'), '') + '.png';
     }
     const mipThumbnailKey = mipImageKey.replace(new RegExp('\\.(png|tif)$'), '.jpg');
     const mipDirNames = mipKey.split("/");
@@ -351,8 +353,8 @@ const getDisplayableMIPKey = (mipKey) => {
     const removableGroupStart = groups && groups.cdmSuffix ? mipKey.indexOf(groups.cdmSuffix) : -1;
     const mipName = removableGroupStart > 0 ? mipKey.substring(0, removableGroupStart) : mipKey;
     return mipName
-        .replace(/searchable_neurons\/\d+/, "")
-        .replace("//", "/");
+        .replace(/searchable_neurons\/\d+/, '')
+        .replace('//', '/');
 };
 
 const isEmLibrary = (lname) => {
