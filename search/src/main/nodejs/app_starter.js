@@ -238,23 +238,14 @@ const submitAlignmentJob = async (searchParams) => {
     } else {
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4;
     }
-    const mem = Math.max(16 * 1024, Math.ceil(estimatedMemory));
-    let cpus;
-    // 122G is the max memory for an r4.4xlarge
-    // if memory is larger than 122G I assume it goes to an m4.10xlarge which has 40 vcpus
-    // so it makes sense to bump up the number of cpus
-    if (mem > 122 * 1024) {
-        cpus = 40;
-    } else {
-        cpus = 16;
-    }
-    console.log(`Estimated memory for ${fullSearchInputImage}: ${estimatedMemory}, allocated memory: ${mem}`);
+    const computeResources = selectComputeResources(estimatedMemory);
+    console.log(`Estimated memory ${estimatedMemory} -> cpus: ${computeResources.cpus}, mem: ${computeResources.mem}`);
     const jobResources = {
-        'vcpus': cpus,
-        'memory': mem,
+        'vcpus': computeResources.cpus,
+        'memory': computeResources.mem,
         'environment': [{
             name: 'ALIGNMENT_MEMORY',
-            value: mem + 'M'
+            value: computeResources.mem + 'M'
         }]
     };
     const jobName = `align-${searchParams.id}`;
@@ -263,7 +254,7 @@ const submitAlignmentJob = async (searchParams) => {
         input_filename: fullSearchInputImage,
         output_folder: searchParams.searchInputFolder,
         comparison_alg: comparisonAlgorithm,
-        nslots: cpus + ''
+        nslots: computeResources.cpus + ''
     };
     if (searchParams.userDefinedImageParams) {
         const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '0';
@@ -318,6 +309,40 @@ const submitAlignmentJob = async (searchParams) => {
         return {
             statusCode: 404,
             errorMessage: `Error submitting alignment job: ${submitError.message}`
+        };
+    }
+};
+
+const selectComputeResources = estimatedMemory => {
+    if (estimatedMemory < 8 * 1024) {
+        // c4.2xlarge
+        return {
+            mem: 15*1024-1,
+            cpus: 8
+        };
+    } else if (estimatedMemory < 64 * 1024) {
+        // m4.4xlarge
+        return {
+            mem: 64*1024-1,
+            cpus: 16
+        };
+    } else if (estimatedMemory < 122 * 1024) {
+        // r4.4xlarge
+        return {
+            mem: 122*1024-1,
+            cpus: 16
+        };
+    } else if (estimatedMemory < 160 * 1024) {
+        // m4.10xlarge
+        return {
+            mem: 160*1024-1,
+            cpus: 40
+        };
+    } else {
+        // m4.16xlarge
+        return {
+            mem: 256*1024-1,
+            cpus: 64
         };
     }
 };
