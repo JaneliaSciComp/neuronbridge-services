@@ -314,35 +314,31 @@ const submitAlignmentJob = async (searchParams) => {
 };
 
 const selectComputeResources = estimatedMemory => {
-    if (estimatedMemory < 8 * 1024) {
-        // c4.2xlarge
+    // it appears that AWS is allocating a machine
+    // with the same # of cores as request but with 2x the requested memory
+    if (estimatedMemory < 16 * 1024) {
+        // m4.2xlarge (8cores/32G)
         return {
-            mem: 15*1024-1,
+            mem: 16*1024,
             cpus: 8
         };
+    } else if (estimatedMemory < 32 * 1024) {
+        // m4.4xlarge (16cores/64G)
+        return {
+            mem: 32*1024,
+            cpus: 16
+        };
     } else if (estimatedMemory < 64 * 1024) {
-        // m4.4xlarge
+        // r4.4xlarge (16cores/122G)
         return {
-            mem: 64*1024-1,
+            mem: 64*1024,
             cpus: 16
-        };
-    } else if (estimatedMemory < 122 * 1024) {
-        // r4.4xlarge
-        return {
-            mem: 122*1024-1,
-            cpus: 16
-        };
-    } else if (estimatedMemory < 160 * 1024) {
-        // m4.10xlarge
-        return {
-            mem: 160*1024-1,
-            cpus: 40
         };
     } else {
-        // m4.16xlarge
+        // m4.10xlarge (40cores/160G)
         return {
-            mem: 256*1024-1,
-            cpus: 64
+            mem: 100*1024,
+            cpus: 40
         };
     }
 };
