@@ -225,7 +225,7 @@ const submitAlignmentJob = async (searchParams) => {
     const searchInputSize = searchInputMetadata.ContentLength;
     const searchInputContentType = searchInputMetadata.ContentType;
     const comparisonAlgorithm = searchInputMetadata.algorithm === 'avg' ? 'Median' : 'Max';
-    let estimatedMemory;
+    let estimatedMemory; // estimated memory in MB
     if (searchInputContentType === 'application/zip') {
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 8;
         console.log(`Estimate memory for zip files to ${estimatedMemory}`);
@@ -283,7 +283,8 @@ const submitAlignmentJob = async (searchParams) => {
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
             step: ALIGNMENT_JOB_SUBMITTED,
-            alignStarted: now.toISOString()
+            alignStarted: now.toISOString(),
+            alignmentSize: Math.ceil(estimatedMemory/1024.0)
         });
         if (alignMonitorStateMachineArn != null) {
             // start the state machine

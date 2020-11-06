@@ -60,6 +60,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     cdsFinished: AWSDateTime
     alignStarted: AWSDateTime
     alignFinished: AWSDateTime
+    alignmentSize: Int
     displayableMask: String
     searchMask: String
     computedMIPs: [String]
@@ -222,6 +223,7 @@ input UpdateSearchInput {
     cdsFinished: AWSDateTime
     alignStarted: AWSDateTime
     alignFinished: AWSDateTime
+    alignmentSize: Int
     displayableMask: String
     searchMask: String
     computedMIPs: [String]

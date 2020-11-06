@@ -54,6 +54,7 @@ export const getSearchMetadata = async (searchId) => {
                 cdsFinished
                 alignStarted
                 alignFinished
+                alignmentSize
                 createdOn
                 updatedOn
                 displayableMask
@@ -121,6 +122,7 @@ export const lookupSearchMetadata = async (searchFilterParams) => {
                     cdsFinished
                     alignStarted
                     alignFinished
+                    alignmentSize
                     createdOn
                     updatedOn
                     displayableMask
@@ -215,6 +217,7 @@ export const updateSearchMetadata = async (searchData) => {
                 cdsFinished
                 alignStarted
                 alignFinished
+                alignmentSize
                 createdOn
                 updatedOn
                 displayableMask
