@@ -268,8 +268,7 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/batch_search.batchSearch
     memorySize: 256
-    # 5 minute timeout
-    timeout: 300
+    timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       DEBUG: ${self:custom.debug}
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
