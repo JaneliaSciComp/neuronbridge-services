@@ -63,7 +63,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
     }
     private static final Logger LOG = LoggerFactory.getLogger(BatchSearch.class);
 
-    private Random randomGen = new Random();
+    private final Random randomGen = new Random();
 
     @Override
     public Integer handleRequest(BatchSearchParameters params, Context context) {
@@ -148,7 +148,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
             );
         }
 
-        ColorMIPSearch colorMIPSearch = new ColorMIPSearch(0., ColorDepthSearchParameters.DEFAULT_MASK_THRESHOLD, cdsAlgorithmProvider);
+        ColorMIPSearch colorMIPSearch = new ColorMIPSearch(jobParams.getMinMatchingPixRatio(), ColorDepthSearchParameters.DEFAULT_MASK_THRESHOLD, cdsAlgorithmProvider);
         AWSLambdaColorMIPSearch awsColorMIPSearch = new AWSLambdaColorMIPSearch(
                 new AWSMIPLoader(s3),
                 colorMIPSearch,

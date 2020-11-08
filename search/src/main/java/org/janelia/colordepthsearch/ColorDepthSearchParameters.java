@@ -12,6 +12,7 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class ColorDepthSearchParameters {
 
     final static int DEFAULT_MASK_THRESHOLD = 100;
+    private final static double DEFAULT_MIN_MATCHING_RATIO = 2.0;
 
     private String libraryBucket;
     private List<String> libraries;
@@ -24,7 +25,7 @@ public class ColorDepthSearchParameters {
     private Double pixColorFluctuation = 2.0;
     private Integer xyShift = 0;
     private boolean mirrorMask = false;
-    private Double minMatchingPixRatio = 2.;
+    private Double minMatchingPixRatio = DEFAULT_MIN_MATCHING_RATIO;
     private Integer negativeRadius = 20;
     private boolean withGradientScores = false;
 
@@ -146,7 +147,7 @@ public class ColorDepthSearchParameters {
     }
 
     public void setMinMatchingPixRatio(Double minMatchingPixRatio) {
-        this.minMatchingPixRatio = minMatchingPixRatio;
+        this.minMatchingPixRatio = minMatchingPixRatio == null ? DEFAULT_MIN_MATCHING_RATIO : minMatchingPixRatio;
     }
 
     public Integer getNegativeRadius() {
