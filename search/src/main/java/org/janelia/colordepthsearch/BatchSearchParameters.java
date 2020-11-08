@@ -1,5 +1,7 @@
 package org.janelia.colordepthsearch;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 /**
  * Search parameters for a burst parallel search.
  *
@@ -62,5 +64,17 @@ public class BatchSearchParameters {
 
     public void setJobParameters(ColorDepthSearchParameters jobParameters) {
         this.jobParameters = jobParameters;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("tasksTableName", tasksTableName)
+                .append("jobId", jobId)
+                .append("batchId", batchId)
+                .append("startIndex", startIndex)
+                .append("endIndex", endIndex)
+                .append("jobParameters", jobParameters)
+                .toString();
     }
 }

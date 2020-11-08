@@ -2,6 +2,8 @@ package org.janelia.colordepthsearch;
 
 import java.util.List;
 
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 /**
  * Search parameters for a color depth search with multiple masks.
  *
@@ -161,5 +163,25 @@ public class ColorDepthSearchParameters {
 
     public void setWithGradientScores(boolean withGradientScores) {
         this.withGradientScores = withGradientScores;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append("libraryBucket", libraryBucket)
+                .append("libraries", libraries)
+                .append("gradientsFolders", gradientsFolders)
+                .append("zgapMasksFolders", zgapMasksFolders)
+                .append("searchBucket", searchBucket)
+                .append("maskKeys", maskKeys)
+                .append("maskThresholds", maskThresholds)
+                .append("dataThreshold", dataThreshold)
+                .append("pixColorFluctuation", pixColorFluctuation)
+                .append("xyShift", xyShift)
+                .append("mirrorMask", mirrorMask)
+                .append("minMatchingPixRatio", minMatchingPixRatio)
+                .append("negativeRadius", negativeRadius)
+                .append("withGradientScores", withGradientScores)
+                .toString();
     }
 }

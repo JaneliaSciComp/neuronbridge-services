@@ -6,6 +6,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.collections4.IterableUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.janelia.colormipsearch.api.cdsearch.CDSMatches;
 import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithmProvider;
 import org.janelia.colormipsearch.api.cdsearch.ColorDepthSearchAlgorithmProviderFactory;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -49,9 +51,19 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
             this.gradientKey = gradientKey;
             this.zgapMaskKey = zgapMaskKey;
         }
+
+        @Override
+        public String toString() {
+            return new ToStringBuilder(this)
+                    .append("searchKey", searchKey)
+                    .append("gradientKey", gradientKey)
+                    .append("zgapMaskKey", zgapMaskKey)
+                    .toString();
+        }
     }
     private static final Logger LOG = LoggerFactory.getLogger(BatchSearch.class);
 
+    private Random randomGen = new Random();
 
     @Override
     public Integer handleRequest(BatchSearchParameters params, Context context) {
@@ -105,9 +117,8 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
     }
 
     private List<ColorMIPSearchResult> performColorDepthSearch(BatchSearchParameters params, S3Client s3) {
-
         long start = System.currentTimeMillis();
-
+        LOG.info("Invoke color depth search with {}", params);
         ColorDepthSearchParameters jobParams = params.getJobParameters();
 
         List<SearchTarget> searchTargets = getSearchTargets(s3,
@@ -184,7 +195,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                                                 int startIndex,
                                                 int endIndex) {
         List<SearchTarget> searchTargets = new ArrayList<>();
-        int i = 0;
+        int targetIndex = 0;
         List<SearchTarget> searchTargetFolders = IntStream.range(0, searcheableFolders.size())
                 .boxed()
                 .map(index -> {
@@ -199,14 +210,14 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                 })
                 .collect(Collectors.toList());
 
+        int randomPrefix = randomGen.nextInt(100);
         for (SearchTarget searchTargetFolder : searchTargetFolders) {
-            String keyListKey = searchTargetFolder.searchKey + "/keys_denormalized.json";
+            String keyListKey = searchTargetFolder.searchKey + "/KEYS/" + randomPrefix + "/keys_denormalized.json";
             LOG.info("Retrieving keys in s3://{}/{}", libraryBucket, keyListKey);
             InputStream object = LambdaUtils.getObject(s3, libraryBucket, keyListKey);
             List<String> searchableKeys = LambdaUtils.fromJson(object, List.class);
             for (String key : searchableKeys) {
-                i++;
-                if (i > startIndex && i <= endIndex) {
+                if (targetIndex >= startIndex && targetIndex < endIndex) {
                     // replace the search folder and remove the extension
                     String gradientKey = StringUtils.isNotBlank(searchTargetFolder.gradientKey)
                         ? key.replace(searchTargetFolder.searchKey, searchTargetFolder.gradientKey).replaceAll("\\..*$", "")
@@ -214,9 +225,12 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                     String zgapMaskKey = StringUtils.isNotBlank(searchTargetFolder.zgapMaskKey)
                             ? key.replace(searchTargetFolder.searchKey, searchTargetFolder.zgapMaskKey).replaceAll("\\..*$", "")
                             : null;
-                    searchTargets.add(new SearchTarget(key, gradientKey, zgapMaskKey));
+                    SearchTarget searchTarget = new SearchTarget(key, gradientKey, zgapMaskKey);
+                    searchTargets.add(searchTarget);
                 }
-                if (i >= endIndex) {
+                targetIndex++;
+                if (targetIndex >= endIndex) {
+                    LOG.info("Return {} search targets starting with index {} to {}", searchTargets.size(), startIndex, endIndex);
                     return searchTargets;
                 }
             }

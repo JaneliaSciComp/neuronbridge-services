@@ -216,7 +216,7 @@ class AWSLambdaColorMIPSearch {
                 if (removableGroupStart > 0) {
                     displayableKeyNameBuilder.append(
                             mipKey.substring(namePos, removableGroupStart)
-                                    .replace("searchable_neurons", "")
+                                    .replaceAll("searchable_neurons/\\d+/", "")
                                     .replace("//", "/")
                     );
                     namePos = mipNameMatcher.end(removableGroup);
@@ -224,13 +224,13 @@ class AWSLambdaColorMIPSearch {
             }
             displayableKeyNameBuilder.append(
                     mipKey.substring(namePos)
-                            .replace("searchable_neurons", "")
+                            .replaceAll("searchable_neurons/\\d+/", "")
                             .replace("//", "/")
             );
             return displayableKeyNameBuilder.toString();
         } else {
             return mipKey
-                    .replace("searchable_neurons", "")
+                    .replaceAll("searchable_neurons/\\d+/", "")
                     .replace("//", "/");
         }
     }
