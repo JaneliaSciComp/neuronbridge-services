@@ -1,6 +1,6 @@
 import AWS from 'aws-sdk';
 
-import { getSearchMetadata, updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} from './awsappsyncutils';
+import { getSearchMetadata, updateSearchMetadata} from './awsappsyncutils';
 
 const bc = new AWS.Batch({
     apiVersion: '2016-08-10'
@@ -51,7 +51,6 @@ const monitorAlignmentJob = async (alignJobParams) => {
         if (job.status === 'SUCCEEDED') {
             await updateSearchMetadata({
                 id: searchId,
-                step: ALIGNMENT_JOB_COMPLETED,
                 alignFinished: timestamp.toISOString()
             });
             return {
