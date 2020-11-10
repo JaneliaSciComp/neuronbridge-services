@@ -18,5 +18,8 @@ export const searchUpdate = async (event) => {
     if (event.errorMessage) {
         searchData.errorMessage = event.errorMessage;
     }
+    if (event.alignFinished) {
+        searchData.alignFinished = event.alignFinished;
+    }
     return await updateSearchMetadata(searchData);
 };

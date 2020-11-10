@@ -47,12 +47,7 @@ const monitorAlignmentJob = async (alignJobParams) => {
     }
     const job = jobDescriptions.jobs.find(j => j.jobId === jobId);
     if (job) {
-        const timestamp = new Date();
         if (job.status === 'SUCCEEDED') {
-            await updateSearchMetadata({
-                id: searchId,
-                alignFinished: timestamp.toISOString()
-            });
             return {
                 ...alignJobParams,
                 completed: true,
@@ -74,6 +69,7 @@ const monitorAlignmentJob = async (alignJobParams) => {
             if (!errorMessage) {
                 errorMessage = 'Alignment job failed';
             }
+            const timestamp = new Date();
             await updateSearchMetadata({
                 id: searchId,
                 alignFinished: timestamp.toISOString(),
