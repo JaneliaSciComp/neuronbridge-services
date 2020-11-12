@@ -5,7 +5,7 @@ config:
   libraryBucket: janelia-flylight-color-depth-${env:IMAGE_DATA_LEVEL, 'dev'}
   libraryThumbnailsBucket: janelia-flylight-color-depth-thumbnails-${env:IMAGE_DATA_LEVEL, 'dev'}
   alignmentTemplatesBucket: janelia-flylight-color-depth-${env:IMAGE_DATA_LEVEL, 'dev'}
-  searchBucket: janelia-neuronbridge-searches-${env:SEARCH_DATA_LEVEL, 'dev'}
+  searchBucket: janelia-neuronbridge-masks-tkdev
   perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
   perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 5}
   concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 1}

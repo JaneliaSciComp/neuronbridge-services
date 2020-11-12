@@ -72,6 +72,7 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
             MDC.put("jobId", params.getJobId());
         }
         verifyCDSParams(params);
+
         S3Client s3 = LambdaUtils.createS3();
 
         List<ColorMIPSearchResult> cdsResults = performColorDepthSearch(params, s3);
@@ -147,6 +148,10 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
                     jobParams.getXyShift()
             );
         }
+
+        ColorDepthSearchParameters jp = params.getJobParameters();
+        jp.setPixColorFluctuation(jp.getPixColorFluctuation() * 0.01);
+        params.setJobParameters(jp);
 
         ColorMIPSearch colorMIPSearch = new ColorMIPSearch(jobParams.getMinMatchingPixRatio(), ColorDepthSearchParameters.DEFAULT_MASK_THRESHOLD, cdsAlgorithmProvider);
         AWSLambdaColorMIPSearch awsColorMIPSearch = new AWSLambdaColorMIPSearch(
