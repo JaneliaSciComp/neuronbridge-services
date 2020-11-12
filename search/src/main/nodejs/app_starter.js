@@ -224,7 +224,7 @@ const submitAlignmentJob = async (searchParams) => {
     console.log('Search input metadata', searchInputMetadata);
     const searchInputSize = searchInputMetadata.ContentLength;
     const searchInputContentType = searchInputMetadata.ContentType;
-    const comparisonAlgorithm = searchInputMetadata.algorithm === 'avg' ? 'Median' : 'Max';
+    const comparisonAlgorithm = searchParams.algorithm === 'avg' ? 'Median' : 'Max';
     let estimatedMemory; // estimated memory in MB
     if (searchInputContentType === 'application/zip') {
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 8;
