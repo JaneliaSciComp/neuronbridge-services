@@ -1,9 +1,8 @@
 import AWS from 'aws-sdk';
-import { fromArrayBuffer } from 'geotiff';
 import path from 'path';
-import UPNG from 'upng-js';
 
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
+import {loadMIPRange} from "./load_mip";
 import {getObjectDataArray, getObjectWithRetry} from './utils';
 
 export const batchSearch = async (event) => {
@@ -148,7 +147,7 @@ const perMaskMetadata = (params) => {
     };
 };
 
-const findAllColorDepthMatches = async (params) => {
+export const findAllColorDepthMatches = async (params) => {
     const maskKeys = params.maskKeys;
 
     let results = [];
@@ -213,87 +212,6 @@ const runMaskSearches = async (params) => {
         }
     }
     return results;
-};
-
-const loadMIPRange = async (bucketName, key, start, end) => {
-    const mipPath = path.parse(key);
-    const mipExt = mipPath.ext;
-
-    const imgfile = await getObjectDataArray(bucketName, key);
-
-    let outdata = null;
-    let width = 0;
-    let height = 0;
-
-    if (mipExt === ".png") {
-        let img = UPNG.decode(imgfile);
-        let rgba = new DataView(UPNG.toRGBA8(img)[0]);
-        width = img.width;
-        height = img.height;
-        const pixnum = width * height;
-
-        outdata = new Uint8Array(width * height * 3);
-        for (let i = 0; i < pixnum; i++) {
-            outdata[3*i] = rgba.getUint8(4*i);
-            outdata[3*i+1] = rgba.getUint8(4*i+1);
-            outdata[3*i+2] = rgba.getUint8(4*i+2);
-        }
-    } else if (mipExt === '.tif' || mipExt === '.tiff') {
-        const tartiff = await fromArrayBuffer(imgfile);
-        const tarimage = await tartiff.getImage();
-
-        width = tarimage.getWidth();
-        height = tarimage.getHeight();
-        const outdatasize = width * height * 3;
-
-        let outoffset = 0;
-        outdata = new Uint8Array(outdatasize);
-
-        const input = new DataView(imgfile);
-
-        const ifd = tarimage.getFileDirectory();
-
-        const b_end = end > 0 ? end * 3 : outdatasize;
-
-        if (ifd.Compression == 32773) {
-            // PackBits compression
-            for (let s = 0; s < ifd.StripOffsets.length; s++) {
-                const stripoffset = ifd.StripOffsets[s];
-                const byteCount = ifd.StripByteCounts[s];
-
-                let index = stripoffset;
-                while (outoffset < b_end && outoffset < outdatasize && index < stripoffset + byteCount) {
-                    const n = input.getInt8(index++);
-                    if (n >= 0) { // 0 <= n <= 127
-                        for (let i = 0; i < n + 1; i++) {
-                            outdata[outoffset++] = input.getUint8(index++);
-                        }
-                    } else if (n != -128) { // -127 <= n <= -1
-                        const len = -n + 1;
-                        const val = input.getUint8(index++);
-                        for (let i = 0; i < len; i++) outdata[outoffset++] = val;
-                    }
-                }
-
-                if (outoffset >= b_end)
-                    break;
-            }
-        } else {
-            // RAW TIFF
-            for (let s = 0; s < ifd.StripOffsets.length; s++) {
-                const stripoffset = ifd.StripOffsets[s];
-                const byteCount = ifd.StripByteCounts[s];
-
-                for (let i = stripoffset; i < byteCount; ++i) {
-                    outdata[outoffset] = input.getUint8(i);
-                    outoffset++;
-                    if (outoffset >= b_end) break;
-                }
-            }
-        }
-    }
-
-    return {data: outdata, width: width, height: height};
 };
 
 const getMaskMIPMetdata = (awsMasksBucket, mipKey) => {
