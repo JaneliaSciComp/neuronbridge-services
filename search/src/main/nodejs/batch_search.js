@@ -3,7 +3,7 @@ import path from 'path';
 
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
-import {getObjectDataArray, getObjectWithRetry} from './utils';
+import {getObjectWithRetry} from './utils';
 
 export const batchSearch = async (event) => {
 
