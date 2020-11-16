@@ -149,10 +149,6 @@ public class BatchSearch implements RequestHandler<BatchSearchParameters, Intege
             );
         }
 
-        ColorDepthSearchParameters jp = params.getJobParameters();
-        jp.setPixColorFluctuation(jp.getPixColorFluctuation() * 0.01);
-        params.setJobParameters(jp);
-
         ColorMIPSearch colorMIPSearch = new ColorMIPSearch(jobParams.getMinMatchingPixRatio(), ColorDepthSearchParameters.DEFAULT_MASK_THRESHOLD, cdsAlgorithmProvider);
         AWSLambdaColorMIPSearch awsColorMIPSearch = new AWSLambdaColorMIPSearch(
                 new AWSMIPLoader(s3),
