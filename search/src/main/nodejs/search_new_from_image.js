@@ -88,6 +88,7 @@ export const searchNewFromImage = async event => {
     const { image, identityId } = JSON.parse(event.body);
     returnBody = await createNewSearchFromImage(image, event, identityId);
   } catch (error) {
+    console.log(error);
     returnObj.statusCode = 500;
     returnBody.message = error.message;
   }
