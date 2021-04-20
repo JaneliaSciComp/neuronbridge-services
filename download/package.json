@@ -1,0 +1,19 @@
+{
+  "name": "neuronbridge-download-service",
+  "description": "Backend download service for NeuronBridge",
+  "version": "0.0.1",
+  "devDependencies": {
+    "eslint": "^7.24.0",
+    "eslint-config-prettier": "^8.2.0",
+    "serverless-bundle": "^3.2.1"
+  },
+  "dependencies": {
+    "@react-native-community/async-storage": "^1.11.0",
+    "@react-native-community/netinfo": "^5.0.0",
+    "archiver": "^5.3.0",
+    "aws-appsync": "^4.0.0",
+    "aws-sdk": "^2.889.0",
+    "react": "16.8.3",
+    "react-native": "^0.59.10"
+  }
+}

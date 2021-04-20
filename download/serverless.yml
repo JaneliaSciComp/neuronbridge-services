@@ -1,0 +1,72 @@
+service: janelia-neuronbridge-download
+
+plugins:
+  - serverless-bundle
+  - serverless-appsync-plugin
+
+custom:
+  version: 0.0.1
+  tracing: false
+  debug: true
+  cognitoUserPoolId: us-east-1_owgI6RY6Y
+  neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
+  libraryBucket: ${file(../config.yml):config.libraryBucket}
+  searchBucket: ${file(../config.yml):config.searchBucket}
+  downloadBucket: ${file(../config.yml):config.downloadBucket}
+
+provider:
+  name: aws
+  region: ${opt:region, "us-east-1"}
+  stage: ${opt:stage, "dev"}
+  tags:
+    PROJECT: NeuronBridge
+    VERSION: ${self:custom.version}
+    DEVELOPER: ${env:USER}
+  httpApi:
+    payload: "2.0"
+    cors: true
+    authorizers:
+      neuronBridgeJwtAuthorizer:
+        identitySource: $request.header.Authorization
+        issuerUrl: https://cognito-idp.${self:provider.region}.amazonaws.com/${self:custom.cognitoUserPoolId}
+        audience:
+          - ${self:custom.neuronbridgeAppId}
+
+package:
+  individually: true
+  exclude:
+    - target/**
+    - src/test/**
+    - README.md
+  include:
+    - src/main/nodejs/**
+
+functions:
+  downloadCreator:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/download_creator.downloadCreator
+    memorySize: 128
+    timeout: 10
+    maximumEventAge: 120
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+    events:
+      - httpApi:
+          method: POST
+          path: /create_download
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+resources:
+  Resources:
+     DownloadBucket:
+       Type: AWS::S3::Bucket
+       Properties:
+         BucketName: ${self:custom.downloadBucket}
+         AccessControl: PublicRead
+
