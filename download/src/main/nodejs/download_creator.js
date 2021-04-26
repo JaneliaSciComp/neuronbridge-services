@@ -1,6 +1,6 @@
 import archiver from "archiver";
 import AWS from "aws-sdk";
-import { getObjectWithRetry, putObject } from "./utils";
+import { getObjectWithRetry } from "./utils";
 import { PassThrough } from "stream";
 
 import { getSearchMetadata } from "./awsappsyncutils";
@@ -32,16 +32,16 @@ const getStream = key => {
 
   passThroughStream.on("newListener", event => {
     if (!streamCreated && event === "data") {
-      console.log(`⭐  create stream for key ${key}`);
+      console.log(`⭐  create read stream for ${libraryBucket}:${key}`);
 
       const s3Stream = s3
-        .getObject({ Bucket: searchBucket, Key: key })
+        .getObject({ Bucket: libraryBucket, Key: key })
         .createReadStream();
 
       s3Stream
         .on("error", err => passThroughStream.emit("error", err))
-        .on("finish", () => console.log(`✅  finish stream for key ${key}`))
-        .on("close", () => console.log(`❌  stream close\n`))
+        .on("finish", () => console.log(`✅  finish read stream for key ${key}`))
+        .on("close", () => console.log(`❌  read stream closed\n`))
         .pipe(passThroughStream);
 
       streamCreated = true;
@@ -50,7 +50,28 @@ const getStream = key => {
   return passThroughStream;
 };
 
+const streamTo = key => {
+  var passthrough = new PassThrough();
+  s3.upload(
+    {
+      Bucket: downloadBucket,
+      Key: key,
+      Body: passthrough,
+      ContentType: "application/zip",
+    },
+    (err, data) => {
+      if (err) throw err;
+    }
+  );
+  return passthrough;
+};
+
 export const downloadCreator = async event => {
+  // test writing to bucket works.
+  // await putObject(downloadBucket, "test/test.json", { test: "this is a test" });
+  // test streaming uploads to the download bucket
+  // await testUpload();
+
   // Accept list of selected ids and the resultSet id/path
   const { ids = [], searchId = "" } = event.body ? JSON.parse(event.body) : {};
 
@@ -60,67 +81,36 @@ export const downloadCreator = async event => {
   // grab the list of results using the searchRecord
   const chosenResults = await getSearchResultsForIds(searchRecord, ids);
 
-  // Create an archive that streams directly to the download bucket.
-  const archive = archiver("tar", {
-    gzip: true,
-    gzipOptions: {
-      level: 1
-    }
-  });
-  archive.on("error", error => {
-    throw new Error(
-      `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
-    );
-  });
-
-  // create the upload stream to write the archive
-  const streamPassThrough = new PassThrough();
-  const writeStreamParameters = {
-    ACL: "public-read",
-    Body: streamPassThrough,
-    ContentType: "application/zip",
-    Bucket: downloadBucket,
-    Key: "test/test.tar.gz"
-  };
-
-  const testParameters = {
-    ACL: "public-read",
-    Body: "This is a test",
-    ContentType: "text/plain",
-    Bucket: downloadBucket,
-    Key: "test/test.text"
-  };
-
-  // this works now that the write permissions are in place.
-  const location = await putObject(downloadBucket, "test/test.json", {test: "this is a test"});
-
-  console.log({ location });
-
-  s3.upload(testParameters, (err, data) => {
-    if (err) {
-      console.error("upload error", err);
-    } else {
-      console.log("upload done", data);
-    }
-  });
-
-  const writeStream = s3.upload(writeStreamParameters, (err, data) => {
-    if (err) {
-      console.error("upload error", err);
-    } else {
-      console.log("upload done", data);
-    }
-  });
-
   // Loop over the ids and generate streams for each one.
   const added = [];
 
-  await new Promise((resolve, reject) => {
-    writeStream.on("close", resolve());
-    writeStream.on("end", resolve());
-    writeStream.on("error", reject());
+  await new Promise(async (resolve, reject) => {
+    const writeStream = streamTo(`test/${Math.random()}/test.tar.gz`);
 
-    archive.pipe(streamPassThrough);
+    writeStream.on("close", () => {
+      console.log(`✅  close write stream`);
+      resolve();
+    });
+    writeStream.on("end",() => {
+      console.log(`✅  end write stream`);
+      resolve();
+    });
+    writeStream.on("error", reject);
+
+    // Create an archive that streams directly to the download bucket.
+    const archive = archiver("tar", {
+      gzip: true,
+      gzipOptions: {
+        level: 1
+      }
+    });
+    archive.on("error", error => {
+      throw new Error(
+        `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
+      );
+    });
+
+    archive.pipe(writeStream);
 
     chosenResults.forEach(result => {
       // Use the information in the resultSet object to find the image path
@@ -131,8 +121,9 @@ export const downloadCreator = async event => {
     });
 
     // Once all image transfers are complete, close the archive
+    console.log(`⭐  finalizing write stream`);
     archive.finalize();
-  }).catch(error => {
+  }).then().catch(error => {
     throw new Error(`${error.code} ${error.message} ${error.data}`);
   });
 

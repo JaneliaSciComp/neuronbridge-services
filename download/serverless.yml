@@ -182,7 +182,7 @@ functions:
   downloadCreator:
     runtime: nodejs12.x
     handler: src/main/nodejs/download_creator.downloadCreator
-    memorySize: 128
+    memorySize: 256
     timeout: 10
     maximumEventAge: 120
     maximumRetryAttempts: 1
