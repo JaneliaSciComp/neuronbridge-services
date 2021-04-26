@@ -13,6 +13,60 @@ custom:
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   downloadBucket: ${file(../config.yml):config.downloadBucket}
+  libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
+  searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+  tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
+  burstComputeStage: ${env:BURST_COMPUTE_STAGE, 'dev'}
+  appSync:
+    name: neuronbridge-appsync-${self:provider.stage}
+    authenticationType: AMAZON_COGNITO_USER_POOLS
+    userPoolConfig:
+      awsRegion: ${self:provider.region}
+      defaultAction: ALLOW
+      userPoolId: ${self:custom.cognitoUserPoolId}
+    additionalAuthenticationProviders:
+      - authenticationType: AWS_IAM
+    schema: graphql/schema.graphql
+    mappingTemplatesLocation: graphql/mapping-templates
+    mappingTemplates:
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: getSearch
+        request: "dynamodb-getSearch-request-template.vtl"
+        response: "dynamodb-getSearch-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: listSearches
+        request: "dynamodb-listSearches-request-template.vtl"
+        response: "dynamodb-listSearches-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Query
+        field: listAllSearches
+        request: "dynamodb-listAllSearches-request-template.vtl"
+        response: "dynamodb-listAllSearches-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: createSearch
+        request: "dynamodb-createSearch-request-template.vtl"
+        response: "dynamodb-createSearch-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: deleteSearch
+        request: "dynamodb-deleteSearch-request-template.vtl"
+        response: "dynamodb-deleteSearch-response-template.vtl"
+      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
+        type: Mutation
+        field: updateSearch
+        request: "dynamodb-updateSearch-request-template.vtl"
+        response: "dynamodb-updateSearch-response-template.vtl"
+    dataSources:
+      - type: AMAZON_DYNAMODB
+        name: NeuronBridge_GraphQLDS_${self:provider.stage}
+        description: Table containing neuron searches
+        config:
+          tableName: ${self:custom.searchTable}
+
+
 
 provider:
   name: aws
@@ -22,6 +76,89 @@ provider:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
     DEVELOPER: ${env:USER}
+  environment:
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
+    AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:GetObject
+        - s3:GetObjectTagging
+        - s3:ListBucket
+      Resource:
+        - "arn:aws:s3:::${self:custom.libraryBucket}"
+        - "arn:aws:s3:::${self:custom.libraryBucket}/*"
+        - "arn:aws:s3:::${self:custom.searchBucket}"
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
+        - "arn:aws:s3:::${self:custom.downloadBucket}"
+        - "arn:aws:s3:::${self:custom.downloadBucket}/*"
+    - Effect: Allow
+      Action:
+        - s3:PutObject
+        - s3:PutObjectTagging
+      Resource:
+        - "arn:aws:s3:::${self:custom.searchBucket}/"
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
+        - "arn:aws:s3:::${self:custom.downloadBucket}"
+        - "arn:aws:s3:::${self:custom.downloadBucket}/*"
+    - Effect: Allow
+      Action:
+        - s3:DeleteObject
+      Resource:
+        - "arn:aws:s3:::${self:custom.searchBucket}/*"
+        - "arn:aws:s3:::${self:custom.downloadBucket}/*"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:DescribeStream
+        - dynamodb:DescribeTable
+        - dynamodb:GetRecords
+        - dynamodb:ListStreams
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:UpdateTable
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
+    - Effect: "Allow"
+      Action:
+        - dynamodb:PutItem
+        - dynamodb:Query
+      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tasksTable}"
+    - Effect: Allow
+      Action:
+        - lambda:InvokeFunction
+        - lambda:InvokeAsync
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - states:StartExecution
+      Resource: "*"
+    - Effect: Allow
+      Action:
+        - appsync:GraphQL
+      Resource: { Fn::Join: [
+        "",
+        [
+          "arn:aws:appsync:",
+          {
+            Ref: "AWS::Region"
+          },
+          ":",
+          {
+            Ref: "AWS::AccountId"
+          },
+          ":apis/",
+          {
+            Fn::GetAtt: [ GraphQlApi, ApiId ]
+          },
+          "/*"
+        ]
+      ]}
+    - Effect: Allow
+      Action:
+        - batch:DescribeJobs
+        - batch:SubmitJob
+      Resource: "*"
+
   httpApi:
     payload: "2.0"
     cors: true
