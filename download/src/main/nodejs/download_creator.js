@@ -85,19 +85,7 @@ export const downloadCreator = async event => {
   const added = [];
 
   await new Promise(async (resolve, reject) => {
-    const writeStream = streamTo(`test/${Math.random()}/test.tar.gz`);
-
-    writeStream.on("close", () => {
-      console.log(`✅  close write stream`);
-      resolve();
-    });
-    writeStream.on("end",() => {
-      console.log(`✅  end write stream`);
-      resolve();
-    });
-    writeStream.on("error", reject);
-
-    // Create an archive that streams directly to the download bucket.
+   // Create an archive that streams directly to the download bucket.
     const archive = archiver("tar", {
       gzip: true,
       gzipOptions: {
@@ -108,7 +96,26 @@ export const downloadCreator = async event => {
       throw new Error(
         `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
       );
+    }).on('progress', data => {
+      console.log('archive event: progress', data);
     });
+
+
+    const writeStream = streamTo(`test/${Math.random()}/test.tar.gz`);
+
+    writeStream.on("close", () => {
+      console.log(`✅  close write stream`);
+      resolve();
+    });
+    writeStream.on("end",() => {
+      console.log(`✅  end write stream`);
+      // Can't call this resolve as it seems to stop the zip from being closed.
+      // If the resolve is enabled, the zip file doesn't get written out to the
+      // s3 bucket, until after the lambda is called a second time. The result
+      // is 0 files on first all and 2 files on second call.
+      // resolve();
+    });
+    writeStream.on("error", reject);
 
     archive.pipe(writeStream);
 
@@ -135,5 +142,6 @@ export const downloadCreator = async event => {
     body: JSON.stringify({ ids, images: added })
   };
 
+  console.log(`⭐  should be called last`);
   return returnObj;
 };
