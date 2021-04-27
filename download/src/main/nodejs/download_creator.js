@@ -1,4 +1,5 @@
 import archiver from "archiver";
+import { v1 as uuidv1 } from "uuid";
 import AWS from "aws-sdk";
 import { getObjectWithRetry } from "./utils";
 import { PassThrough } from "stream";
@@ -69,10 +70,8 @@ const streamTo = key => {
 };
 
 export const downloadCreator = async event => {
-  // test writing to bucket works.
-  // await putObject(downloadBucket, "test/test.json", { test: "this is a test" });
-  // test streaming uploads to the download bucket
-  // await testUpload();
+  const downloadId = uuidv1();
+  const downloadTarget = `test/${downloadId}/test.tar.gz`;
 
   // Accept list of selected ids and the resultSet id/path
   const { ids = [], searchId = "" } = event.body ? JSON.parse(event.body) : {};
@@ -84,8 +83,6 @@ export const downloadCreator = async event => {
   const chosenResults = await getSearchResultsForIds(searchRecord, ids);
 
   // Loop over the ids and generate streams for each one.
-  const added = [];
-
   await new Promise(async (resolve, reject) => {
     // Create an archive that streams directly to the download bucket.
     const archive = archiver("tar", {
@@ -104,7 +101,7 @@ export const downloadCreator = async event => {
         console.log("archive event: progress", data);
       });
 
-    const writeStream = streamTo(`test/${Math.random()}/test.tar.gz`);
+    const writeStream = streamTo(downloadTarget);
 
     writeStream.on("close", () => {
       console.log(`✅  close write stream`);
@@ -127,7 +124,6 @@ export const downloadCreator = async event => {
       // Pass the image from the source bucket into the download bucket via
       // the archiver.
       archive.append(getStream(result.imageName), { name: result.imageName });
-      added.push(`s3://${libraryBucket}/${result.imageName}`);
     });
 
     // Once all image transfers are complete, close the archive
@@ -144,7 +140,7 @@ export const downloadCreator = async event => {
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,
-    body: JSON.stringify({ ids, images: added })
+    body: JSON.stringify({ download: downloadTarget, bucket: downloadBucket })
   };
 
   console.log(`⭐  should be called last`);
