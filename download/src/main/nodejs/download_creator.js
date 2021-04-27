@@ -83,7 +83,7 @@ export const downloadCreator = async event => {
   const chosenResults = await getSearchResultsForIds(searchRecord, ids);
 
   // Loop over the ids and generate streams for each one.
-  await new Promise(async (resolve, reject) => {
+  await new Promise((resolve, reject) => {
     // Create an archive that streams directly to the download bucket.
     const archive = archiver("tar", {
       gzip: true,
@@ -108,7 +108,7 @@ export const downloadCreator = async event => {
       resolve();
     });
     writeStream.on("end", () => {
-      console.log(`✅  end write stream`);
+      console.log(`🛑  end write stream`);
       // Can't call this resolve as it seems to stop the zip from being closed.
       // If the resolve is enabled, the zip file doesn't get written out to the
       // s3 bucket, until after the lambda is called a second time. The result
@@ -129,20 +129,20 @@ export const downloadCreator = async event => {
     // Once all image transfers are complete, close the archive
     console.log(`⭐  finalizing write stream`);
     archive.finalize();
-  })
-    .then()
-    .catch(error => {
-      throw new Error(`${error.code} ${error.message} ${error.data}`);
-    });
+  }).then(() => {
+    console.log(`⭐  called last?`);
+  }).catch(error => {
+    throw new Error(`${error.code} ${error.message} ${error.data}`);
+  });
 
   // Create a link to the newly created archive file and return it
   // as the response.
+  console.log(`⭐  should be called last`);
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,
     body: JSON.stringify({ download: downloadTarget, bucket: downloadBucket })
   };
 
-  console.log(`⭐  should be called last`);
   return returnObj;
 };
