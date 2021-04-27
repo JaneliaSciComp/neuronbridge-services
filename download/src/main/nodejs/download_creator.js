@@ -40,7 +40,9 @@ const getStream = key => {
 
       s3Stream
         .on("error", err => passThroughStream.emit("error", err))
-        .on("finish", () => console.log(`✅  finish read stream for key ${key}`))
+        .on("finish", () =>
+          console.log(`✅  finish read stream for key ${key}`)
+        )
         .on("close", () => console.log(`❌  read stream closed\n`))
         .pipe(passThroughStream);
 
@@ -57,7 +59,7 @@ const streamTo = key => {
       Bucket: downloadBucket,
       Key: key,
       Body: passthrough,
-      ContentType: "application/zip",
+      ContentType: "application/zip"
     },
     (err, data) => {
       if (err) throw err;
@@ -85,21 +87,22 @@ export const downloadCreator = async event => {
   const added = [];
 
   await new Promise(async (resolve, reject) => {
-   // Create an archive that streams directly to the download bucket.
+    // Create an archive that streams directly to the download bucket.
     const archive = archiver("tar", {
       gzip: true,
       gzipOptions: {
         level: 1
       }
     });
-    archive.on("error", error => {
-      throw new Error(
-        `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
-      );
-    }).on('progress', data => {
-      console.log('archive event: progress', data);
-    });
-
+    archive
+      .on("error", error => {
+        throw new Error(
+          `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
+        );
+      })
+      .on("progress", data => {
+        console.log("archive event: progress", data);
+      });
 
     const writeStream = streamTo(`test/${Math.random()}/test.tar.gz`);
 
@@ -107,7 +110,7 @@ export const downloadCreator = async event => {
       console.log(`✅  close write stream`);
       resolve();
     });
-    writeStream.on("end",() => {
+    writeStream.on("end", () => {
       console.log(`✅  end write stream`);
       // Can't call this resolve as it seems to stop the zip from being closed.
       // If the resolve is enabled, the zip file doesn't get written out to the
@@ -130,9 +133,11 @@ export const downloadCreator = async event => {
     // Once all image transfers are complete, close the archive
     console.log(`⭐  finalizing write stream`);
     archive.finalize();
-  }).then().catch(error => {
-    throw new Error(`${error.code} ${error.message} ${error.data}`);
-  });
+  })
+    .then()
+    .catch(error => {
+      throw new Error(`${error.code} ${error.message} ${error.data}`);
+    });
 
   // Create a link to the newly created archive file and return it
   // as the response.
