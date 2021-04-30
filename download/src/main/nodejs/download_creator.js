@@ -3,6 +3,7 @@ import { v1 as uuidv1 } from "uuid";
 import AWS from "aws-sdk";
 import { getObjectWithRetry } from "./utils";
 import { PassThrough } from "stream";
+import path from "path";
 
 import { getSearchMetadata } from "./awsappsyncutils";
 
@@ -124,10 +125,11 @@ export const downloadCreator = async event => {
     archive.pipe(writeStream);
 
     chosenResults.forEach(result => {
+      const fileName = path.basename(result.imageName);
       // Use the information in the resultSet object to find the image path
       // Pass the image from the source bucket into the download bucket via
       // the archiver.
-      archive.append(getStream(result.imageName), { name: result.imageName });
+      archive.append(getStream(result.imageName), { name: fileName });
     });
 
     // Once all image transfers are complete, close the archive
