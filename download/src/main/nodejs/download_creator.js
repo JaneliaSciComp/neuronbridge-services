@@ -53,7 +53,7 @@ const getStream = key => {
   return passThroughStream;
 };
 
-const streamTo = key => {
+const streamTo = (key, callback) => {
   var passthrough = new PassThrough();
   s3.upload(
     {
@@ -63,7 +63,12 @@ const streamTo = key => {
       ContentType: "application/zip"
     },
     (err, data) => {
-      if (err) throw err;
+      if (err) {
+        console.error("upload error", err);
+      } else {
+        console.log(" ❌ upload done", data);
+        callback();
+      }
     }
   );
   return passthrough;
@@ -101,7 +106,7 @@ export const downloadCreator = async event => {
         console.log("archive event: progress", data);
       });
 
-    const writeStream = streamTo(downloadTarget);
+    const writeStream = streamTo(downloadTarget, resolve);
 
     writeStream.on("close", () => {
       console.log(`✅  close write stream`);
@@ -109,11 +114,10 @@ export const downloadCreator = async event => {
     });
     writeStream.on("end", () => {
       console.log(`🛑  end write stream`);
-      // Can't call this resolve as it seems to stop the zip from being closed.
-      // If the resolve is enabled, the zip file doesn't get written out to the
-      // s3 bucket, until after the lambda is called a second time. The result
-      // is 0 files on first all and 2 files on second call.
-      // resolve();
+      // the resolve function is no longer called here as we need it to
+      // be called once the writeStream has finished, so the resolve
+      // function is passed to the streamTo function as a callback to be
+      // called once the stream has been closed.
     });
     writeStream.on("error", reject);
 
@@ -129,8 +133,6 @@ export const downloadCreator = async event => {
     // Once all image transfers are complete, close the archive
     console.log(`⭐  finalizing write stream`);
     archive.finalize();
-  }).then(() => {
-    console.log(`⭐  called last?`);
   }).catch(error => {
     throw new Error(`${error.code} ${error.message} ${error.data}`);
   });
