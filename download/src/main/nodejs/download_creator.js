@@ -77,7 +77,7 @@ const streamTo = (key, callback) => {
 
 export const downloadCreator = async event => {
   const downloadId = uuidv1();
-  const downloadTarget = `test/${downloadId}/test.tar.gz`;
+  const downloadTarget = `test/${downloadId}/data.zip`;
 
   // Accept list of selected ids and the resultSet id/path
   const { ids = [], searchId = "" } = event.body ? JSON.parse(event.body) : {};
@@ -91,12 +91,7 @@ export const downloadCreator = async event => {
   // Loop over the ids and generate streams for each one.
   await new Promise((resolve, reject) => {
     // Create an archive that streams directly to the download bucket.
-    const archive = archiver("tar", {
-      gzip: true,
-      gzipOptions: {
-        level: 1
-      }
-    });
+    const archive = archiver("zip");
     archive
       .on("error", error => {
         throw new Error(

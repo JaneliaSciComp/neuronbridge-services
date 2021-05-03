@@ -196,14 +196,13 @@ functions:
       - httpApi:
           method: POST
           path: /create_download
+          cors: true
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
 resources:
   Resources:
-     DownloadBucket:
-       Type: AWS::S3::Bucket
-       Properties:
-         BucketName: ${self:custom.downloadBucket}
-         AccessControl: PublicRead
-
+    DownloadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.downloadBucket}
