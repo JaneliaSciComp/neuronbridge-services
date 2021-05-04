@@ -10,6 +10,7 @@ import { getSearchMetadata } from "./awsappsyncutils";
 const searchBucket = process.env.SEARCH_BUCKET;
 const libraryBucket = process.env.LIBRARY_BUCKET;
 const downloadBucket = process.env.DOWNLOAD_BUCKET;
+const dataBucket = process.env.DATA_BUCKET;
 
 const s3 = new AWS.S3();
 
@@ -25,6 +26,29 @@ async function getSearchResultsForIds(searchRecord, ids) {
   const resultObject = await getObjectWithRetry(searchBucket, resultsUrl);
 
   return resultObject.results.filter(result => ids.includes(result.id));
+}
+
+async function getInteractiveSearchResults(searchId, ids) {
+  // grab the searchRecord using the searchId
+  const searchRecord = await getSearchRecord(searchId);
+
+  // grab the list of results using the searchRecord
+  const chosenResults = await getSearchResultsForIds(searchRecord, ids);
+
+  return chosenResults;
+}
+
+async function getPrecomputedSearchResults(searchId, ids) {
+  // get precomputedDataRootPath from s3://janelia-neuronbridge-data-dev/paths.json
+  const pathInfo = await getObjectWithRetry(dataBucket, "paths.json");
+
+  // get results from
+  // s3://janelia-neuronbridge-data-dev/{precomputedDataRootPath}/metadata/cdsresults/{searchId}.json
+  const resultsKey = `${pathInfo.precomputedDataRootPath}/metadata/cdsresults/${searchId}.json`;
+  const resultsObj = await getObjectWithRetry(dataBucket, resultsKey);
+
+  // filter the list of results based on the ids passed in.
+  return resultsObj.results.filter(result => ids.includes(result.id));
 }
 
 const getStream = key => {
@@ -80,13 +104,14 @@ export const downloadCreator = async event => {
   const downloadTarget = `test/${downloadId}/data.zip`;
 
   // Accept list of selected ids and the resultSet id/path
-  const { ids = [], searchId = "" } = event.body ? JSON.parse(event.body) : {};
+  const { ids = [], searchId = "", precomputed = false } = event.body
+    ? JSON.parse(event.body)
+    : {};
 
-  // grab the searchRecord using the searchId
-  const searchRecord = await getSearchRecord(searchId);
-
-  // grab the list of results using the searchRecord
-  const chosenResults = await getSearchResultsForIds(searchRecord, ids);
+  // if precomputed search, get results from different location to interactive search
+  const chosenResults = precomputed
+    ? await getPrecomputedSearchResults(searchId, ids)
+    : await getInteractiveSearchResults(searchId, ids);
 
   // Loop over the ids and generate streams for each one.
   await new Promise((resolve, reject) => {
@@ -120,11 +145,16 @@ export const downloadCreator = async event => {
     archive.pipe(writeStream);
 
     chosenResults.forEach(result => {
-      const fileName = path.basename(result.imageName);
+      const fileName = path.basename(
+        result.imageName ? result.iamgeName : result.imageURL
+      );
       // Use the information in the resultSet object to find the image path
       // Pass the image from the source bucket into the download bucket via
       // the archiver.
-      archive.append(getStream(result.imageName), { name: fileName });
+      archive.append(
+        getStream(result.imageName ? result.iamgeName : result.imageURL),
+        { name: fileName }
+      );
     });
 
     // Once all image transfers are complete, close the archive

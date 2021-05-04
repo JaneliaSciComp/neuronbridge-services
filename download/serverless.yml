@@ -13,6 +13,7 @@ custom:
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   downloadBucket: ${file(../config.yml):config.downloadBucket}
+  dataBucket: ${file(../config.yml):config.dataBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
@@ -183,13 +184,17 @@ functions:
     runtime: nodejs12.x
     handler: src/main/nodejs/download_creator.downloadCreator
     memorySize: 256
-    timeout: 10
-    maximumEventAge: 120
+    timeout: 200
+    # maximum timeout for an http API gateway is 29 seconds, so this
+    # could bite us. Might have to resort to triggering a lambda and
+    # the have the site pole for results against the dynamoDB.
+    maximumEventAge: 29
     maximumRetryAttempts: 1
     environment:
       DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
+      DATA_BUCKET: ${self:custom.dataBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
     events:
