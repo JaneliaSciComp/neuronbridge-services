@@ -211,3 +211,9 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:custom.downloadBucket}
+        LifecycleConfiguration:
+          Rules:
+            - Id: DeleteRule
+              Prefix: ''
+              Status: Enabled
+              ExpirationInDays: '1'
