@@ -119,6 +119,7 @@ export const downloadCreator = async event => {
     const archive = archiver("zip");
     archive
       .on("error", error => {
+        console.log('Archive Error');
         throw new Error(
           `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
         );
@@ -140,19 +141,22 @@ export const downloadCreator = async event => {
       // function is passed to the streamTo function as a callback to be
       // called once the stream has been closed.
     });
-    writeStream.on("error", reject);
+    writeStream.on("error",() => {
+      console.log('write stream error');
+      reject();
+    });
 
     archive.pipe(writeStream);
 
     chosenResults.forEach(result => {
       const fileName = path.basename(
-        result.imageName ? result.iamgeName : result.imageURL
+        result.imageName ? result.imageName : result.imageURL
       );
       // Use the information in the resultSet object to find the image path
       // Pass the image from the source bucket into the download bucket via
       // the archiver.
       archive.append(
-        getStream(result.imageName ? result.iamgeName : result.imageURL),
+        getStream(result.imageName ? result.imageName : result.imageURL),
         { name: fileName }
       );
     });
@@ -161,6 +165,7 @@ export const downloadCreator = async event => {
     console.log(`⭐  finalizing write stream`);
     archive.finalize();
   }).catch(error => {
+    console.log('Promise Error');
     throw new Error(`${error.code} ${error.message} ${error.data}`);
   });
 
