@@ -3,6 +3,7 @@ service: janelia-neuronbridge-align
 
 plugins:
   - serverless-pseudo-parameters
+  - serverless-deployment-bucket
 
 
 custom:
@@ -24,6 +25,9 @@ provider:
   name: aws
   region: ${opt:region, "us-east-1"}
   stage: ${file(../config.yml):config.stage}
+  deploymentBucket:
+    name: janelia-serverless-deployments
+    blockPublicAccess: true
   tags:
     PROJECT: ${file(../config.yml):config.project}
     VERSION: ${self:custom.version}

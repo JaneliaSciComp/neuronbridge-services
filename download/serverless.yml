@@ -3,6 +3,7 @@ service: janelia-neuronbridge-download
 plugins:
   - serverless-bundle
   - serverless-appsync-plugin
+  - serverless-deployment-bucket
 
 custom:
   version: 0.0.1
@@ -73,6 +74,9 @@ provider:
   name: aws
   region: ${opt:region, "us-east-1"}
   stage: ${opt:stage, "dev"}
+  deploymentBucket:
+    name: janelia-serverless-deployments
+    blockPublicAccess: true
   tags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}

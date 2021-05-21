@@ -5,7 +5,8 @@
   "devDependencies": {
     "eslint": "^7.24.0",
     "eslint-config-prettier": "^8.2.0",
-    "serverless-bundle": "^3.2.1"
+    "serverless-bundle": "^3.2.1",
+    "serverless-deployment-bucket": "^1.5.1"
   },
   "dependencies": {
     "@react-native-community/async-storage": "^1.11.0",
