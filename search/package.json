@@ -39,6 +39,7 @@
     "serverless": "^2.6.0",
     "serverless-appsync-plugin": "^1.4.0",
     "serverless-bundle": "^3.2.1",
+    "serverless-deployment-bucket": "^1.5.1",
     "serverless-step-functions": "^2.26.0"
   }
 }
