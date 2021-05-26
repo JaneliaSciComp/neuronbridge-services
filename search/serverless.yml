@@ -18,8 +18,8 @@ custom:
   parallelDispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
   searchBatchSize: 40
   searchParallelization: 10000
-  cognitoUserPoolId: us-east-1_owgI6RY6Y
-  neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
+  cognitoUserPoolId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolId}
+  neuronbridgeAppId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolClientId}
   cdsTimeoutInSeconds: 300
   version: 3.0.0
   tracing: false
@@ -417,7 +417,6 @@ resources:
       Description: The ARN of the jobMonitorStateMachine 
       Value:
         Ref: JobMonitorStateMachine
-
   Resources:
     SearchTable:
       Type: "AWS::DynamoDB::Table"

@@ -9,8 +9,8 @@ custom:
   version: 0.0.1
   tracing: false
   debug: true
-  cognitoUserPoolId: us-east-1_owgI6RY6Y
-  neuronbridgeAppId: 4ham9v2s8c0d9v9mdm7vk3fggp
+  cognitoUserPoolId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolId}
+  neuronbridgeAppId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolClientId}
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   searchBucket: ${file(../config.yml):config.searchBucket}
   downloadBucket: ${file(../config.yml):config.downloadBucket}
