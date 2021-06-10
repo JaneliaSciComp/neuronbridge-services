@@ -5,6 +5,7 @@
   "devDependencies": {
     "eslint": "^7.24.0",
     "eslint-config-prettier": "^8.2.0",
+    "eslint-plugin-node": "^11.1.0",
     "serverless-bundle": "^3.2.1",
     "serverless-deployment-bucket": "^1.5.1"
   },
