@@ -99,7 +99,7 @@ const streamTo = (key, callback) => {
   return passthrough;
 };
 
-export const downloadCreator = async event => {
+export const downloadCreator = async (event) => {
   const downloadId = uuidv1();
   const downloadTarget = `test/${downloadId}/data.zip`;
 
@@ -119,7 +119,7 @@ export const downloadCreator = async event => {
     const archive = archiver("zip");
     archive
       .on("error", error => {
-        console.log('Archive Error');
+        console.log("Archive Error");
         throw new Error(
           `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
         );
@@ -141,8 +141,8 @@ export const downloadCreator = async event => {
       // function is passed to the streamTo function as a callback to be
       // called once the stream has been closed.
     });
-    writeStream.on("error",() => {
-      console.log('write stream error');
+    writeStream.on("error", () => {
+      console.log("write stream error");
       reject();
     });
 
@@ -165,7 +165,7 @@ export const downloadCreator = async event => {
     console.log(`⭐  finalizing write stream`);
     archive.finalize();
   }).catch(error => {
-    console.log('Promise Error');
+    console.log("Promise Error");
     throw new Error(`${error.code} ${error.message} ${error.data}`);
   });
 
