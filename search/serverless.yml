@@ -1,29 +1,41 @@
 service: janelia-neuronbridge-cds
 
+projectDir: ../
 
 plugins:
-  - serverless-step-functions
   - serverless-appsync-plugin
   - serverless-bundle
   - serverless-deployment-bucket
+  - serverless-step-functions
 
 custom:
+  version: 3.0.0
+  tracing: false
+  debug: true
+
+  cognitoUserPoolId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolId}
+  downloadBucket: ${file(../config.yml):config.downloadBucket}
+  dataBucket: ${file(../config.yml):config.dataBucket}
+  identityPoolId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.IdentityPoolId}
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
+  neuronbridgeAppId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolClientId}
+
+  oldSearchTable: janelia-neuronbridge-search-table-prod
+  oldSearchBucket: janelia-neuronbridge-searches-prod
+  oldUserPoolId: us-east-1_owgI6RY6Y
+
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
+
   # Resources from burst-compute
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, 'dev'}
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
   parallelDispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
   searchBatchSize: 40
   searchParallelization: 10000
-  cognitoUserPoolId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolId}
-  neuronbridgeAppId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolClientId}
   cdsTimeoutInSeconds: 300
-  version: 3.0.0
-  tracing: false
-  debug: true
+
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
     authenticationType: AMAZON_COGNITO_USER_POOLS
@@ -85,6 +97,7 @@ provider:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
     DEVELOPER: ${env:USER}
+  lambdaHashingVersion: 20201221
   stackTags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
@@ -95,81 +108,106 @@ provider:
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
     AWS_XRAY_CONTEXT_MISSING: LOG_ERROR
-  iamRoleStatements:
-    - Effect: Allow
-      Action:
-        - s3:GetObject
-        - s3:GetObjectTagging
-        - s3:ListBucket
-      Resource:
-        - "arn:aws:s3:::${self:custom.libraryBucket}"
-        - "arn:aws:s3:::${self:custom.libraryBucket}/*"
-        - "arn:aws:s3:::${self:custom.searchBucket}"
-        - "arn:aws:s3:::${self:custom.searchBucket}/*"
-    - Effect: Allow
-      Action:
-        - s3:PutObject
-        - s3:PutObjectTagging
-      Resource:
-        - "arn:aws:s3:::${self:custom.searchBucket}/"
-        - "arn:aws:s3:::${self:custom.searchBucket}/*"
-    - Effect: Allow
-      Action:
-        - s3:DeleteObject
-      Resource:
-        - "arn:aws:s3:::${self:custom.searchBucket}/*"
-    - Effect: "Allow"
-      Action:
-        - dynamodb:DescribeStream
-        - dynamodb:DescribeTable
-        - dynamodb:GetRecords
-        - dynamodb:ListStreams
-        - dynamodb:GetItem
-        - dynamodb:PutItem
-        - dynamodb:UpdateItem
-        - dynamodb:UpdateTable
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
-    - Effect: "Allow"
-      Action:
-        - dynamodb:PutItem
-        - dynamodb:Query
-      Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tasksTable}"
-    - Effect: Allow
-      Action:
-        - lambda:InvokeFunction
-        - lambda:InvokeAsync
-      Resource: "*"
-    - Effect: Allow
-      Action:
-        - states:StartExecution
-      Resource: "*"
-    - Effect: Allow
-      Action:
-        - appsync:GraphQL
-      Resource: { Fn::Join: [
-        "",
-        [
-          "arn:aws:appsync:",
-          {
-            Ref: "AWS::Region"
-          },
-          ":",
-          {
-            Ref: "AWS::AccountId"
-          },
-          ":apis/",
-          {
-            Fn::GetAtt: [ GraphQlApi, ApiId ]
-          },
-          "/*"
-        ]
-      ]}
-    - Effect: Allow
-      Action:
-        - batch:DescribeJobs
-        - batch:SubmitJob
-      Resource: "*"
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:GetObjectTagging
+            - s3:ListBucket
+          Resource:
+            - "arn:aws:s3:::${self:custom.libraryBucket}"
+            - "arn:aws:s3:::${self:custom.libraryBucket}/*"
+            - "arn:aws:s3:::${self:custom.searchBucket}"
+            - "arn:aws:s3:::${self:custom.searchBucket}/*"
+            - "arn:aws:s3:::${self:custom.downloadBucket}"
+            - "arn:aws:s3:::${self:custom.downloadBucket}/*"
+            - "arn:aws:s3:::${self:custom.oldSearchBucket}"
+            - "arn:aws:s3:::${self:custom.oldSearchBucket}/*"
+        - Effect: Allow
+          Action:
+            - s3:PutObject
+            - s3:PutObjectTagging
+          Resource:
+            - "arn:aws:s3:::${self:custom.searchBucket}/"
+            - "arn:aws:s3:::${self:custom.searchBucket}/*"
+            - "arn:aws:s3:::${self:custom.downloadBucket}"
+            - "arn:aws:s3:::${self:custom.downloadBucket}/*"
+        - Effect: Allow
+          Action:
+            - s3:DeleteObject
+          Resource:
+            - "arn:aws:s3:::${self:custom.searchBucket}/*"
+            - "arn:aws:s3:::${self:custom.downloadBucket}/*"
+        - Effect: "Allow"
+          Action:
+            - dynamodb:DescribeStream
+            - dynamodb:DescribeTable
+            - dynamodb:GetRecords
+            - dynamodb:ListStreams
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:UpdateTable
+          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
+        - Effect: "Allow"
+          Action:
+            - dynamodb:PutItem
+            - dynamodb:Query
+          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tasksTable}"
+        - Effect: Allow
+          Action:
+            - lambda:InvokeFunction
+            - lambda:InvokeAsync
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - states:StartExecution
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - appsync:GraphQL
+          Resource: { Fn::Join: [
+            "",
+            [
+              "arn:aws:appsync:",
+              {
+                Ref: "AWS::Region"
+              },
+              ":",
+              {
+                Ref: "AWS::AccountId"
+              },
+              ":apis/",
+              {
+                Fn::GetAtt: [ GraphQlApi, ApiId ]
+              },
+              "/*"
+            ]
+          ]}
+        - Effect: Allow
+          Action:
+            - batch:DescribeJobs
+            - batch:SubmitJob
+          Resource: "*"
+        - Effect: Allow
+          Action:
+            - cognito-idp:AdminGetUser
+            - cognito-idp:ListUsers
+          Resource:
+            - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:custom.cognitoUserPoolId}"
+            - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/us-east-1_owgI6RY6Y"
+        - Effect: Allow
+          Action:
+            - dynamodb:Scan
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.oldSearchTable}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
+
+
   httpApi:
+    useProviderTags: true
     payload: "2.0"
     cors: true
     authorizers:
@@ -354,6 +392,93 @@ functions:
       DEBUG: ${self:custom.debug}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
+  downloadCreator:
+    runtime: nodejs12.x
+    handler: src/main/nodejs/download_creator.downloadCreator
+    memorySize: 256
+    timeout: 200
+    # maximum timeout for an http API gateway is 29 seconds, so this
+    # could bite us. Might have to resort to triggering a lambda and
+    # then have the site poll for results against the dynamoDB.
+    maximumEventAge: 60
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
+      DATA_BUCKET: ${self:custom.dataBucket}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      IDENTITY_POOL_ID: ${self:custom.identityPoolId}
+    events:
+      - httpApi:
+          method: POST
+          path: /create_download
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+  dataMigration:
+    runtime: nodejs14.x
+    handler: src/main/nodejs/data_migration.dataMigration
+    memorySize: 128
+    timeout: 28
+    # maximum timeout for an http API gateway is 29 seconds, so this
+    # could bite us. Might have to resort to triggering a lambda and
+    # then have the site poll for results against the dynamoDB.
+    maximumEventAge: 60
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
+      DATA_BUCKET: ${self:custom.dataBucket}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      IDENTITY_POOL_ID: ${self:custom.identityPoolId}
+      SEARCH_TABLE: ${self:custom.searchTable}
+      USERPOOL_ID:  ${self:custom.cognitoUserPoolId}
+      OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
+      OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
+      OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
+    events:
+      - httpApi:
+          method: POST
+          path: /migrate_data
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+  migrationCheck:
+    runtime: nodejs14.x
+    handler: src/main/nodejs/migration_check.migrationCheck
+    memorySize: 128
+    timeout: 28
+    # maximum timeout for an http API gateway is 29 seconds, so this
+    # could bite us. Might have to resort to triggering a lambda and
+    # then have the site poll for results against the dynamoDB.
+    maximumEventAge: 60
+    maximumRetryAttempts: 1
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
+      DATA_BUCKET: ${self:custom.dataBucket}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      IDENTITY_POOL_ID: ${self:custom.identityPoolId}
+      SEARCH_TABLE: ${self:custom.searchTable}
+      USERPOOL_ID:  ${self:custom.cognitoUserPoolId}
+      OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
+      OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
+      OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
+    events:
+      - httpApi:
+          method: GET
+          path: /migration_check
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+
+
 
 stepFunctions:
   validate: true # enable pre-deployment definition validation
@@ -398,7 +523,6 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
-
 resources:
   Outputs:
     SearchLambdaFunction:
@@ -429,4 +553,45 @@ resources:
             AttributeType: S
         BillingMode: PAY_PER_REQUEST
         TableName: ${self:custom.searchTable}
-
+    SearchBucket:
+      Type: AWS::S3::Bucket
+      DeletionPolicy: Retain
+      Properties:
+        BucketName: ${self:custom.searchBucket}
+        CorsConfiguration:
+          CorsRules:
+            - AllowedMethods:
+              - GET
+              - HEAD
+              - PUT
+              - POST
+              - DELETE
+              AllowedHeaders:
+              - "*"
+              ExposedHeaders:
+              - "x-amz-server-side-encryption"
+              - "x-amz-request-id"
+              - "x-amz-id-2"
+              - "ETag"
+              AllowedOrigins:
+              - "*.janelia.org:3000"
+              - "*.janelia.org"
+              - "*.hhmi.org"
+              - "*.hhmi.org:3000"
+              - Fn::Join:
+                - ""
+                - - "http://janelia-neuronbridge-web-"
+                  - ${self:provider.stage}
+                  - ".s3-website-"
+                  - ${self:provider.region}
+                  - ".amazonaws.com"
+    DownloadBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:custom.downloadBucket}
+        LifecycleConfiguration:
+          Rules:
+            - Id: DeleteRule
+              Prefix: ''
+              Status: Enabled
+              ExpirationInDays: '1'

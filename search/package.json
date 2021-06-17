@@ -10,6 +10,8 @@
     "search": "AWS_SDK_LOAD_CONFIG=true npx babel-node --presets @babel/env src/main/nodejs/search_client.js"
   },
   "dependencies": {
+    "@react-native-community/async-storage": "^1.11.0",
+    "archiver": "^5.3.0",
     "aws-appsync": "^4.0.0",
     "aws-xray-sdk": "^3.0.1",
     "exponential-backoff": "^3.1.0",
@@ -20,6 +22,8 @@
     "jimp": "^0.16.1",
     "mathjs": "^7.2.0",
     "moment": "^2.25.3",
+    "react": "16.8.3",
+    "react-native": "^0.59.10",
     "stream": "0.0.2",
     "upng-js": "^2.1.0",
     "uuid": "^8.2.0"
@@ -36,9 +40,9 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "jest": "^26.4.2",
-    "serverless": "^2.6.0",
+    "serverless": "^2.46.0",
     "serverless-appsync-plugin": "^1.4.0",
-    "serverless-bundle": "^3.2.1",
+    "serverless-bundle": "^4.3.1",
     "serverless-deployment-bucket": "^1.5.1",
     "serverless-step-functions": "^2.26.0"
   }

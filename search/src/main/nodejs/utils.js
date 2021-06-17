@@ -10,6 +10,8 @@ AWS.config.apiVersions = {
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
 const stepFunction = new AWS.StepFunctions();
+const cognitoISP = new AWS.CognitoIdentityServiceProvider();
+const db = new AWS.DynamoDB.DocumentClient();
 
 export const DEBUG = Boolean(process.env.DEBUG);
 
@@ -288,3 +290,71 @@ export const startStepFunction = async (uniqueName, stateMachineParams, stateMac
     console.log("Step function started: ", result.executionArn);
     return result;
 };
+
+export const getOldSubs = async (username) => {
+  const params = {
+    UserPoolId: process.env.USERPOOL_ID,
+    Username: username
+  };
+  // look up email address in the current user pool
+  const user = await cognitoISP.adminGetUser(params).promise();
+  const emailAddress = user.UserAttributes.find(e => e.Name === "email").Value;
+
+  // find all users in the old user pool that have the matching
+  // email address
+  const old_pool_params = {
+    UserPoolId: process.env.OLD_USERPOOL_ID,
+    Filter: `email = "${emailAddress}"`
+  };
+
+  const usersRes = await cognitoISP.listUsers(old_pool_params).promise();
+
+  const ogSubs = usersRes.Users.map(user => {
+    return user.Attributes.find(e => e.Name === "sub").Value;
+  });
+
+  return ogSubs;
+};
+
+//fetch data from original dynamodb table
+async function getSearchRecords(ownerId, TableName) {
+  const params = {
+    TableName,
+    FilterExpression: "#owner = :owner",
+    ExpressionAttributeValues: {
+      ":owner": ownerId
+    },
+    ExpressionAttributeNames: {
+      "#owner": "owner"
+    }
+  };
+
+  try {
+    const data = await db.scan(params).promise();
+    if (data.Count > 0) {
+      return data.Items;
+    }
+    return [];
+  } catch (err) {
+    return err;
+  }
+}
+
+
+export const searchesToMigrate = async (sub, oldSubs) => {
+  // check the ids in the new dynamo db table vs the old.
+  // if old table contains any ids that are not in the new
+  // table, then migration is required.
+  const oldSearches = await getSearchRecords(
+    oldSubs[0],
+    process.env.OLD_SEARCH_TABLE
+  );
+  const currentSearches = await getSearchRecords(sub, process.env.SEARCH_TABLE);
+  const currentLookup = currentSearches.map(search => search.id);
+  const notMigrated = oldSearches.filter(
+    search => !currentLookup.includes(search.id)
+  );
+  return notMigrated;
+};
+
+

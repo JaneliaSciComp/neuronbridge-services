@@ -5,8 +5,8 @@ config:
   libraryBucket: ${env:IMAGE_DATA_BUCKET, 'janelia-flylight-color-depth-dev'}
   libraryThumbnailsBucket: ${env:IMAGE_THUMBNAILS_BUCKET, 'janelia-flylight-color-depth-thumbnails-dev'}
   alignmentTemplatesBucket: ${env:ALIGN_TEMPLATES_BUCKET, 'janelia-flylight-color-depth-dev'}
-  searchBucket: janelia-neuronbridge-searches-${env:SEARCH_DATA_LEVEL, 'dev'}
-  downloadBucket: janelia-neuronbridge-downloads-${env:SEARCH_DATA_LEVEL, 'dev'}
+  searchBucket: janelia-neuronbridge-searches-${opt:stage, 'dev'}
+  downloadBucket: janelia-neuronbridge-downloads-${opt:stage, 'dev'}
   dataBucket: janelia-neuronbridge-data-${env:SEARCH_DATA_LEVEL, 'dev'}
   perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
   perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 5}
