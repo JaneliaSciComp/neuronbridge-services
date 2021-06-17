@@ -13,13 +13,10 @@ custom:
   tracing: false
   debug: true
 
-  cognitoUserPoolId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolId}
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
-  identityPoolId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.IdentityPoolId}
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
-  neuronbridgeAppId: ${cf:janelia-neuronbridge-web-${self:provider.stage}.UserPoolClientId}
 
   oldSearchTable: janelia-neuronbridge-search-table-prod
   oldSearchBucket: janelia-neuronbridge-searches-prod
@@ -42,7 +39,8 @@ custom:
     userPoolConfig:
       awsRegion: ${self:provider.region}
       defaultAction: ALLOW
-      userPoolId: ${self:custom.cognitoUserPoolId}
+      userPoolId:
+       Ref: CognitoUserPool
     additionalAuthenticationProviders:
       - authenticationType: AWS_IAM
     schema: graphql/schema.graphql
@@ -196,7 +194,19 @@ provider:
             - cognito-idp:AdminGetUser
             - cognito-idp:ListUsers
           Resource:
-            - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:custom.cognitoUserPoolId}"
+            - { Fn::Join: [
+              "",
+              [
+                "arn:aws:cognito-idp:",
+                {
+                  Ref: "AWS::Region"
+                },
+                ":*:userpool/",
+                {
+                  Ref: CognitoUserPool
+                }
+              ]
+            ]}
             - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/us-east-1_owgI6RY6Y"
         - Effect: Allow
           Action:
@@ -213,9 +223,20 @@ provider:
     authorizers:
       neuronBridgeJwtAuthorizer:
         identitySource: $request.header.Authorization
-        issuerUrl: https://cognito-idp.${self:provider.region}.amazonaws.com/${self:custom.cognitoUserPoolId}
-        audience:
-          - ${self:custom.neuronbridgeAppId}
+        issuerUrl: { Fn::Join: [
+          "",
+          [
+            "https://cognito-idp.",
+            {
+              Ref: "AWS::Region"
+            },
+            ".amazonaws.com/",
+            {
+              Ref: CognitoUserPool
+            }
+          ]
+        ]}
+        audience: !Ref CognitoUserPoolClient
 
 
 package:
@@ -245,23 +266,23 @@ functions:
     maximumEventAge: 120
     maximumRetryAttempts: 1
     environment:
-      DEBUG: ${self:custom.debug}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
-      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
-      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-      BATCH_SIZE: ${self:custom.searchBatchSize}
-      MAX_PARALLELISM: ${self:custom.searchParallelization}
+      ALIGN_JOB_STATE_MACHINE_ARN: !Ref JobMonitorStateMachine
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      BATCH_SIZE: ${self:custom.searchBatchSize}
+      DEBUG: ${self:custom.debug}
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
-      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
-      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      LIBRARY_BUCKET: ${self:custom.libraryBucket}
       MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
       MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
-      ALIGN_JOB_STATE_MACHINE_ARN: ${self:resources.Outputs.JobMonitorStateMachine.Value}
+      MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
+      MAX_PARALLELISM: ${self:custom.searchParallelization}
+      MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
+      REDUCE_FUNCTION: !Ref CombinerLambdaFunction
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      SEARCH_FUNCTION: !Ref SearchLambdaFunction
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
     events:
       - httpApi:
           method: POST
@@ -277,16 +298,16 @@ functions:
     maximumEventAge: 120
     maximumRetryAttempts: 1
     environment:
+      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      BATCH_SIZE: ${self:custom.searchBatchSize}
       DEBUG: ${self:custom.debug}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
-      SEARCH_FUNCTION: ${self:resources.Outputs.SearchLambdaFunction.Value}
-      REDUCE_FUNCTION: ${self:resources.Outputs.CombinerLambdaFunction.Value}
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-      BATCH_SIZE: ${self:custom.searchBatchSize}
       MAX_PARALLELISM: ${self:custom.searchParallelization}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
+      REDUCE_FUNCTION: !Ref CombinerLambdaFunction
+      SEARCH_BUCKET: ${self:custom.searchBucket}
+      SEARCH_FUNCTION: !Ref SearchLambdaFunction
+      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
 
   combiner:
     runtime: nodejs12.x
@@ -409,7 +430,7 @@ functions:
       DATA_BUCKET: ${self:custom.dataBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: ${self:custom.identityPoolId}
+      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
     events:
       - httpApi:
           method: POST
@@ -434,9 +455,10 @@ functions:
       DATA_BUCKET: ${self:custom.dataBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: ${self:custom.identityPoolId}
+      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
       SEARCH_TABLE: ${self:custom.searchTable}
-      USERPOOL_ID:  ${self:custom.cognitoUserPoolId}
+      USERPOOL_ID:
+        Ref: CognitoUserPool
       OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
       OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
       OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
@@ -464,9 +486,10 @@ functions:
       DATA_BUCKET: ${self:custom.dataBucket}
       LIBRARY_BUCKET: ${self:custom.libraryBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: ${self:custom.identityPoolId}
+      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
       SEARCH_TABLE: ${self:custom.searchTable}
-      USERPOOL_ID:  ${self:custom.cognitoUserPoolId}
+      USERPOOL_ID:
+        Ref: CognitoUserPool
       OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
       OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
       OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
@@ -524,74 +547,7 @@ stepFunctions:
             Type: Pass
             End: true
 resources:
-  Outputs:
-    SearchLambdaFunction:
-      Description: The ARN of the search function
-      Value:
-        Ref: SearchLambdaFunction
-    MonitorLambdaFunction:
-      Description: The ARN of the monitor function
-      Value:
-        Ref: MonitorLambdaFunction
-    CombinerLambdaFunction:
-      Description: The ARN of the combiner function
-      Value:
-        Ref: CombinerLambdaFunction
-    JobMonitorStateMachine:
-      Description: The ARN of the jobMonitorStateMachine 
-      Value:
-        Ref: JobMonitorStateMachine
-  Resources:
-    SearchTable:
-      Type: "AWS::DynamoDB::Table"
-      Properties:
-        KeySchema:
-          - AttributeName: id
-            KeyType: HASH
-        AttributeDefinitions:
-          - AttributeName: id
-            AttributeType: S
-        BillingMode: PAY_PER_REQUEST
-        TableName: ${self:custom.searchTable}
-    SearchBucket:
-      Type: AWS::S3::Bucket
-      DeletionPolicy: Retain
-      Properties:
-        BucketName: ${self:custom.searchBucket}
-        CorsConfiguration:
-          CorsRules:
-            - AllowedMethods:
-              - GET
-              - HEAD
-              - PUT
-              - POST
-              - DELETE
-              AllowedHeaders:
-              - "*"
-              ExposedHeaders:
-              - "x-amz-server-side-encryption"
-              - "x-amz-request-id"
-              - "x-amz-id-2"
-              - "ETag"
-              AllowedOrigins:
-              - "*.janelia.org:3000"
-              - "*.janelia.org"
-              - "*.hhmi.org"
-              - "*.hhmi.org:3000"
-              - Fn::Join:
-                - ""
-                - - "http://janelia-neuronbridge-web-"
-                  - ${self:provider.stage}
-                  - ".s3-website-"
-                  - ${self:provider.region}
-                  - ".amazonaws.com"
-    DownloadBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: ${self:custom.downloadBucket}
-        LifecycleConfiguration:
-          Rules:
-            - Id: DeleteRule
-              Prefix: ''
-              Status: Enabled
-              ExpirationInDays: '1'
+  - ${file(sls_resources/cognito-pools.yml)}
+  - ${file(sls_resources/buckets.yml)}
+  - ${file(sls_resources/outputs.yml)}
+  - ${file(sls_resources/dynamodb.yml)}

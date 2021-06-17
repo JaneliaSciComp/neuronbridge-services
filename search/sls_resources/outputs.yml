@@ -1,0 +1,17 @@
+Outputs:
+  SearchLambdaFunction:
+    Description: The ARN of the search function
+    Value:
+      Ref: SearchLambdaFunction
+  MonitorLambdaFunction:
+    Description: The ARN of the monitor function
+    Value:
+      Ref: MonitorLambdaFunction
+  CombinerLambdaFunction:
+    Description: The ARN of the combiner function
+    Value:
+      Ref: CombinerLambdaFunction
+  JobMonitorStateMachine:
+    Description: The ARN of the jobMonitorStateMachine 
+    Value:
+      Ref: JobMonitorStateMachine
