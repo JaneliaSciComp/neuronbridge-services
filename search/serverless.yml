@@ -21,6 +21,7 @@ custom:
   oldSearchTable: janelia-neuronbridge-search-table-prod
   oldSearchBucket: janelia-neuronbridge-searches-prod
   oldUserPoolId: us-east-1_owgI6RY6Y
+  oldClientId: 4ham9v2s8c0d9v9mdm7vk3fggp
 
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-search-table-${self:provider.stage}
@@ -500,7 +501,20 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-
+  userMigration:
+    runtime: nodejs14.x
+    handler: src/main/nodejs/user_migration_lamda.userMigration
+    role: userMigrationRole
+    memorySize: 128
+    maximumEventAge: 60
+    maximumRetryAttempts: 1
+    environment:
+      OLD_USER_POOL_ID: ${self:custom.oldUserPoolId}
+      OLD_CLIENT_ID: ${self:custom.oldClientId}
+    events:
+      - cognitoUserPool:
+          pool: CognitoUserPool
+          trigger: UserMigration
 
 
 stepFunctions:
@@ -551,3 +565,4 @@ resources:
   - ${file(sls_resources/buckets.yml)}
   - ${file(sls_resources/outputs.yml)}
   - ${file(sls_resources/dynamodb.yml)}
+  - ${file(sls_resources/iam_roles.yml)}

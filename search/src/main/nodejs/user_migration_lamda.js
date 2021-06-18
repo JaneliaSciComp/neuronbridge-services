@@ -1,4 +1,4 @@
-const AWS = require("aws-sdk");
+import AWS from "aws-sdk";
 const isp = new AWS.CognitoIdentityServiceProvider();
 
 const OLD_CLIENT_ID = process.env.OLD_CLIENT_ID;
@@ -59,7 +59,7 @@ async function lookupUser(username) {
   }
 }
 
-exports.handler = async (event, context, callback) => {
+export const userMigration = async (event, context, callback) => {
   // TODO implement
   if (event.triggerSource === "UserMigration_Authentication") {
     console.log(`migrating user: ${event.userName}`);

@@ -1,0 +1,37 @@
+Resources:
+  userMigrationRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: userMigrationRole
+      Description: Allows migration lambda to access data user data in cognito
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+         - PolicyName: userMigrationLogging
+           PolicyDocument:
+             Version: '2012-10-17'
+             Statement:
+               - Effect: Allow
+                 Action:
+                   - logs:CreateLogGroup
+                   - logs:CreateLogStream
+                   - logs:PutLogEvents
+                 Resource: "*"
+         - PolicyName: userMigration
+           PolicyDocument:
+             Version: '2012-10-17'
+             Statement:
+               - Effect: Allow
+                 Action:
+                   - "cognito-idp:AdminInitiateAuth"
+                   - "dynamodb:Scan"
+                   - "dynamodb:Query"
+                   - "cognito-idp:AdminGetUser"
+                 Resource: !Sub arn:aws:cognito-idp:${self:provider.region}:${AWS::AccountId}:userpool/${self:custom.oldUserPoolId}
