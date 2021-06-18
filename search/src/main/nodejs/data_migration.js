@@ -19,12 +19,12 @@ async function saveSearchToDynamoDB(item, TableName) {
   }
 }
 
-async function migrateDynamoDB(sub, identityId, search) {
-  const updatedRecord = { ...search, owner: sub, identityId, migrated: true };
+async function migrateDynamoDB(username, identityId, search) {
+  const updatedRecord = { ...search, owner: username, identityId, migrated: true };
   await saveSearchToDynamoDB(updatedRecord, process.env.SEARCH_TABLE);
 }
 
-async function migrateS3(sub, identityId, search) {
+async function migrateS3(identityId, search) {
   const originalPrefix = `private/${search.identityId}/${search.searchDir}/`;
   const newPrefix = `private/${identityId}/${search.searchDir}`;
 
@@ -68,11 +68,11 @@ export const dataMigration = async event => {
     const oldSubs = await getOldSubs(username);
     if (oldSubs) {
       // check to see if migration is required.
-      const searches = await searchesToMigrate(sub, oldSubs);
+      const searches = await searchesToMigrate(username, oldSubs);
       await Promise.all(
         searches.map(async search => {
-          await migrateDynamoDB(sub, identityId, search);
-          await migrateS3(sub, identityId, search);
+          await migrateDynamoDB(username, identityId, search);
+          await migrateS3(identityId, search);
         })
       );
     }

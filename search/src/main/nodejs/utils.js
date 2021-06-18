@@ -309,11 +309,21 @@ export const getOldSubs = async (username) => {
 
   const usersRes = await cognitoISP.listUsers(old_pool_params).promise();
 
-  const ogSubs = usersRes.Users.map(user => {
-    return user.Attributes.find(e => e.Name === "sub").Value;
+  let filteredUsers = [];
+
+  if (/^Google_/.test(user.Username)) {
+    // logged in with google
+    filteredUsers = usersRes.Users.filter(userRes => /^Google_/.test(userRes.Username));
+  } else {
+    // logged in with cognito
+    filteredUsers = usersRes.Users.filter(userRes => !/^Google_/.test(userRes.Username));
+  }
+
+  const ogUsernames = filteredUsers.map(user => {
+    return user.Username;
   });
 
-  return ogSubs;
+  return ogUsernames;
 };
 
 //fetch data from original dynamodb table
@@ -341,19 +351,21 @@ async function getSearchRecords(ownerId, TableName) {
 }
 
 
-export const searchesToMigrate = async (sub, oldSubs) => {
+export const searchesToMigrate = async (username, oldUsernames) => {
   // check the ids in the new dynamo db table vs the old.
   // if old table contains any ids that are not in the new
   // table, then migration is required.
   const oldSearches = await getSearchRecords(
-    oldSubs[0],
+    oldUsernames[0],
     process.env.OLD_SEARCH_TABLE
   );
-  const currentSearches = await getSearchRecords(sub, process.env.SEARCH_TABLE);
+  console.log(oldSearches);
+  const currentSearches = await getSearchRecords(username, process.env.SEARCH_TABLE);
   const currentLookup = currentSearches.map(search => search.id);
   const notMigrated = oldSearches.filter(
     search => !currentLookup.includes(search.id)
   );
+  console.log(notMigrated);
   return notMigrated;
 };
 

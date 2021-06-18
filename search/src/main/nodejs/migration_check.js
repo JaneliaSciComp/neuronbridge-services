@@ -9,13 +9,13 @@ export const migrationCheck = async event => {
   let returnBody = {migrate: false};
 
   try {
-    // get the sub from the JWT used to get through the API gateway.
-    const { sub, username } = event.requestContext.authorizer.jwt.claims;
-    // get old sub by checking email against old user pool.
-    const oldSubs = await getOldSubs(username);
-    if (oldSubs) {
+    // get the username from the JWT used to get through the API gateway.
+    const { username } = event.requestContext.authorizer.jwt.claims;
+    // get old username by checking email against old user pool.
+    const oldUsernames = await getOldSubs(username);
+    if (oldUsernames) {
       // check to see if migration is required.
-      const searches = await searchesToMigrate(sub, oldSubs);
+      const searches = await searchesToMigrate(username, oldUsernames);
       if (searches.length > 0) {
         returnBody = {migrate: true};
       }
