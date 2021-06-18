@@ -3,7 +3,7 @@ Resources:
     Type: AWS::IAM::Role
     Properties:
       Path: /
-      RoleName: userMigrationRole
+      RoleName: ${self:service}-${self:provider.stage}-userMigrationRole
       Description: Allows migration lambda to access data user data in cognito
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
