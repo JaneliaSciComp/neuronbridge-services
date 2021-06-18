@@ -22,6 +22,7 @@ async function createNewSearchFromImage(image, event, identityId) {
     /^.*s3.amazonaws.com\/([^/]*)(.*?)([^/]*)$/
   );
   // copy image to upload
+  console.log(`copying image from /${originalBucket}${originalPath}${originalImage} to ${newSearchFolder}/${originalImage}`);
   await copyS3Content(
     searchBucket,
     `/${originalBucket}${originalPath}${originalImage}`,
@@ -42,6 +43,7 @@ async function createNewSearchFromImage(image, event, identityId) {
   const newThumbnailName = `upload_thumbnail.${extension}`;
 
   // copy image thumbnail to new bucket
+  console.log(`copying thumbnail from /${thumbnailBucket}${thumbnailPath}${thumbnailUpload}${extension} to ${newSearchFolder}/${newThumbnailName}`);
   await copyS3Content(
     searchBucket,
     `/${thumbnailBucket}${thumbnailPath}${thumbnailUpload}${extension}`,
