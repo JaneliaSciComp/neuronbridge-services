@@ -291,6 +291,8 @@ const calculateScore = (params) => {
 const generateShiftedMasks = (input, xyshift, imageWidth, imageHeight) => {
     let out = [];
     let i, xx, yy;
+
+    out.push(input.slice());
     for (i = 2; i <= xyshift; i += 2) {
         for (xx = -i; xx <= i; xx += i) {
             for (yy = -i; yy <= i; yy += i) {
