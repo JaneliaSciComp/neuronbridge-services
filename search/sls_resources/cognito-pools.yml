@@ -216,6 +216,22 @@ Resources:
                   - "s3:ListBucket"
                 Resource:
                   - arn:aws:s3:::janelia-neuronbridge-searches-${self:provider.stage}
+        - PolicyName: 'NeuronBridge_DataBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::janelia-neuronbridge-data-${self:provider.stage}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::janelia-neuronbridge-data-${self:provider.stage}
+
 
   CognitoAdminRole:
     Type: AWS::IAM::Role
