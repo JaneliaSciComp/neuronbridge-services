@@ -1,5 +1,6 @@
 service: janelia-neuronbridge-align
 
+projectDir: ../
 
 plugins:
   - serverless-pseudo-parameters
