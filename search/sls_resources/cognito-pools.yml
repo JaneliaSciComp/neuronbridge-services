@@ -56,12 +56,12 @@ Resources:
         - profile
       AllowedOAuthFlowsUserPoolClient: true
       CallbackURLs:
-        - https://neuronbridge-dev.janelia.org:3000
+        - https://neuronbridge-${self:provider.stage}.janelia.org:3000
         - https://neuronbridge.janelia.org
         - https://neuronbridge-pre.janelia.org
         - https://neuronbridge-${self:provider.stage}.auth.${self:provider.region}.amazoncognito.com/
       LogoutURLs:
-        - https://neuronbridge-dev.janelia.org:3000
+        - https://neuronbridge-${self:provider.stage}.janelia.org:3000
         - https://neuronbridge.janelia.org
         - https://neuronbridge-pre.janelia.org
         - https://neuronbridge-${self:provider.stage}.auth.${self:provider.region}.amazoncognito.com/
@@ -69,8 +69,22 @@ Resources:
       SupportedIdentityProviders:
         - COGNITO
         - Google
+        - OKTA
     DependsOn:
       - GoogleUserPoolIdentityProvider
+      - OKTAUserPoolIdentityProvider
+
+  OKTAUserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId:
+        Ref: CognitoUserPool
+      ProviderName: OKTA
+      ProviderType: SAML
+      ProviderDetails:
+        MetadataURL: https://hhmi.okta.com/app/exkrwgxs32bHbQvVr0x7/sso/saml/metadata
+      AttributeMapping:
+        email: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress
 
   GoogleUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
