@@ -346,6 +346,7 @@ async function getSearchRecords(ownerId, TableName) {
     }
     return [];
   } catch (err) {
+    console.log(err);
     return err;
   }
 }

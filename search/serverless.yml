@@ -208,7 +208,7 @@ provider:
                 }
               ]
             ]}
-            - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/us-east-1_owgI6RY6Y"
+            - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:custom.oldUserPoolId}"
         - Effect: Allow
           Action:
             - dynamodb:Scan
@@ -442,6 +442,7 @@ functions:
   dataMigration:
     runtime: nodejs14.x
     handler: src/main/nodejs/data_migration.dataMigration
+    role: dataMigrationRole
     memorySize: 128
     timeout: 28
     # maximum timeout for an http API gateway is 29 seconds, so this

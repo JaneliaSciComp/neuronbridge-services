@@ -51,6 +51,24 @@ async function migrateS3(identityId, search) {
   );
 }
 
+async function removeDynamoDB(search) {
+  const params = {
+    TableName: process.env.OLD_SEARCH_TABLE,
+    Key: {
+      "id": search.id
+    }
+  };
+
+  try {
+    await db.delete(params).promise();
+  } catch (err) {
+    console.log(`Error removing old dynamoDB entry: ${search.id}`);
+    console.log(err);
+    return err;
+  }
+
+}
+
 export const dataMigration = async event => {
   const returnObj = {
     isBase64Encoded: false,
@@ -75,9 +93,16 @@ export const dataMigration = async event => {
           await migrateS3(identityId, search);
         })
       );
+      // remove the old entries from DynamoDB to prevent future migration
+      // prompts;
+      await Promise.all(
+        searches.map(async search => {
+          await removeDynamoDB(search);
+        })
+      );
     }
     console.log("done");
-    returnBody = { identityId, sub, username, oldData: { oldSubs } };
+    returnBody = { sub, username, oldData: { oldSubs } };
   } catch (error) {
     console.log(error);
     returnObj.statusCode = 500;
