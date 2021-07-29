@@ -60,7 +60,14 @@ async function createNewSearchFromImage(image, event, identityId) {
   );
 
   // create new data object to store in dynamoDB
-  const ownerId = event.requestContext.authorizer.jwt.claims.sub;
+  //
+  // DynamoDB uses the value in the owner field to determine access to the
+  // search records. When creating the new search after copying the image to
+  // be masked, the lambda function was using the users 'sub' to set the
+  // owner. For AWS logins, this is fine, but when logged in with a google
+  // account, the users sub is not the same as the username. Switching to
+  // username seems to get the code working for both types of logins.
+  const ownerId = event.requestContext.authorizer.jwt.claims.username;
   // set step to mask selection
   const newSearchData = {
     step: ALIGNMENT_JOB_COMPLETED,
@@ -73,6 +80,7 @@ async function createNewSearchFromImage(image, event, identityId) {
   };
   // save new data object- in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
+  console.log(`Created new search in dynamoDB: ${newSearchMeta.id}`);
 
   return { newSearchMeta };
 }
