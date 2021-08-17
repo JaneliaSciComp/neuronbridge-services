@@ -14,6 +14,14 @@ export const publishedNames = async event => {
 
   try {
 
+    if (!event.queryStringParameters || !event.queryStringParameters.q) {
+      return {
+        isBase64Encoded: false,
+        statusCode: 400,
+        body: JSON.stringify({error: 'Missing query string. eg /published_names?q=1234'})
+      };
+    }
+
     // grab the search string from the URL query string
     const { q: query } = event.queryStringParameters;
     // check that the query string is >= 3 characters (and not using wildcards?)
