@@ -534,9 +534,6 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-
-
-
 stepFunctions:
   validate: true # enable pre-deployment definition validation
   stateMachines:
