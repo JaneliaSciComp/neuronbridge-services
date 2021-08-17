@@ -526,7 +526,7 @@ functions:
     environment:
       DEBUG: ${self:custom.debug}
       NAMES_TABLE: ${self:custom.publishedNamesTable}
-      ITEM_LIMIT: 20
+      ITEM_LIMIT: 100
     events:
       - httpApi:
           method: GET
