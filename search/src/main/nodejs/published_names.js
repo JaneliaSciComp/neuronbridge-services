@@ -36,12 +36,9 @@ export const publishedNames = async event => {
     // query the dynamoDB table for published names using the query string.
     const params = {
       TableName: process.env.NAMES_TABLE,
-      FilterExpression: "contains(#key, :key)",
+      FilterExpression: "contains(searchKey, :key)",
       ExpressionAttributeValues: {
-        ":key": query
-      },
-      ExpressionAttributeNames: {
-        "#key": "key"
+        ":key": query.toLowerCase()
       }
     };
 
