@@ -521,6 +521,7 @@ functions:
           trigger: UserMigration
   publishedNames:
     runtime: nodejs14.x
+    timeout: 10
     role: publishedNames
     handler: src/main/nodejs/published_names.publishedNames
     environment:
