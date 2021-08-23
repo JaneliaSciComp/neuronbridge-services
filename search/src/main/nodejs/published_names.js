@@ -28,7 +28,7 @@ export const publishedNames = async event => {
     }
 
     // grab the search string from the URL query string
-    const { q: query } = event.queryStringParameters;
+    const { q: query, f: filter } = event.queryStringParameters;
     // check that the query string is >= 3 characters (and not using wildcards?)
     if (query.length < 3) {
       return {
@@ -38,10 +38,15 @@ export const publishedNames = async event => {
       };
     }
 
+    // This allows us to change the strategy that we use to search the
+    // dynamoDB table, either with contains or begins_with. Begins with is more
+    // appropriate for autcomplete requests.
+    const filterExpression = (filter === 'start') ? "begins_with(searchKey, :key)" : "contains(searchKey, :key)";
+
     // query the dynamoDB table for published names using the query string.
     const params = {
       TableName: process.env.NAMES_TABLE,
-      FilterExpression: "contains(searchKey, :key)",
+      FilterExpression: filterExpression,
       ExpressionAttributeValues: {
         ":key": query.toLowerCase()
       },
