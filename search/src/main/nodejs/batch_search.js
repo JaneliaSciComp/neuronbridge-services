@@ -204,7 +204,7 @@ const runMaskSearches = async (params) => {
                     libraryMIP: libMetadata,
                     matchingPixels: sr.matchingPixNum,
                     matchingRatio: sr.matchingPixNumToMaskRatio,
-                    bestMatchMirrored: sr.bestMirrored,
+                    mirrored: sr.bestScoreMirrored,
                     isMatch: true,
                     isError: false,
                     gradientAreaGap: -1

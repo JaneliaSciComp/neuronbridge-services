@@ -452,7 +452,7 @@ export const ColorMIPSearch = (targetImage, searchThreshold, zTolerance, params)
 
     let posi = 0;
     let posipersent = 0.0;
-    let bestMirrored = false;
+    let bestScoreMirrored = false;
     const masksize = maskPositions.length;
     const negmasksize = negMaskPositions != null ? negMaskPositions.length : 0;
 
@@ -532,13 +532,13 @@ export const ColorMIPSearch = (targetImage, searchThreshold, zTolerance, params)
         if (posipersent < mirror_posipersent) {
             posi = mirror_posi;
             posipersent = mirror_posipersent;
-            bestMirrored = true;
+            bestScoreMirrored = true;
         }
     }
 
     return {
         matchingPixNum: posi,
         matchingPixNumToMaskRatio: posipersent,
-        bestMirrored: bestMirrored
+        bestScoreMirrored: bestScoreMirrored
     };
 };
