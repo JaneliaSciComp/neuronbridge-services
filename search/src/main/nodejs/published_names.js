@@ -1,6 +1,11 @@
 import AWS from "aws-sdk";
 
-const db = new AWS.DynamoDB.DocumentClient();
+const db = new AWS.DynamoDB.DocumentClient({
+  maxRetries: 3,
+  httpOptions: {
+    timeout: 5000
+  }
+});
 
 const itemLimit = process.env.ITEM_LIMIT || 20;
 
@@ -23,7 +28,7 @@ export const publishedNames = async event => {
     }
 
     // grab the search string from the URL query string
-    const { q: query } = event.queryStringParameters;
+    const { q: query, f: filter } = event.queryStringParameters;
     // check that the query string is >= 3 characters (and not using wildcards?)
     if (query.length < 3) {
       return {
@@ -33,13 +38,19 @@ export const publishedNames = async event => {
       };
     }
 
+    // This allows us to change the strategy that we use to search the
+    // dynamoDB table, either with contains or begins_with. Begins with is more
+    // appropriate for autcomplete requests.
+    const filterExpression = (filter === 'start') ? "begins_with(searchKey, :key)" : "contains(searchKey, :key)";
+
     // query the dynamoDB table for published names using the query string.
     const params = {
       TableName: process.env.NAMES_TABLE,
-      FilterExpression: "contains(searchKey, :key)",
+      FilterExpression: filterExpression,
       ExpressionAttributeValues: {
         ":key": query.toLowerCase()
-      }
+      },
+      ReturnConsumedCapacity: 'TOTAL'
     };
 
     let lastEvaluatedKey;
@@ -47,6 +58,7 @@ export const publishedNames = async event => {
 
     do {
       const data = await db.scan(params).promise();
+      console.log({ConsumedCapacity: data.ConsumedCapacity, lastEvaluatedKey, params});
       data.Items.forEach(item => foundItems.push(item));
       params.ExclusiveStartKey = data.LastEvaluatedKey;
       lastEvaluatedKey = data.LastEvaluatedKey;
@@ -56,7 +68,7 @@ export const publishedNames = async event => {
     returnBody.names = foundItems.slice(0,itemLimit);
 
   } catch (error) {
-    console.log(error);
+    console.log(`Error: ${error}`);
     returnObj.statusCode = 500;
     returnBody.message = error.message;
   }
