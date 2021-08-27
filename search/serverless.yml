@@ -245,18 +245,7 @@ provider:
 
 package:
   individually: true
-  exclude:
-    - pom.xml
-    - ./*.iml
-    - .idea/**
-    - target/**
-    - src/test/**
-    - src/main/java/**
-    - src/main/resources/**
-    - README.md
-    - mvn*
-    - deploy.sh
-  include:
+  patterns:
     - src/main/nodejs/**
 
 
@@ -519,6 +508,7 @@ functions:
       - cognitoUserPool:
           pool: CognitoUserPool
           trigger: UserMigration
+
   publishedNames:
     runtime: nodejs14.x
     timeout: 10
@@ -578,6 +568,7 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
+
 resources:
   - ${file(sls_resources/cognito-pools.yml)}
   - ${file(sls_resources/buckets.yml)}

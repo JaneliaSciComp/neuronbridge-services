@@ -61,6 +61,7 @@ export const getSearchMetadata = async (searchId) => {
                 searchMask
                 computedMIPs
                 errorMessage
+                alignmentErrorMessage
                 simulateMIPGeneration
             }
         }`),
@@ -129,6 +130,7 @@ export const lookupSearchMetadata = async (searchFilterParams) => {
                     searchMask
                     computedMIPs
                     errorMessage
+                    alignmentErrorMessage
                     simulateMIPGeneration
                 }
             }
@@ -138,7 +140,7 @@ export const lookupSearchMetadata = async (searchFilterParams) => {
     console.log("Search data for", searchFilterParams, result);
     const searches = result.data.listSearches.items
         .map(s => toSearchResult(s))
-        .filter(s => searchFilterParams.withNoErrorsOnly ? !s.errorMessage : true);
+        .filter(s => searchFilterParams.withNoErrorsOnly ? !s.errorMessage && !s.alignmentErrorMessage : true);
     console.log("Found searches", searches);
     return searches;
 };
@@ -176,6 +178,7 @@ export const createSearchMetadata = async (searchData) => {
         searchMask
         computedMIPs
         errorMessage
+        alignmentErrorMessage
       }
     }`),
     variables: {
@@ -224,6 +227,7 @@ export const updateSearchMetadata = async (searchData) => {
                 searchMask
                 computedMIPs
                 errorMessage
+                alignmentErrorMessage
             }
         }`),
         variables: {

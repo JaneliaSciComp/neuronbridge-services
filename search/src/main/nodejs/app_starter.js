@@ -60,15 +60,23 @@ export const appStarter = async (event) => {
     const results = await Promise.all(searchPromises);
     if (sourceIsHttpApiGateway) {
         console.log('Returned results:', results);
-        const statusResult = results.find(r => !!r.errorMessage);
+        const anErrorResult = results.find(r => !!r.errorMessage || !!r.alignmentErrorMessage);
         let httpStatusCode;
         let returnedResults;
-        if (statusResult && !!statusResult.errorMessage) {
-            httpStatusCode = statusResult.statusCode || 500;
-            returnedResults = {
-                errorMessage: statusResult.errorMessage,
-                submissionResults: results
-            };
+        if (anErrorResult) {
+            console.log('Errors found in results list:', results);
+            httpStatusCode = anErrorResult.statusCode || 404; // send invalid request instead of internal server error
+            if (anErrorResult.alignmentErrorMessage) {
+                returnedResults = {
+                    errorMessage: anErrorResult.alignmentErrorMessage,
+                    submissionResults: results
+                };
+            } else {
+                returnedResults = {
+                    errorMessage: anErrorResult.errorMessage,
+                    submissionResults: results
+                };
+            }
         } else {
             httpStatusCode = 200;
             returnedResults = results;

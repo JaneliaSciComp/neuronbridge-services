@@ -18,6 +18,9 @@ export const searchUpdate = async (event) => {
     if (event.errorMessage) {
         searchData.errorMessage = event.errorMessage;
     }
+    if (event.alignmentErrorMessage) {
+        searchData.alignmentErrorMessage = event.alignmentErrorMessage;
+    }
     if (event.alignFinished) {
         searchData.alignFinished = event.alignFinished;
     }

@@ -65,6 +65,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
+    alignmentErrorMessage: String
     simulateMIPGeneration: Boolean
     uploadThumbnail: String
 }
@@ -135,6 +136,7 @@ input TableSearchFilterInput {
     searchType: TableStringFilterInput
     algorithm: TableStringFilterInput
     errorMessage: TableStringFilterInput
+    alignmentErrorMessage: TableStringFilterInput
     cdsStarted: TableDateFilterInput
     cdsFinished: TableDateFilterInput
 }
@@ -228,5 +230,6 @@ input UpdateSearchInput {
     searchMask: String
     computedMIPs: [String]
     errorMessage: String
+    alignmentErrorMessage: String
     uploadThumbnail: String
 }
