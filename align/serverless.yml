@@ -3,11 +3,11 @@ service: janelia-neuronbridge-align
 projectDir: ../
 
 plugins:
-  - serverless-pseudo-parameters
   - serverless-deployment-bucket
 
 
 custom:
+  stackName: ${self:service}-${self:provider.stage}
   alignmentTemplatesBucket: ${file(../config.yml):config.alignmentTemplatesBucket}
   alignmentTemplatesFolder: alignment_templates
   alignInputBucket: ${file(../config.yml):config.searchBucket}
@@ -17,7 +17,7 @@ custom:
   securityGroupId: sg-963ee8df
   subnetId: subnet-5e11c814
   ec2AlignmentImageId: ami-0d3f5e4624981ef1b
-  alignmentContainerImage: janeliascicomp/neuronbridge-aligner:1.0
+  alignmentContainerImage: janeliascicomp/neuronbridge-aligner:1.1
   defaultAlignmentThreads: 16
   sshKeyPairName: ec2_batch
 
@@ -41,8 +41,8 @@ provider:
 
 
 package:
-  exclude:
-    - node_modules/**
+  patterns:
+    - '!node_modules/**'
 
 
 resources:
@@ -55,7 +55,7 @@ resources:
         Type: MANAGED
         State: ENABLED
         ServiceRole: !Ref BatchServiceRole
-        ComputeEnvironmentName: "#{AWS::StackName}-align-compute-env"
+        ComputeEnvironmentName: "${self:custom.stackName}-align-compute-env"
         ComputeResources:
           Type: SPOT
           BidPercentage: 50
@@ -81,7 +81,7 @@ resources:
         Type: MANAGED
         State: ENABLED
         ServiceRole: !Ref BatchServiceRole
-        ComputeEnvironmentName: "#{AWS::StackName}-align-ondemand-compute-env"
+        ComputeEnvironmentName: "${self:custom.stackName}-align-ondemand-compute-env"
         ComputeResources:
           Type: EC2
           MinvCpus: 0
