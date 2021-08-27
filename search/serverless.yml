@@ -246,7 +246,7 @@ provider:
 package:
   individually: true
   patterns:
-    - src/main/nodejs/**
+    - 'src/main/nodejs/**'
 
 
 functions:
