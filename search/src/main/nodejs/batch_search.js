@@ -193,7 +193,7 @@ const runMaskSearches = async (params) => {
     let results = [];
     let i;
     for (i = 0; i < params.libraryKeys.length; i++) {
-        const libMetadata = getLibraryMIPMetadata(params.awsLibrariesBucket, params.awsLibrariesThumbnailsBucket, params.libraryKeys[i]);
+        const libMetadata = getLibraryMIPMetadata(params.libraryKeys[i]);
         const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], masks.maskpos_st, masks.maskpos_ed);
         if (tarImage.data != null) {
             const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, masks);
@@ -225,7 +225,7 @@ const getMaskMIPMetdata = (awsMasksBucket, mipKey) => {
     };
 };
 
-const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket, mipKey) => {
+const getLibraryMIPMetadata = (mipKey) => {
     const mipPath = path.parse(mipKey);
     const mipName = mipPath.name;
     const mipExt = mipPath.ext;
@@ -246,8 +246,8 @@ const getLibraryMIPMetadata = (awsLibrariesBucket, awsLibrariesThumbnailsBucket,
         id: mipName,
         cdmPath: mipKey,
         imageName: mipKey,
-        imageURL: `https://s3.amazonaws.com/${awsLibrariesBucket}/${mipImageKey}`,
-        thumbnailURL: `https://s3.amazonaws.com/${awsLibrariesThumbnailsBucket}/${mipThumbnailKey}`,
+        imageURL: `${mipImageKey}`, // use relative names
+        thumbnailURL: `${mipThumbnailKey}`, // use relative names
         alignmentSpace: nPathComponents > 3 ? mipDirNames[0] : null,
         libraryName: nPathComponents > 3 ? mipDirNames[1] : mipDirNames[0],
     };
