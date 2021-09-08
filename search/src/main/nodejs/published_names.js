@@ -1,5 +1,11 @@
 import AWS from "aws-sdk";
 
+// https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
+// I removed '*' from the original answer as I want that to be replaced later with .*
+function escapeRegExp(string) {
+  return string.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function getQueryParams(query, filter) {
 
   // set the defaults for the query
@@ -47,7 +53,8 @@ export function getQueryParams(query, filter) {
     } else if(query.match(/^\*[^*]*\*$/)) {
       // if query string starts and ends with a wild card
       params.ExpressionAttributeValues[':search'] = query.replace(/\*/g,'').toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType and contains(searchKey, :search)";
+      params.KeyConditionExpression = "itemType = :itemType";
+      params.FilterExpression = "contains(filterKey, :search)";
     } else if (query.match(/^.*\*.*$/)) {
       // if query string has wild card in the middle.
       params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
@@ -71,7 +78,8 @@ export function getQueryParams(query, filter) {
     } else if(query.match(/^\*[^*]*\*$/)) {
       // if query string starts and ends with a wild card
       params.ExpressionAttributeValues[':search'] = query.replace(/\*/g,'').toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType and contains(searchKey, :search)";
+      params.KeyConditionExpression = "itemType = :itemType";
+      params.FilterExpression = "contains(filterKey, :search)";
     } else if (query.match(/^.*\*.*$/)) {
       // if query string has wild card in the middle.
       params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
@@ -137,6 +145,8 @@ export const publishedNames = async event => {
     let lastEvaluatedKey;
     const foundItems = [];
 
+    console.log(queryParams);
+
     do {
       const data = await db.query(queryParams).promise();
       console.log({ConsumedCapacity: data.ConsumedCapacity, lastEvaluatedKey, queryParams});
@@ -145,17 +155,22 @@ export const publishedNames = async event => {
       lastEvaluatedKey = data.LastEvaluatedKey;
     } while (typeof lastEvaluatedKey !== "undefined");
 
+    console.log(`Found ${foundItems.length} matches`);
+
     let matched = [];
     if (filter === 'start' && !query.match(/\*/)) {
       matched = foundItems;
     }
     else {
       // use the original search term to filter the returned results.
-      const match = new RegExp(`^${query.replace(/\*/g, ".*")}$`, "i");
+      const escapedQuery = escapeRegExp(query);
+      const match = new RegExp(`^${escapedQuery.replace(/\*/g, ".*")}$`, "i");
       matched = foundItems.filter(item => {
         return item.name.match(match);
       });
     }
+
+    console.log(`Returning ${matched.length} matches after filtering`);
 
     // return the top n entries
     returnBody.names = matched.slice(0,itemLimit);

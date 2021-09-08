@@ -53,11 +53,12 @@ describe('testing query parameter generation', () => {
     expect(getQueryParams('*test*')).toStrictEqual({
       TableName: "published-test",
       ReturnConsumedCapacity: 'TOTAL',
-      KeyConditionExpression: "itemType = :itemType and contains(searchKey, :search)",
+      KeyConditionExpression: "itemType = :itemType",
       ExpressionAttributeValues: {
         ":itemType": "searchString",
         ":search": "test"
-      }
+      },
+      FilterExpression: "contains(filterKey, :search)"
     });
   });
 
@@ -117,11 +118,12 @@ describe('testing query parameter generation', () => {
     expect(getQueryParams('*test*', 'start')).toStrictEqual({
       TableName: "published-test",
       ReturnConsumedCapacity: 'TOTAL',
-      KeyConditionExpression: "itemType = :itemType and contains(searchKey, :search)",
+      KeyConditionExpression: "itemType = :itemType",
       ExpressionAttributeValues: {
         ":itemType": "searchString",
         ":search": "test"
       },
+      FilterExpression: "contains(filterKey, :search)"
     });
   });
 
