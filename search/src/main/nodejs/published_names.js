@@ -1,5 +1,90 @@
 import AWS from "aws-sdk";
 
+export function getQueryParams(query, filter) {
+
+  // set the defaults for the query
+  const params = {
+    TableName: process.env.NAMES_TABLE,
+    KeyConditionExpression: "itemType = :itemType",
+    ExpressionAttributeValues: {
+      ":itemType": "searchString",
+    },
+    ReturnConsumedCapacity: 'TOTAL'
+  };
+
+  // if query string ends with or contains a wildcard, then use the string
+  // before the '*' to perform the initial search. Then filter the results
+  // with the full query string. This allows us to use the begins_with
+  // query and not need a scan.
+  //
+  //
+  // aws dynamodb query --region us-east-1 --table-name published-test \
+  // --key-condition-expression "itemType = :itemType and begins_with(searchKey, :search)" \
+  // --filter-expression "contains(filterKey, :postfix) and contains(filterKey, :prefix)" \
+  // --expression-attribute-values '{":itemType":{"S": "searchString"}, ":search":{"S":"r22"}, ":postfix": {"S": "1"}, ":prefix": {"S": "2"}}'
+  //
+  // if the querystring starts with a wildcard, then we have to scan using
+  // the 'contains' function. This is way less efficient, but not sure how
+  // else to do it. Once we have all the scanned results, we can filter them
+  // with the full wild card string.
+
+
+  if (filter === 'start') {
+    // if this is an autocomplete search?
+    if (!query.match(/\*/)) {
+      // if query string has no '*', then still look for begins with
+      // to make autocomplete work
+      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
+      params.ExpressionAttributeValues[':search'] = query.toLowerCase();
+    } else if (query.match(/^\*[^*]*$/)) {
+      // if query string contains only a wild card at the start
+      params.ExpressionAttributeValues[':postfix'] = query.replace('*','').toLowerCase();
+      params.FilterExpression = "contains(filterKey, :postfix)";
+    } else if (query.match(/^[^*]*\*$/)) {
+      // if query string contains only a wild card at the end
+      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
+      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
+    } else if(query.match(/^\*[^*]*\*$/)) {
+      // if query string starts and ends with a wild card
+      params.ExpressionAttributeValues[':search'] = query.replace(/\*/g,'').toLowerCase();
+      params.KeyConditionExpression = "itemType = :itemType and contains(searchKey, :search)";
+    } else if (query.match(/^.*\*.*$/)) {
+      // if query string has wild card in the middle.
+      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
+      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
+      params.ExpressionAttributeValues[':postfix'] = query.split('*')[1].toLowerCase();
+      params.FilterExpression = "contains(filterKey, :postfix)";
+    }
+  } else { // this is a regular search, not autocomplete
+    if (!query.match(/\*/)) {
+      // if query string has no '*', then exact match
+      params.KeyConditionExpression = "itemType = :itemType and searchKey = :search";
+      params.ExpressionAttributeValues[':search'] = query.toLowerCase();
+    } else if (query.match(/^\*[^*]*$/)) {
+      // if query string contains only a wild card at the start
+      params.ExpressionAttributeValues[':postfix'] = query.replace('*','').toLowerCase();
+      params.FilterExpression = "contains(filterKey, :postfix)";
+    } else if (query.match(/^[^*]*\*$/)) {
+      // if query string contains only a wild card at the end
+      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
+      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
+    } else if(query.match(/^\*[^*]*\*$/)) {
+      // if query string starts and ends with a wild card
+      params.ExpressionAttributeValues[':search'] = query.replace(/\*/g,'').toLowerCase();
+      params.KeyConditionExpression = "itemType = :itemType and contains(searchKey, :search)";
+    } else if (query.match(/^.*\*.*$/)) {
+      // if query string has wild card in the middle.
+      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
+      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
+      params.ExpressionAttributeValues[':postfix'] = query.split('*')[1].toLowerCase();
+      params.FilterExpression = "contains(filterKey, :postfix)";
+    }
+  }
+
+  return params;
+
+}
+
 const db = new AWS.DynamoDB.DocumentClient({
   maxRetries: 3,
   httpOptions: {
@@ -38,34 +123,43 @@ export const publishedNames = async event => {
       };
     }
 
-    // This allows us to change the strategy that we use to search the
-    // dynamoDB table, either with contains or begins_with. Begins with is more
-    // appropriate for autcomplete requests.
-    const filterExpression = (filter === 'start') ? "begins_with(searchKey, :key)" : "contains(searchKey, :key)";
+    if (query.match(/\*(\*|\.)\*/)) {
+      return {
+        isBase64Encoded: false,
+        statusCode: 400,
+        body: JSON.stringify({error: 'Ha ha, nice try, Query string must not be all wildcards.'})
+      };
+    }
 
     // query the dynamoDB table for published names using the query string.
-    const params = {
-      TableName: process.env.NAMES_TABLE,
-      FilterExpression: filterExpression,
-      ExpressionAttributeValues: {
-        ":key": query.toLowerCase()
-      },
-      ReturnConsumedCapacity: 'TOTAL'
-    };
+    const queryParams = getQueryParams(query, filter);
 
     let lastEvaluatedKey;
     const foundItems = [];
 
     do {
-      const data = await db.scan(params).promise();
-      console.log({ConsumedCapacity: data.ConsumedCapacity, lastEvaluatedKey, params});
+      const data = await db.query(queryParams).promise();
+      console.log({ConsumedCapacity: data.ConsumedCapacity, lastEvaluatedKey, queryParams});
       data.Items.forEach(item => foundItems.push(item));
-      params.ExclusiveStartKey = data.LastEvaluatedKey;
+      queryParams.ExclusiveStartKey = data.LastEvaluatedKey;
       lastEvaluatedKey = data.LastEvaluatedKey;
     } while (typeof lastEvaluatedKey !== "undefined");
 
+    let matched = [];
+    if (filter === 'start' && !query.match(/\*/)) {
+      matched = foundItems;
+    }
+    else {
+      // use the original search term to filter the returned results.
+      const match = new RegExp(`^${query.replace(/\*/g, ".*")}$`, "i");
+      matched = foundItems.filter(item => {
+        return item.name.match(match);
+      });
+    }
+
     // return the top n entries
-    returnBody.names = foundItems.slice(0,itemLimit);
+    returnBody.names = matched.slice(0,itemLimit);
+    returnBody.params = queryParams;
 
   } catch (error) {
     console.log(`Error: ${error}`);
