@@ -121,6 +121,8 @@ provider:
           Resource:
             - "arn:aws:s3:::${self:custom.libraryBucket}"
             - "arn:aws:s3:::${self:custom.libraryBucket}/*"
+            - "arn:aws:s3:::${self:custom.libraryThumbnailsBucket}"
+            - "arn:aws:s3:::${self:custom.libraryThumbnailsBucket}/*"
             - "arn:aws:s3:::${self:custom.searchBucket}"
             - "arn:aws:s3:::${self:custom.searchBucket}/*"
             - "arn:aws:s3:::${self:custom.downloadBucket}"
