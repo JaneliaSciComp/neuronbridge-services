@@ -49,6 +49,21 @@ describe('testing query parameter generation', () => {
     });
   });
 
+  test('default search with wild card at start, middle and end', () => {
+    expect(getQueryParams('*te*st*')).toStrictEqual({
+      TableName: "published-test",
+      ReturnConsumedCapacity: 'TOTAL',
+      KeyConditionExpression: "itemType = :itemType",
+      ExpressionAttributeValues: {
+        ":itemType": "searchString",
+        ":term0": "te",
+        ":term1": "st"
+      },
+      FilterExpression: "contains(filterKey, :term0) and contains(filterKey, :term1)"
+    });
+  });
+
+
   test('default search with leading & trailing wild card', () => {
     expect(getQueryParams('*test*')).toStrictEqual({
       TableName: "published-test",

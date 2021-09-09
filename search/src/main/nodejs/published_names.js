@@ -34,59 +34,43 @@ export function getQueryParams(query, filter) {
   // else to do it. Once we have all the scanned results, we can filter them
   // with the full wild card string.
 
-
-  if (filter === 'start') {
-    // if this is an autocomplete search?
-    if (!query.match(/\*/)) {
+  if (!query.match(/\*/)) {
+    // if query string has no '*', then exact match
+    if (filter === 'start') {
       // if query string has no '*', then still look for begins with
       // to make autocomplete work
       params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
       params.ExpressionAttributeValues[':search'] = query.toLowerCase();
-    } else if (query.match(/^\*[^*]*$/)) {
-      // if query string contains only a wild card at the start
-      params.ExpressionAttributeValues[':postfix'] = query.replace('*','').toLowerCase();
-      params.FilterExpression = "contains(filterKey, :postfix)";
-    } else if (query.match(/^[^*]*\*$/)) {
-      // if query string contains only a wild card at the end
-      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
-    } else if(query.match(/^\*[^*]*\*$/)) {
-      // if query string starts and ends with a wild card
-      params.ExpressionAttributeValues[':search'] = query.replace(/\*/g,'').toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType";
-      params.FilterExpression = "contains(filterKey, :search)";
-    } else if (query.match(/^.*\*.*$/)) {
-      // if query string has wild card in the middle.
-      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
-      params.ExpressionAttributeValues[':postfix'] = query.split('*')[1].toLowerCase();
-      params.FilterExpression = "contains(filterKey, :postfix)";
-    }
-  } else { // this is a regular search, not autocomplete
-    if (!query.match(/\*/)) {
-      // if query string has no '*', then exact match
+    } else {
       params.KeyConditionExpression = "itemType = :itemType and searchKey = :search";
       params.ExpressionAttributeValues[':search'] = query.toLowerCase();
-    } else if (query.match(/^\*[^*]*$/)) {
-      // if query string contains only a wild card at the start
-      params.ExpressionAttributeValues[':postfix'] = query.replace('*','').toLowerCase();
-      params.FilterExpression = "contains(filterKey, :postfix)";
-    } else if (query.match(/^[^*]*\*$/)) {
-      // if query string contains only a wild card at the end
-      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
-    } else if(query.match(/^\*[^*]*\*$/)) {
-      // if query string starts and ends with a wild card
-      params.ExpressionAttributeValues[':search'] = query.replace(/\*/g,'').toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType";
-      params.FilterExpression = "contains(filterKey, :search)";
-    } else if (query.match(/^.*\*.*$/)) {
-      // if query string has wild card in the middle.
-      params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
-      params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
-      params.ExpressionAttributeValues[':postfix'] = query.split('*')[1].toLowerCase();
-      params.FilterExpression = "contains(filterKey, :postfix)";
     }
+  } else if (query.match(/^\*[^*]*$/)) {
+    // if query string contains only a wild card at the start
+    params.ExpressionAttributeValues[':postfix'] = query.replace('*','').toLowerCase();
+    params.FilterExpression = "contains(filterKey, :postfix)";
+  } else if (query.match(/^[^*]*\*$/)) {
+    // if query string contains only a wild card at the end
+    params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
+    params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
+  } else if(query.match(/^\*[^*]*\*$/)) {
+    // if query string starts and ends with a wild card
+    params.ExpressionAttributeValues[':search'] = query.replace(/\*/g,'').toLowerCase();
+    params.FilterExpression = "contains(filterKey, :search)";
+  } else if (query.match(/^[^*]*\*[^*]*$/)) {
+    // if query string has wild card in the middle.
+    params.ExpressionAttributeValues[':search'] = query.split('*')[0].toLowerCase();
+    params.KeyConditionExpression = "itemType = :itemType and begins_with(searchKey, :search)";
+    params.ExpressionAttributeValues[':postfix'] = query.split('*')[1].toLowerCase();
+    params.FilterExpression = "contains(filterKey, :postfix)";
+  } else if (query.match(/^\*[^*]+\*.+$/)) {
+    // query string has a wild card at start, middle, and maybe at
+    // the end.
+    const searchTerms = query.toLowerCase().split('*');
+    params.FilterExpression = searchTerms.filter(term => term !== '').map((term, count) => {
+      params.ExpressionAttributeValues[`:term${count}`] = term;
+      return `contains(filterKey, :term${count})`;
+    }).join(' and ');
   }
 
   return params;
