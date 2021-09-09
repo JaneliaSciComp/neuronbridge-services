@@ -1,3 +1,7 @@
+/* migrate users from the original user pool, to the
+ * current user pool, on either successful login or after
+ * a request to reset their password. */
+
 import AWS from "aws-sdk";
 const isp = new AWS.CognitoIdentityServiceProvider();
 
@@ -60,7 +64,6 @@ async function lookupUser(username) {
 }
 
 export const userMigration = async (event, context, callback) => {
-  // TODO implement
   if (event.triggerSource === "UserMigration_Authentication") {
     console.log(`migrating user: ${event.userName}`);
     const user = await authenticateUser(event.userName, event.request.password);
