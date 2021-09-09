@@ -149,7 +149,7 @@ export const publishedNames = async event => {
 
     do {
       const data = await db.query(queryParams).promise();
-      console.log({ConsumedCapacity: data.ConsumedCapacity, lastEvaluatedKey, queryParams});
+      console.log({ConsumedCapacity: data.ConsumedCapacity, lastEvaluatedKey});
       data.Items.forEach(item => foundItems.push(item));
       queryParams.ExclusiveStartKey = data.LastEvaluatedKey;
       lastEvaluatedKey = data.LastEvaluatedKey;
