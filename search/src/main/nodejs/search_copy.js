@@ -63,6 +63,7 @@ async function copyAlignment(searchData) {
     identityId: searchData.identityId,
     searchDir: newSearchDir,
     upload: searchData.upload,
+    anatomicalRegion: searchData.anatomicalRegion || 'brain',
     simulateMIPGeneration: false,
     uploadThumbnail: searchData.uploadThumbnail
   };
