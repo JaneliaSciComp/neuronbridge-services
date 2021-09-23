@@ -171,7 +171,7 @@ Resources:
                   - Fn::Join:
                     - ''
                     -
-                      - arn:aws:s3:::janelia-neuronbridge-searches-${self:provider.stage}
+                      - arn:aws:s3:::${self:custom.searchBucket}
                       - '/private/'
                       - '$'
                       - '{cognito-identity.amazonaws.com:sub}/*'
@@ -190,7 +190,7 @@ Resources:
                   - Fn::Join:
                     - ''
                     -
-                      - arn:aws:s3:::janelia-neuronbridge-searches-${self:provider.stage}
+                      - arn:aws:s3:::${self:custom.searchBucket}
                       - '/protected/'
                       - '$'
                       - '{cognito-identity.amazonaws.com:sub}/*'
@@ -205,7 +205,7 @@ Resources:
                   - Fn::Join:
                     - ''
                     -
-                      - arn:aws:s3:::janelia-neuronbridge-searches-${self:provider.stage}
+                      - arn:aws:s3:::${self:custom.searchBucket}
                       - '/protected/*'
               - Effect: 'Allow'
                 Condition:
@@ -229,7 +229,7 @@ Resources:
                 Action:
                   - "s3:ListBucket"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-searches-${self:provider.stage}
+                  - arn:aws:s3:::${self:custom.searchBucket}
         - PolicyName: 'NeuronBridge_DataBucket_Read'
           PolicyDocument:
             Version: '2012-10-17'
@@ -296,13 +296,13 @@ Resources:
                   - "s3:GetObjectTagging"
                   - "s3:DeleteObject"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-searches-${self:provider.stage}/*
+                  - arn:aws:s3:::${self:custom.searchBucket}/*
                   - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-searches-${self:provider.stage}
+                  - arn:aws:s3:::${self:custom.searchBucket}
                   - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}
 
   CognitoUnAuthRole:
