@@ -11,6 +11,7 @@ const searchBucket = process.env.SEARCH_BUCKET;
 const libraryBucket = process.env.LIBRARY_BUCKET;
 const downloadBucket = process.env.DOWNLOAD_BUCKET;
 const dataBucket = process.env.DATA_BUCKET;
+const pppBucket = process.env.PPP_BUCKET;
 
 const s3 = new AWS.S3();
 
@@ -35,33 +36,36 @@ async function getInteractiveSearchResults(searchId, ids) {
   // grab the list of results using the searchRecord
   const chosenResults = await getSearchResultsForIds(searchRecord, ids);
 
-  return chosenResults;
+  return [chosenResults];
 }
 
-async function getPrecomputedSearchResults(searchId, ids) {
+async function getPrecomputedSearchResults(searchId, ids, algo="cdm") {
   // get precomputedDataRootPath from s3://janelia-neuronbridge-data-dev/paths.json
   const pathInfo = await getObjectWithRetry(dataBucket, "paths.json");
+	const metadataDir = (algo === "ppp") ? 'pppresults' : 'cdsresults';
 
   // get results from
   // s3://janelia-neuronbridge-data-dev/{precomputedDataRootPath}/metadata/cdsresults/{searchId}.json
-  const resultsKey = `${pathInfo.precomputedDataRootPath}/metadata/cdsresults/${searchId}.json`;
+  const resultsKey = `${pathInfo.precomputedDataRootPath}/metadata/${metadataDir}/${searchId}.json`;
   const resultsObj = await getObjectWithRetry(dataBucket, resultsKey);
 
   // filter the list of results based on the ids passed in.
-  return resultsObj.results.filter(result => ids.includes(result.id));
+  return [resultsObj.results.filter(result => ids.includes(result.id)), resultsObj.maskLibraryName];
 }
 
-const getStream = key => {
+const getStream = (key, algo) => {
   let streamCreated = false;
 
   const passThroughStream = new PassThrough();
+	const Bucket = algo === 'ppp' ? pppBucket : libraryBucket;
+
 
   passThroughStream.on("newListener", event => {
     if (!streamCreated && event === "data") {
-      console.log(`⭐  create read stream for ${libraryBucket}:${key}`);
+      console.log(`⭐  create read stream for ${Bucket}:${key}`);
 
       const s3Stream = s3
-        .getObject({ Bucket: libraryBucket, Key: key })
+        .getObject({ Bucket, Key: key })
         .createReadStream();
 
       s3Stream
@@ -99,18 +103,25 @@ const streamTo = (key, callback) => {
   return passthrough;
 };
 
+function getFilePath(algo, result, library) {
+	if (algo === "ppp") {
+		return `${result.alignmentSpace}/${library}/${result.files.ColorDepthMip}`;
+	}
+  return result.imageName ? result.imageName : result.imageURL;
+}
+
 export const downloadCreator = async (event) => {
   const downloadId = uuidv1();
   const downloadTarget = `test/${downloadId}/data.zip`;
 
   // Accept list of selected ids and the resultSet id/path
-  const { ids = [], searchId = "", precomputed = false } = event.body
+  const { ids = [], searchId = "", precomputed = false, algo="cdm" } = event.body
     ? JSON.parse(event.body)
     : {};
 
   // if precomputed search, get results from different location to interactive search
-  const chosenResults = precomputed
-    ? await getPrecomputedSearchResults(searchId, ids)
+  const [chosenResults, library] = precomputed
+    ? await getPrecomputedSearchResults(searchId, ids, algo)
     : await getInteractiveSearchResults(searchId, ids);
 
   // Loop over the ids and generate streams for each one.
@@ -127,7 +138,6 @@ export const downloadCreator = async (event) => {
       .on("progress", data => {
         console.log("archive event: progress", data);
       });
-
     const writeStream = streamTo(downloadTarget, resolve);
 
     writeStream.on("close", () => {
@@ -149,16 +159,12 @@ export const downloadCreator = async (event) => {
     archive.pipe(writeStream);
 
     chosenResults.forEach(result => {
-      const fileName = path.basename(
-        result.imageName ? result.imageName : result.imageURL
-      );
+			const filePath = getFilePath(algo, result, library);
+      const fileName = path.basename(filePath);
       // Use the information in the resultSet object to find the image path
       // Pass the image from the source bucket into the download bucket via
       // the archiver.
-      archive.append(
-        getStream(result.imageName ? result.imageName : result.imageURL),
-        { name: fileName }
-      );
+      archive.append(getStream(filePath, algo), { name: fileName });
     });
 
     // Once all image transfers are complete, close the archive

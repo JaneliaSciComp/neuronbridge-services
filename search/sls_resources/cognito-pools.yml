@@ -254,12 +254,14 @@ Resources:
                   - "s3:GetObject"
                   - "s3:GetObjectTagging"
                 Resource:
-                  - arn:aws:s3:::janelia-ppp-match-${self:provider.stage}/*
+                  - arn:aws:s3:::janelia-ppp-match-prod/*
+                  - arn:aws:s3:::janelia-ppp-match-dev/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
-                  - arn:aws:s3:::janelia-ppp-match-${self:provider.stage}
+                  - arn:aws:s3:::janelia-ppp-match-prod
+                  - arn:aws:s3:::janelia-ppp-match-dev
 
 
 
