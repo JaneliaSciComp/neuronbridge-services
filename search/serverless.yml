@@ -129,6 +129,8 @@ provider:
             - "arn:aws:s3:::${self:custom.downloadBucket}/*"
             - "arn:aws:s3:::${self:custom.oldSearchBucket}"
             - "arn:aws:s3:::${self:custom.oldSearchBucket}/*"
+            - "arn:aws:s3:::${self:custom.dataBucket}"
+            - "arn:aws:s3:::${self:custom.dataBucket}/*"
         - Effect: Allow
           Action:
             - s3:PutObject
