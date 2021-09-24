@@ -241,13 +241,12 @@ const setSearchLibraries = (searchData) => {
         };
     }
     const searchType = searchData.searchType;
-    console.log("!!!!!!! CDS CFG", cdsConfig, searchCfg, searchType, searchData);
     const searchLibraries = searchType === 'em2lm' || searchType === 'lmTarget'
         ? searchCfg.lmLibraries
         : (searchType === 'lm2em' || searchType === 'emTarget'
             ? searchCfg.emLibraries
             : searchData.libraries || [])
-    console.log("!!!!!!! CDS CFG 2", searchCfg, searchLibraries);
+    console.log(`Search libraries for ${anatomicalRegion}:${searchData.searchType}:`, searchLibraries);
     return {
         ...searchData,
         libraryAlignmentSpace: searchCfg.alignmentSpace,
