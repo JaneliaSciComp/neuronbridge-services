@@ -11,6 +11,7 @@ import {
     getSearchMetadata,
     updateSearchMetadata
 } from './awsappsyncutils';
+import cdsConfig from '../../../cds_config.json'
 
 const DEFAULTS = {
   maskThreshold: 100,
@@ -222,30 +223,37 @@ const checkSearchMask = async (searchId, bucket, maskKey) => {
     }
 };
 
+/**
+ * Create search libraries based on anatomicalRegion and searchType from cdsConfig.
+ *
+ * @param searchData
+ * @returns {*&{libraries: (*|*[]), libraryAlignmentSpace: *, searchableMIPSFolder: *}}
+ */
 const setSearchLibraries = (searchData) => {
+    const anatomicalRegion = searchData.anatomicalRegion || 'brain';
+    console.log(`Getting search libraries for ${anatomicalRegion}:${searchData.searchType}`);
+    const searchCfg = cdsConfig.filter(cfg => cfg.area === anatomicalRegion.toLowerCase());
+    let searchLibraries;
     switch (searchData.searchType) {
         case "em2lm":
         case "lmTarget":
-            return {
-                ...searchData,
-                libraryAlignmentSpace: "JRC2018_Unisex_20x_HR",
-                searchableMIPSFolder: "searchable_neurons",
-                libraries: ["FlyLight_Split-GAL4_Drivers", "FlyLight_Gen1_MCFO"],
-            };
+            searchLibraries = searchCfg.lmLibraries;
+            break;
         case "lm2em":
         case "emTarget":
-            return {
-                ...searchData,
-                libraryAlignmentSpace: "JRC2018_Unisex_20x_HR",
-                searchableMIPSFolder: "searchable_neurons",
-                libraries: ["FlyEM_Hemibrain_v1.2.1"],
-            };
+            searchLibraries = searchCfg.emLibraries;
+            break;
         default:
-            return {
-                ...searchData,
-                libraries: searchData.libraries || [],
-            };
+            searchLibraries = searchData.libraries || [];
+            break;
     }
+    return {
+        ...searchData,
+        libraryAlignmentSpace: searchCfg.alignmentSpace,
+        searchableMIPSFolder: searchCfg.searchFolder,
+        libraries: searchLibraries,
+    };
+
 };
 
 const getCount = async (libraryBucket, libraryKey) => {

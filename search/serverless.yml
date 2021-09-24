@@ -35,14 +35,10 @@ custom:
   searchParallelization: 10000
   cdsTimeoutInSeconds: 300
 
-  # publishedNameTable only exists in prod or dev form, so we have to map val and int
-  # to the prod database using the mapping below.
-  publishedNamesDb:
-    dev: dev
-    val: prod
-    prod: prod
-    int: prod
-  publishedNamesTable: janelia-neuronbridge-published-${self:custom.publishedNamesDb.${self:provider.stage}}
+  # publishedNameTable only exists in prod or dev form,
+  # so if you need to use a different than the one configured, use PUBLISHED_NAMES_TABLE_SUFFIX environment var
+  publishedNamesTableSuffix: ${file(../config.yml):config.publishedNamesTableSuffix}
+  publishedNamesTable: janelia-neuronbridge-published${self:custom.publishedNamesTableSuffix}
 
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
@@ -258,6 +254,7 @@ package:
   individually: true
   patterns:
     - 'src/main/nodejs/**'
+    - 'cds_config.json'
 
 
 functions:
