@@ -42,7 +42,7 @@ async function getInteractiveSearchResults(searchId, ids) {
 async function getPrecomputedSearchResults(searchId, ids, algo="cdm") {
   // get precomputedDataRootPath from s3://janelia-neuronbridge-data-dev/paths.json
   const pathInfo = await getObjectWithRetry(dataBucket, "paths.json");
-	const metadataDir = (algo === "ppp") ? 'pppresults' : 'cdsresults';
+  const metadataDir = (algo === "ppp") ? 'pppresults' : 'cdsresults';
 
   // get results from
   // s3://janelia-neuronbridge-data-dev/{precomputedDataRootPath}/metadata/cdsresults/{searchId}.json
@@ -57,8 +57,7 @@ const getStream = (key, algo) => {
   let streamCreated = false;
 
   const passThroughStream = new PassThrough();
-	const Bucket = algo === 'ppp' ? pppBucket : libraryBucket;
-
+  const Bucket = algo === 'ppp' ? pppBucket : libraryBucket;
 
   passThroughStream.on("newListener", event => {
     if (!streamCreated && event === "data") {
@@ -104,9 +103,9 @@ const streamTo = (key, callback) => {
 };
 
 function getFilePath(algo, result, library) {
-	if (algo === "ppp") {
-		return `${result.alignmentSpace}/${library}/${result.files.ColorDepthMip}`;
-	}
+  if (algo === "ppp") {
+    return `${result.alignmentSpace}/${library}/${result.files.ColorDepthMip}`;
+  }
   return result.imageName ? result.imageName : result.imageURL;
 }
 
@@ -159,7 +158,7 @@ export const downloadCreator = async (event) => {
     archive.pipe(writeStream);
 
     chosenResults.forEach(result => {
-			const filePath = getFilePath(algo, result, library);
+      const filePath = getFilePath(algo, result, library);
       const fileName = path.basename(filePath);
       // Use the information in the resultSet object to find the image path
       // Pass the image from the source bucket into the download bucket via
