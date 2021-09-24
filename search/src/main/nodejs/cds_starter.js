@@ -238,7 +238,7 @@ const setSearchLibraries = (searchData) => {
                 ...searchData,
                 libraryAlignmentSpace: "JRC2018_Unisex_20x_HR",
                 searchableMIPSFolder: "searchable_neurons",
-                libraries: ["FlyEM_Hemibrain_v1.1"],
+                libraries: ["FlyEM_Hemibrain_v1.2.1"],
             };
         default:
             return {
