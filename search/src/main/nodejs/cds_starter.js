@@ -232,21 +232,22 @@ const checkSearchMask = async (searchId, bucket, maskKey) => {
 const setSearchLibraries = (searchData) => {
     const anatomicalRegion = searchData.anatomicalRegion || 'brain';
     console.log(`Getting search libraries for ${anatomicalRegion}:${searchData.searchType}`);
-    const searchCfg = cdsConfig.filter(cfg => cfg.area === anatomicalRegion.toLowerCase());
-    let searchLibraries;
-    switch (searchData.searchType) {
-        case "em2lm":
-        case "lmTarget":
-            searchLibraries = searchCfg.lmLibraries;
-            break;
-        case "lm2em":
-        case "emTarget":
-            searchLibraries = searchCfg.emLibraries;
-            break;
-        default:
-            searchLibraries = searchData.libraries || [];
-            break;
+    const searchCfg = cdsConfig.find(cfg => cfg.area.toLowerCase() === anatomicalRegion.toLowerCase());
+    if (!searchCfg) {
+        console.error(`No CDS configuration found for ${anatomicalRegion}:${searchData.searchType} in`, searchCfg);
+        return {
+            ...searchData,
+            libraries: [],
+        };
     }
+    const searchType = searchData.searchType;
+    console.log("!!!!!!! CDS CFG", cdsConfig, searchCfg, searchType, searchData);
+    const searchLibraries = searchType === 'em2lm' || searchType === 'lmTarget'
+        ? searchCfg.lmLibraries
+        : (searchType === 'lm2em' || searchType === 'emTarget'
+            ? searchCfg.emLibraries
+            : searchData.libraries || [])
+    console.log("!!!!!!! CDS CFG 2", searchCfg, searchLibraries);
     return {
         ...searchData,
         libraryAlignmentSpace: searchCfg.alignmentSpace,
