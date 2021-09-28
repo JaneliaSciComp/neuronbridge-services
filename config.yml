@@ -8,7 +8,7 @@ config:
   alignmentTemplatesBucket: ${env:ALIGN_TEMPLATES_BUCKET, 'janelia-flylight-color-depth-dev'}
   searchBucket: janelia-neuronbridge-search-${opt:stage, 'dev'}
   downloadBucket: janelia-neuronbridge-downloads-${opt:stage, 'dev'}
-  dataBucket: janelia-neuronbridge-data-${opt:stage, 'dev'}
+  dataBucket: janelia-neuronbridge-data-${env:SEARCH_DATA_LEVEL, 'dev'}
   perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
   perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 5}
   concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 1}
