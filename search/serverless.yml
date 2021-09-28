@@ -35,13 +35,13 @@ custom:
   searchParallelization: 10000
   cdsTimeoutInSeconds: 300
 
-  # publishedNameTable only exists in prod or dev form, so we have to map val and int
-  # to the prod database using the mapping below.
+  # publishedNameTable uses a data version instead of prod or dev, so we have to map
+  # the data version to the stage in use, using the mapping below.
   publishedNamesDb:
-    dev: dev
-    val: prod
-    prod: prod
-    int: prod
+    dev: v2.2.0
+    val: v2.2.0
+    prod: v2.2.0
+    int: v2.2.0
   publishedNamesTable: janelia-neuronbridge-published-${self:custom.publishedNamesDb.${self:provider.stage}}
 
   appSync:
