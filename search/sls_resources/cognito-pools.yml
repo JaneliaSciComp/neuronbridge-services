@@ -155,7 +155,7 @@ Resources:
                   - "s3:GetObject"
                   - "s3:GetObjectTagging"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}/*
+                  - arn:aws:s3:::${self:custom.downloadBucket}/*
         - PolicyName: 'NeuronBridge_Private'
           PolicyDocument:
             Version: '2012-10-17'
@@ -239,12 +239,12 @@ Resources:
                   - "s3:GetObject"
                   - "s3:GetObjectTagging"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-data-${self:provider.stage}/*
+                  - arn:aws:s3:::${self:custom.dataBucket}/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-data-${self:provider.stage}
+                  - arn:aws:s3:::${self:custom.dataBucket}
         - PolicyName: 'NeuronBridge_PPPMBucket_Read'
           PolicyDocument:
             Version: '2012-10-17'
@@ -297,13 +297,13 @@ Resources:
                   - "s3:DeleteObject"
                 Resource:
                   - arn:aws:s3:::${self:custom.searchBucket}/*
-                  - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}/*
+                  - arn:aws:s3:::${self:custom.downloadBucket}/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
                   - arn:aws:s3:::${self:custom.searchBucket}
-                  - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}
+                  - arn:aws:s3:::${self:custom.downloadBucket}
 
   CognitoUnAuthRole:
     Type: AWS::IAM::Role
