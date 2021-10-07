@@ -42,6 +42,12 @@ custom:
     val: v2.2.0
     prod: v2.2.0
     int: v2.2.0
+
+  # we shouldn't need backups on any stage apart from production.
+  enableBackups:
+    prod: true
+    other: false
+
   publishedNamesTable: janelia-neuronbridge-published-${self:custom.publishedNamesDb.${self:provider.stage}}
 
   appSync:
