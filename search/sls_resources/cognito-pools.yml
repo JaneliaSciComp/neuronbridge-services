@@ -12,6 +12,14 @@ Resources:
         - Name: migrated
           Required: false
           AttributeDataType: Boolean
+        - Name: survey
+          Required: false
+          AttributeDataType: Boolean
+          Mutable: true
+        - Name: newsletter
+          Required: false
+          AttributeDataType: Boolean
+          Mutable: true
       LambdaConfig:
         # UserMigration: arn:aws:lambda:us-east-1:777794738451:function:neuronbridge_user_migration
         UserMigration: !Sub arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:service}-${self:provider.stage}-userMigration
