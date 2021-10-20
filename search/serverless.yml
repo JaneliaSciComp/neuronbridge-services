@@ -38,10 +38,10 @@ custom:
   # publishedNameTable uses a data version instead of prod or dev, so we have to map
   # the data version to the stage in use, using the mapping below.
   publishedNamesDb:
-    dev: v2.2.0
+    dev: v2.3.0
     val: v2.2.0
     prod: v2.2.0
-    int: v2.2.0
+    int: v2.3.0
 
   # we shouldn't need backups on any stage apart from production.
   enableBackups:
