@@ -1,7 +1,10 @@
 Resources:
   SearchTable:
     Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
     Properties:
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${opt:stage}, self:custom.enableBackups.other}
       KeySchema:
         - AttributeName: id
           KeyType: HASH

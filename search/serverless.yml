@@ -40,6 +40,11 @@ custom:
   publishedNamesTableSuffix: ${file(../config.yml):config.publishedNamesTableSuffix}
   publishedNamesTable: janelia-neuronbridge-published${self:custom.publishedNamesTableSuffix}
 
+  # we shouldn't need backups on any stage apart from production.
+  enableBackups:
+    prod: true
+    other: false
+
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
     authenticationType: AMAZON_COGNITO_USER_POOLS

@@ -12,6 +12,14 @@ Resources:
         - Name: migrated
           Required: false
           AttributeDataType: Boolean
+        - Name: survey
+          Required: false
+          AttributeDataType: Boolean
+          Mutable: true
+        - Name: newsletter
+          Required: false
+          AttributeDataType: Boolean
+          Mutable: true
       LambdaConfig:
         # UserMigration: arn:aws:lambda:us-east-1:777794738451:function:neuronbridge_user_migration
         UserMigration: !Sub arn:aws:lambda:${self:provider.region}:${AWS::AccountId}:function:${self:service}-${self:provider.stage}-userMigration
@@ -155,7 +163,7 @@ Resources:
                   - "s3:GetObject"
                   - "s3:GetObjectTagging"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}/*
+                  - arn:aws:s3:::${self:custom.downloadBucket}/*
         - PolicyName: 'NeuronBridge_Private'
           PolicyDocument:
             Version: '2012-10-17'
@@ -239,12 +247,12 @@ Resources:
                   - "s3:GetObject"
                   - "s3:GetObjectTagging"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-data-${self:provider.stage}/*
+                  - arn:aws:s3:::${self:custom.dataBucket}/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
-                  - arn:aws:s3:::janelia-neuronbridge-data-${self:provider.stage}
+                  - arn:aws:s3:::${self:custom.dataBucket}
         - PolicyName: 'NeuronBridge_PPPMBucket_Read'
           PolicyDocument:
             Version: '2012-10-17'
@@ -297,13 +305,13 @@ Resources:
                   - "s3:DeleteObject"
                 Resource:
                   - arn:aws:s3:::${self:custom.searchBucket}/*
-                  - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}/*
+                  - arn:aws:s3:::${self:custom.downloadBucket}/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
                   - arn:aws:s3:::${self:custom.searchBucket}
-                  - arn:aws:s3:::janelia-neuronbridge-downloads-${self:provider.stage}
+                  - arn:aws:s3:::${self:custom.downloadBucket}
 
   CognitoUnAuthRole:
     Type: AWS::IAM::Role
