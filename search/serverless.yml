@@ -40,7 +40,7 @@ custom:
   publishedNamesDb:
     dev: v2.3.0
     val: v2.2.0
-    prod: v2.2.0
+    prod: v2.3.0
     int: v2.3.0
 
   # we shouldn't need backups on any stage apart from production.
