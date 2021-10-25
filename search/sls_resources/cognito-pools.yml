@@ -248,11 +248,13 @@ Resources:
                   - "s3:GetObjectTagging"
                 Resource:
                   - arn:aws:s3:::${self:custom.dataBucket}/*
+                  - arn:aws:s3:::${self:custom.preReleaseDataBucket}/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
                   - arn:aws:s3:::${self:custom.dataBucket}
+                  - arn:aws:s3:::${self:custom.preReleaseDataBucket}
         - PolicyName: 'NeuronBridge_PPPMBucket_Read'
           PolicyDocument:
             Version: '2012-10-17'
