@@ -95,6 +95,13 @@ export const publishedNames = async event => {
   let returnBody = {};
 
   try {
+    if (event.queryStringParameters && event.queryStringParameters.version) {
+      return {
+        isBase64Encoded: false,
+        statusCode: 200,
+        body: JSON.stringify({version: process.env.NAMES_TABLE})
+      };
+    }
 
     if (!event.queryStringParameters || !event.queryStringParameters.q) {
       return {

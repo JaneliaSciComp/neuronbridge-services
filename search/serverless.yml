@@ -15,6 +15,7 @@ custom:
 
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
+  preReleaseDataBucket: ${file(../config.yml):config.preReleaseDataBucket}
   libraryBucket: ${file(../config.yml):config.libraryBucket}
   libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
   pppmBucket: ${file(../config.yml):config.pppmBucket}
