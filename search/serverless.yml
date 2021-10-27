@@ -338,7 +338,7 @@ functions:
   search:
     runtime: nodejs12.x
     handler: src/main/nodejs/batch_search.batchSearch
-    memorySize: 256
+    memorySize: 512
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       DEBUG: ${self:custom.debug}

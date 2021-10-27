@@ -40,7 +40,7 @@ export const batchSearch = async (event) => {
         throw new Error('Number of mask thresholds does not match number of masks');
     }
     const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);
-    console.log(`Loaded ${searchKeys.length} search keys`);
+    console.log(`Loaded ${searchKeys.length} search keys: [${startIndex}, ${endIndex}]`);
 
     console.log(`Comparing ${batchParams.maskKeys.length} masks with ${searchKeys.length} library mips`);
     let cdsResults = await findAllColorDepthMatches({
@@ -76,8 +76,10 @@ const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => 
             };
         });
     const searchableTargets = await Promise.all(searchableTargetsPromise);
-    const allTargets = searchableTargets.flatMap(l => l.searchableKeys);
-    return allTargets.slice(startIndex, endIndex);
+    let allTargets = searchableTargets.flatMap(l => l.searchableKeys);
+    const searchKeys = allTargets.slice(startIndex, endIndex);
+    allTargets = [];
+    return searchKeys;
 };
 
 function getRandomInt(min, max) {
@@ -148,14 +150,10 @@ const perMaskMetadata = (params) => {
 };
 
 export const findAllColorDepthMatches = async (params) => {
-    const maskKeys = params.maskKeys;
-
-    let results = [];
-    let i;
-    for (i = 0; i < maskKeys.length; i++) {
-        results.push(await runMaskSearches({
-            maskKey: params.maskKeys[i],
-            maskThreshold: params.maskThresholds[i],
+    const cdsPromise = await params.maskKeys
+        .map(async (maskKey, maskIndex) => await runMaskSearches({
+            maskKey: maskKey,
+            maskThreshold: params.maskThresholds[maskIndex],
             libraryKeys: params.libraryKeys,
             awsMasksBucket: params.awsMasksBucket,
             awsLibrariesBucket: params.awsLibrariesBucket,
@@ -166,8 +164,8 @@ export const findAllColorDepthMatches = async (params) => {
             mirrorMask: params.mirrorMask,
             minMatchingPixRatio: params.minMatchingPixRatio
         }));
-    }
-    return results.flat();
+    const cdsResults = await Promise.all(cdsPromise);
+    return cdsResults.flat();
 };
 
 const runMaskSearches = async (params) => {
@@ -178,7 +176,7 @@ const runMaskSearches = async (params) => {
 
     let maskImage = await loadMIPRange(params.awsMasksBucket, params.maskKey, 0, 0);
 
-    const masks = GenerateColorMIPMasks({
+    const cdMask = GenerateColorMIPMasks({
         width: maskImage.width,
         height: maskImage.height,
         queryImage: maskImage.data,
@@ -191,12 +189,15 @@ const runMaskSearches = async (params) => {
     });
 
     let results = [];
-    let i;
-    for (i = 0; i < params.libraryKeys.length; i++) {
+    if (!cdMask.maskPositions) {
+        // mask is empty
+        return results;
+    }
+    for (let i = 0; i < params.libraryKeys.length; i++) {
         const libMetadata = getLibraryMIPMetadata(params.libraryKeys[i]);
-        const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], masks.maskpos_st, masks.maskpos_ed);
+        const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], cdMask.maskpos_st, cdMask.maskpos_ed);
         if (tarImage.data != null) {
-            const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, masks);
+            const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
             const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 results.push({

@@ -47,12 +47,31 @@ export const searchCombiner = async (event) => {
     if (DEBUG) console.log('Input event:', JSON.stringify(event));
 
     // Parameters
-    const { jobId, tasksTableName } = event;
+    const { jobId, tasksTableName, timedOut, completed, withErrors } = event;
     const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
     const fullSearchInputName = maskKeys[0];
     const searchInputName = fullSearchInputName.substring(fullSearchInputName.lastIndexOf("/")+1);
 
     let allBatchResults = {};
+
+    const now = new Date();
+    if (timedOut) {
+        console.log(`Job ${jobId} - ${searchId} timed out`);
+        await updateSearchMetadata({
+            id: searchId,
+            step: SEARCH_COMPLETED,
+            errorMessage: "Color depth search timed out",
+            cdsFinished: now.toISOString()
+        });
+    } else if (withErrors || !completed) {
+        console.log(`Job ${jobId} - ${searchId} completed with errors`);
+        await updateSearchMetadata({
+            id: searchId,
+            step: SEARCH_COMPLETED,
+            errorMessage: "Color depth search completed with errors",
+            cdsFinished: now.toISOString()
+        });
+    }
 
     const params = {
         TableName: tasksTableName,
@@ -106,7 +125,6 @@ export const searchCombiner = async (event) => {
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
     // write down the progress - done
-    const now = new Date();
     await updateSearchMetadata({
         id: searchId,
         step: SEARCH_COMPLETED,

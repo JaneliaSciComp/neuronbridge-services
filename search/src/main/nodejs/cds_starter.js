@@ -11,7 +11,7 @@ import {
     getSearchMetadata,
     updateSearchMetadata
 } from './awsappsyncutils';
-import cdsConfig from '../../../cds_config.json'
+import cdsConfig from '../../../cds_config.json';
 
 const DEFAULTS = {
   maskThreshold: 100,
@@ -245,7 +245,7 @@ const setSearchLibraries = (searchData) => {
         ? searchCfg.lmLibraries
         : (searchType === 'lm2em' || searchType === 'emTarget'
             ? searchCfg.emLibraries
-            : searchData.libraries || [])
+            : searchData.libraries || []);
     console.log(`Search libraries for ${anatomicalRegion}:${searchData.searchType}:`, searchLibraries);
     return {
         ...searchData,
