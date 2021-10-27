@@ -13,3 +13,21 @@ Resources:
           AttributeType: S
       BillingMode: PAY_PER_REQUEST
       TableName: ${self:custom.searchTable}
+  AnnouncementsTable:
+    Type: "AWS::DynamoDB::Table"
+    DeletionPolicy: Retain
+    Properties:
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${opt:stage}, self:custom.enableBackups.other}
+      KeySchema:
+        - AttributeName: active
+          KeyType: HASH
+        - AttributeName: createdTime
+          KeyType: RANGE
+      AttributeDefinitions:
+        - AttributeName: active
+          AttributeType: S
+        - AttributeName: createdTime
+          AttributeType: S
+      BillingMode: PAY_PER_REQUEST
+      TableName: ${self:custom.announcementsTable}

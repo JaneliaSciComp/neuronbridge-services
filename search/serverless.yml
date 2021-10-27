@@ -27,6 +27,7 @@ custom:
 
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-${self:provider.stage}-search-table
+  announcementsTable: janelia-neuronbridge-${self:provider.stage}-announcments
 
   # Resources from burst-compute
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, 'dev'}
