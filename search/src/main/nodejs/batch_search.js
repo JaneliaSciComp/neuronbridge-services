@@ -3,7 +3,7 @@ import path from 'path';
 
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
-import {getObjectWithRetry} from './utils';
+import {DEBUG, getObjectWithRetry} from './utils';
 
 const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
@@ -38,13 +38,13 @@ export const batchSearch = async (event) => {
     if (!batchParams.maskThresholds) {
         throw new Error('No mask thresholds specified');
     }
-    if (batchParams.maskThresholds.length != batchParams.maskKeys.length) {
+    if (batchParams.maskThresholds.length !== batchParams.maskKeys.length) {
         throw new Error('Number of mask thresholds does not match number of masks');
     }
     const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);
-    console.log(`Loaded ${searchKeys.length} search keys: [${startIndex}, ${endIndex}]`);
+    if (DEBUG) console.log(`Loaded ${searchKeys.length} search keys: [${startIndex}, ${endIndex}]`);
 
-    console.log(`Comparing ${batchParams.maskKeys.length} masks with ${searchKeys.length} library mips`);
+    if (DEBUG) console.log(`Comparing ${batchParams.maskKeys.length} masks with ${searchKeys.length} library mips`);
     let cdsResults = await findAllColorDepthMatches({
         maskKeys: batchParams.maskKeys,
         maskThresholds: batchParams.maskThresholds,
@@ -78,10 +78,7 @@ const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => 
             };
         });
     const searchableTargets = await Promise.all(searchableTargetsPromise);
-    let allTargets = searchableTargets.flatMap(l => l.searchableKeys);
-    const searchKeys = allTargets.slice(startIndex, endIndex);
-    allTargets = [];
-    return searchKeys;
+    return searchableTargets.flatMap(l => l.searchableKeys).slice(startIndex, endIndex);
 };
 
 function getRandomInt(min, max) {
@@ -202,7 +199,7 @@ const runMaskSearches = async (params) => {
         const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], cdMask.maskpos_st, cdMask.maskpos_ed);
         if (tarImage.data != null) {
             const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
-            console.log(`Comparison result with ${params.libraryKeys[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
+            if (DEBUG) console.log(`Comparison result with ${params.libraryKeys[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 results.push({
                     maskMIP: maskMetadata,
