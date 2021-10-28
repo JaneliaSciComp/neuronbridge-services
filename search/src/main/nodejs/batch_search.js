@@ -5,6 +5,8 @@ import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
 import {getObjectWithRetry} from './utils';
 
+const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
+
 export const batchSearch = async (event) => {
 
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
@@ -191,14 +193,16 @@ const runMaskSearches = async (params) => {
     let results = [];
     if (!cdMask.maskPositions) {
         // mask is empty
+        console.log(`Empty mask image: ${params.maskKey}`);
         return results;
     }
+    const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
     for (let i = 0; i < params.libraryKeys.length; i++) {
         const libMetadata = getLibraryMIPMetadata(params.libraryKeys[i]);
         const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], cdMask.maskpos_st, cdMask.maskpos_ed);
         if (tarImage.data != null) {
             const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
-            const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
+            console.log(`Comparison result with ${params.libraryKeys[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 results.push({
                     maskMIP: maskMetadata,
@@ -304,8 +308,7 @@ const populateLMMetadataFromName = (mipName, mipMetadata) => {
         const cdmWithChannel = mipNameComponents[7];
         const matched = cdmWithChannel.match(/CDM_(\d+)/i);
         if (matched.length >= 2) {
-            const channel = matched[1];
-            mipMetadata["channel"] = channel;
+            mipMetadata["channel"] = matched[1];
         }
     }
 
@@ -314,14 +317,12 @@ const populateLMMetadataFromName = (mipName, mipMetadata) => {
 
 const populateEMMetadataFromName = (mipName, mipMetadata) => {
     const mipNameComponents = mipName.split("-");
-    const bodyID = mipNameComponents.length > 0 ? mipNameComponents[0] : mipName;
-    mipMetadata["publishedName"] = bodyID;
+    mipMetadata["publishedName"] = mipNameComponents.length > 0 ? mipNameComponents[0] : mipName;
     mipMetadata["gender"] = "f"; // default to female for now
     return mipMetadata;
 };
 
 const writeCDSResults = async (results, tableName, jobId, batchId) => {
-
     const TTL_DELTA = 60 * 60; // 1 hour TTL
     const ttl = (Math.floor(+new Date() / 1000) + TTL_DELTA).toString();
 
@@ -335,6 +336,5 @@ const writeCDSResults = async (results, tableName, jobId, batchId) => {
         }
     };
 
-    const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
     return await ddb.putItem(params).promise();
 };

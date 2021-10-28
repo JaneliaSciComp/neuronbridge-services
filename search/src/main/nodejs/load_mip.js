@@ -18,9 +18,8 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
     let width = 0;
     let height = 0;
 
-    let img = null;
     if (mipExt === ".png") {
-        img = await Jimp.read(imgfile);
+        const img = await Jimp.read(imgfile);
         width = img.bitmap.width;
         height = img.bitmap.height;
 
@@ -32,8 +31,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
             outdata[3*i+1] = this.bitmap.data[idx + 1];
             outdata[3*i+2] = this.bitmap.data[idx + 2];
         });
-    }
-    else if (mipExt === '.tif' || mipExt === '.tiff') {
+    } else if (mipExt === '.tif' || mipExt === '.tiff') {
         const tartiff = await fromArrayBuffer(isEFS ? imgfile.buffer : imgfile);
         const tarimage = await tartiff.getImage();
 
@@ -51,7 +49,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
 
             const b_end = end > 0 ? end * 3 : outdatasize;
 
-            if (ifd.Compression == 32773) {
+            if (ifd.Compression === 32773) {
                 // PackBits compression
                 for (let s = 0; s < ifd.StripOffsets.length; s++) {
                     const stripoffset = ifd.StripOffsets[s];
@@ -87,16 +85,14 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
                     }
                 }
             }
-        }
-        else
-        {
+        } else {
             const input = new DataView(imgfile);
 
             const ifd = tarimage.getFileDirectory();
 
             const b_end = end > 0 ? end * 3 : outdatasize;
 
-            if (ifd.Compression == 32773) {
+            if (ifd.Compression === 32773) {
                 // PackBits compression
                 for (let s = 0; s < ifd.StripOffsets.length; s++) {
                     const stripoffset = ifd.StripOffsets[s];
@@ -109,7 +105,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
                             for (let i = 0; i < n + 1; i++) {
                                 outdata[outoffset++] = input.getUint8(index++);
                             }
-                        } else if (n != -128) { // -127 <= n <= -1
+                        } else if (n !== -128) { // -127 <= n <= -1
                             const len = -n + 1;
                             const val = input.getUint8(index++);
                             for (let i = 0; i < len; i++) outdata[outoffset++] = val;

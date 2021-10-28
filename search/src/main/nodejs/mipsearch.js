@@ -8,8 +8,7 @@
  * @param blue2 - blue component of the second pixel
  * @return
  */
-const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) =>
-{
+const calculatePixelGap = (red1, green1, blue1, red2, green2, blue2) => {
     let RG1 = 0;
     let BG1 = 0;
     let GR1 = 0;
@@ -261,11 +260,13 @@ const calculateScore = (params) => {
     const zTolerance = params.zTolerance;
 
     const masksize = srcPositions.length <= targetPositions.length ? srcPositions.length : targetPositions.length;
+    if (srcPositions.length !== targetPositions.length) {
+        console.error(`Mask and target pixel indexes should have the same size; mask: ${srcPositions.length}, target: ${targetPositions.length}`);
+    }
     let posi = 0;
 
-    let masksig;
-    for (masksig = 0; masksig < masksize; masksig++) {
-        if (srcPositions[masksig] == -1 || targetPositions[masksig] == -1) continue;
+    for (let masksig = 0; masksig < masksize; masksig++) {
+        if (srcPositions[masksig] === -1 || targetPositions[masksig] === -1) continue;
 
         const p = srcPositions[masksig]*3;
         const red1 = src[p];
@@ -292,31 +293,31 @@ const generateShiftedMasks = (input, xyshift, imageWidth, imageHeight) => {
     let out = [];
     let i, xx, yy;
 
-    out.push(input.slice());
-    for (i = 2; i <= xyshift; i += 2) {
-        for (xx = -i; xx <= i; xx += i) {
-            for (yy = -i; yy <= i; yy += i) {
-                out.push(shiftMaskPosArray(input, xx, yy, imageWidth, imageHeight));
+    const nshifts = 1 + (xyshift / 2) * 8;
+    if (nshifts > 1) {
+        for (i = 2; i <= xyshift; i += 2) {
+            for (xx = -i; xx <= i; xx += i) {
+                for (yy = -i; yy <= i; yy += i) {
+                    out.push(shiftMaskPosArray(input, xx, yy, imageWidth, imageHeight));
+                }
             }
         }
+    } else {
+        out.push(input);
     }
 
     return out;
 };
 
 const shiftMaskPosArray = (src, xshift, yshift, imageWidth, imageHeight) => {
-    let pos = [];
-    let i, x, y;
-    for (i = 0; i < src.length; i++) {
-        const val = src[i];
-        x = (val % imageWidth) + xshift;
-        y = Math.floor(val / imageWidth) + yshift;
+    return src.map(pos => {
+        const x = (pos % imageWidth) + xshift;
+        const y = Math.floor(pos / imageWidth) + yshift;
         if (x >= 0 && x < imageWidth && y >= 0 && y < imageHeight)
-            pos.push(y * imageWidth + x);
+            return y * imageWidth + x;
         else
-            pos.push(-1);
-    }
-    return pos;
+            return -1;
+    });
 };
 
 const generateMirroredMask = (input, ypitch) => {
@@ -325,8 +326,12 @@ const generateMirroredMask = (input, ypitch) => {
     let j;
     for (j = 0; j < masksize; j++) {
         const val = input[j];
-        const x = val % ypitch;
-        out.push(val + (ypitch - 1) - 2 * x);
+        if (val === -1) {
+            out.push(-1);
+        } else {
+            const x = val % ypitch;
+            out.push(val + (ypitch - 1) - 2 * x);
+        }
     }
     return out;
 };
@@ -338,7 +343,7 @@ const getMaskPosArray = (mskarray, width, height, thresm) => {
     for (pi = 0; pi < sumpx; pi++) {
         let x = pi % width;
         let y = Math.floor(pi / width);
-        if (x < 330 && y < 100 || x >= 950 && y < 85) {
+        if (x < 330 && y < 100 || x >= 940 && y < 90) {
             // label regions are not to be searched
             continue;
         }
@@ -396,7 +401,7 @@ export const GenerateColorMIPMasks = (params) => {
     let negMirrorTargetMasksList = [];
     if (mirrorNegMask && negQueryImage != null) {
         for (i = 0; i < negTargetMasksList.length; i++)
-        negMirrorTargetMasksList.push(generateMirroredMask(negTargetMasksList[i], width));
+            negMirrorTargetMasksList.push(generateMirroredMask(negTargetMasksList[i], width));
     } else {
         negMirrorTargetMasksList = null;
     }
