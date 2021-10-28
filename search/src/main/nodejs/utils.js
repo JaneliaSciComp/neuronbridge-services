@@ -18,7 +18,7 @@ export const DEBUG = Boolean(process.env.DEBUG);
 const retryOptions = {
     jitter : "full",
     maxDelay: 10000,
-    startingDelay: 200,
+    startingDelay: 500,
     numOfAttempts: 3
 };
 
@@ -29,12 +29,13 @@ export const sleep = async ms => {
 // Retrieve all the keys in a particular bucket
 export const getAllKeys = async params => {
     const allKeys = [];
-    var result;
+    let result;
     do {
         result = await s3.listObjectsV2(params).promise();
         result.Contents.forEach(obj => allKeys.push(obj.Key));
         params.ContinuationToken = result.NextContinuationToken;
     } while (result.NextContinuationToken);
+    result = null;
     return allKeys;
 };
 
