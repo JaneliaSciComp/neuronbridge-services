@@ -144,17 +144,17 @@ export const putS3Content = async (Bucket, Key, contentType, content) => {
 
 export const copyS3Content = async (Bucket, Source, Key) => {
    try {
-        if (DEBUG) {
-            console.log(`Copying content to ${Bucket}:${Key} from ${Source}`);
-        }
-        const res = await s3.copyObject({
-            Bucket,
-            CopySource: Source,
-            Key,
-        }).promise();
-        if (DEBUG) {
-            console.log(`Copied content to ${Bucket}:${Key} from ${Source}`, res);
-        }
+       if (DEBUG) {
+           console.log(`Copying content to ${Bucket}:${Key} from ${Source}`);
+       }
+       const res = await s3.copyObject({
+           Bucket,
+           CopySource: Source,
+           Key,
+       }).promise();
+       if (DEBUG) {
+           console.log(`Copied content to ${Bucket}:${Key} from ${Source}`, res);
+       }
     } catch (e) {
         console.error(`Error copying content to ${Bucket}:${Key} from ${Source}`, e);
         throw e; // rethrow it
@@ -293,63 +293,61 @@ export const startStepFunction = async (uniqueName, stateMachineParams, stateMac
 };
 
 export const getOldSubs = async (username) => {
-  const params = {
-    UserPoolId: process.env.USERPOOL_ID,
-    Username: username
-  };
-  // look up email address in the current user pool
-  const user = await cognitoISP.adminGetUser(params).promise();
-  const emailAddress = user.UserAttributes.find(e => e.Name === "email").Value;
+    const params = {
+        UserPoolId: process.env.USERPOOL_ID,
+        Username: username
+    };
+    // look up email address in the current user pool
+    const user = await cognitoISP.adminGetUser(params).promise();
+    const emailAddress = user.UserAttributes.find(e => e.Name === "email").Value;
 
-  // find all users in the old user pool that have the matching
-  // email address
-  const old_pool_params = {
-    UserPoolId: process.env.OLD_USERPOOL_ID,
-    Filter: `email = "${emailAddress}"`
-  };
+    // find all users in the old user pool that have the matching
+    // email address
+    const old_pool_params = {
+        UserPoolId: process.env.OLD_USERPOOL_ID,
+        Filter: `email = "${emailAddress}"`
+    };
 
-  const usersRes = await cognitoISP.listUsers(old_pool_params).promise();
+    const usersRes = await cognitoISP.listUsers(old_pool_params).promise();
 
-  let filteredUsers = [];
+    let filteredUsers = [];
 
-  if (/^Google_/.test(user.Username)) {
-    // logged in with google
-    filteredUsers = usersRes.Users.filter(userRes => /^Google_/.test(userRes.Username));
-  } else {
-    // logged in with cognito
-    filteredUsers = usersRes.Users.filter(userRes => !/^Google_/.test(userRes.Username));
-  }
+    if (/^Google_/.test(user.Username)) {
+        // logged in with google
+        filteredUsers = usersRes.Users.filter(userRes => /^Google_/.test(userRes.Username));
+    } else {
+        // logged in with cognito
+        filteredUsers = usersRes.Users.filter(userRes => !/^Google_/.test(userRes.Username));
+    }
 
-  const ogUsernames = filteredUsers.map(user => {
-    return user.Username;
-  });
-
-  return ogUsernames;
+    return filteredUsers.map(user => {
+        return user.Username;
+    });
 };
 
 //fetch data from original dynamodb table
 async function getSearchRecords(ownerId, TableName) {
-  const params = {
-    TableName,
-    FilterExpression: "#owner = :owner",
-    ExpressionAttributeValues: {
-      ":owner": ownerId
-    },
-    ExpressionAttributeNames: {
-      "#owner": "owner"
-    }
-  };
+    const params = {
+        TableName,
+        FilterExpression: "#owner = :owner",
+        ExpressionAttributeValues: {
+            ":owner": ownerId
+        },
+        ExpressionAttributeNames: {
+            "#owner": "owner"
+        }
+    };
 
-  try {
-    const data = await db.scan(params).promise();
-    if (data.Count > 0) {
-      return data.Items;
+    try {
+        const data = await db.scan(params).promise();
+        if (data.Count > 0) {
+            return data.Items;
+        }
+        return [];
+    } catch (err) {
+        console.log(err);
+        return err;
     }
-    return [];
-  } catch (err) {
-    console.log(err);
-    return err;
-  }
 }
 
 
@@ -370,5 +368,3 @@ export const searchesToMigrate = async (username, oldUsernames) => {
   console.log(notMigrated);
   return notMigrated;
 };
-
-

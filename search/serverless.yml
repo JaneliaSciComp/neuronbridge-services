@@ -13,6 +13,7 @@ custom:
   tracing: false
   debug: true
 
+  nodeJSRuntime: nodejs14.x
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
   preReleaseDataBucket: ${file(../config.yml):config.preReleaseDataBucket}
@@ -266,7 +267,7 @@ package:
 functions:
 
   appStarter:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/app_starter.appStarter
     memorySize: 256
     timeout: 25
@@ -298,7 +299,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   cdsStarter:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/cds_starter.cdsStarter
     memorySize: 256
     timeout: 25
@@ -317,7 +318,7 @@ functions:
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
 
   combiner:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_combiner.searchCombiner
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
@@ -327,7 +328,7 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
   monitor:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/monitor.isJobDone
     memorySize: 128
     timeout: 180
@@ -336,7 +337,7 @@ functions:
       DEBUG: ${self:custom.debug}
 
   search:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/batch_search.batchSearch
     memorySize: 512
     timeout: ${self:custom.cdsTimeoutInSeconds}
@@ -344,6 +345,7 @@ functions:
       DEBUG: ${self:custom.debug}
       SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
+      NODE_OPTIONS: '--max-old-space-size=400'
 
   searchJava:
     package:
@@ -358,7 +360,7 @@ functions:
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
   searchCopyAlignment:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_copy.searchCopyAlignment
     memorySize: 128
     timeout: 10
@@ -376,7 +378,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchCreateDefaultChannel:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_create_default_channel.searchCreateDefaultChannel
     memorySize: 128
     timeout: 10
@@ -394,7 +396,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchNewFromImage:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_new_from_image.searchNewFromImage
     memorySize: 128
     timeout: 10
@@ -412,7 +414,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchUpdate:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_update.searchUpdate
     memorySize: 128
     timeout: 25
@@ -421,7 +423,7 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
   downloadCreator:
-    runtime: nodejs12.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/download_creator.downloadCreator
     memorySize: 256
     timeout: 200
@@ -447,7 +449,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   dataMigration:
-    runtime: nodejs14.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/data_migration.dataMigration
     role: dataMigrationRole
     memorySize: 128
@@ -479,7 +481,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   migrationCheck:
-    runtime: nodejs14.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/migration_check.migrationCheck
     memorySize: 128
     timeout: 28
@@ -510,7 +512,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   userMigration:
-    runtime: nodejs14.x
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/user_migration_lamda.userMigration
     role: userMigrationRole
     memorySize: 128
@@ -525,7 +527,7 @@ functions:
           trigger: UserMigration
 
   publishedNames:
-    runtime: nodejs14.x
+    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: publishedNames
     handler: src/main/nodejs/published_names.publishedNames
