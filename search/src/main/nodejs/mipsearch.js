@@ -320,43 +320,36 @@ const shiftMaskPosArray = (src, xshift, yshift, imageWidth, imageHeight) => {
     });
 };
 
-const generateMirroredMask = (input, ypitch) => {
-    let out = [];
-    const masksize = input.length;
-    let j;
-    for (j = 0; j < masksize; j++) {
-        const val = input[j];
-        if (val === -1) {
-            out.push(-1);
+const generateMirroredMask = (src, imageWidth) => {
+    return src.map(pos => {
+        if (pos === -1) {
+            return -1;
         } else {
-            const x = val % ypitch;
-            out.push(val + (ypitch - 1) - 2 * x);
+            const x = pos % imageWidth;
+            return pos + (imageWidth - 1) - 2 * x;
         }
-    }
-    return out;
+    });
 };
 
 const getMaskPosArray = (mskarray, width, height, thresm) => {
-    let sumpx = mskarray.length / 3;
     let pos = [];
-    let red, green, blue, pi;
-    for (pi = 0; pi < sumpx; pi++) {
-        let x = pi % width;
-        let y = Math.floor(pi / width);
+    const sumpx = mskarray.length / 3;
+    for (let pi = 0; pi < sumpx; pi++) {
+        const x = pi % width;
+        const y = Math.floor(pi / width);
         if (x < 330 && y < 100 || x >= 940 && y < 90) {
             // label regions are not to be searched
             continue;
         }
 
-        red = mskarray[3*pi];
-        green = mskarray[3*pi + 1];
-        blue = mskarray[3*pi + 2];
+        const red = mskarray[3*pi];
+        const green = mskarray[3*pi + 1];
+        const blue = mskarray[3*pi + 2];
 
         if (red > thresm || green > thresm || blue > thresm) {
             pos.push(pi);
         }
     }
-
     return pos;
 };
 
@@ -374,37 +367,24 @@ export const GenerateColorMIPMasks = (params) => {
     const mirrorNegMask = params.mirrorNegMask;
 
     const maskPositions = getMaskPosArray(queryImage, width, height, maskThreshold);
-    let negMaskPositions;
-    if (negQueryImage != null) {
-        negMaskPositions = getMaskPosArray(negQueryImage, width, height, negMaskThreshold);
-    } else {
-        negMaskPositions = null;
-    }
+    const negMaskPositions = negQueryImage
+        ? getMaskPosArray(negQueryImage, width, height, negMaskThreshold)
+        : null;
 
     // shifting
     const targetMasksList = generateShiftedMasks(maskPositions, xyshift, width, height);
-    let negTargetMasksList;
-    if (negQueryImage != null) {
-        negTargetMasksList = generateShiftedMasks(negMaskPositions, xyshift, width, height);
-    } else {
-        negTargetMasksList = null;
-    }
+    const negTargetMasksList = negMaskPositions
+        ? generateShiftedMasks(negMaskPositions, xyshift, width, height)
+        : null;
 
     // mirroring
-    let mirrorTargetMasksList = [];
-    if (mirrorMask) {
-        for (i = 0; i < targetMasksList.length; i++)
-            mirrorTargetMasksList.push(generateMirroredMask(targetMasksList[i], width));
-    } else {
-        mirrorTargetMasksList = null;
-    }
-    let negMirrorTargetMasksList = [];
-    if (mirrorNegMask && negQueryImage != null) {
-        for (i = 0; i < negTargetMasksList.length; i++)
-            negMirrorTargetMasksList.push(generateMirroredMask(negTargetMasksList[i], width));
-    } else {
-        negMirrorTargetMasksList = null;
-    }
+    const mirrorTargetMasksList = mirrorMask
+        ? targetMasksList.map(m => generateMirroredMask(m, width))
+        : null;
+
+    const negMirrorTargetMasksList = mirrorMask && negTargetMasksList
+        ? negTargetMasksList.map(m => generateMirroredMask(m, width))
+        : null;
 
     let maskpos_st = width * height;
     let maskpos_ed = 0;
@@ -418,7 +398,7 @@ export const GenerateColorMIPMasks = (params) => {
             if (mirrorTargetMasksList[i][mirrorTargetMasksList[i].length-1] > maskpos_ed) maskpos_ed = mirrorTargetMasksList[i][mirrorTargetMasksList[i].length-1];
         }
     }
-    if (negQueryImage != null) {
+    if (negTargetMasksList) {
         for (i = 0; i < negTargetMasksList.length; i++) {
             if (negTargetMasksList[i][0] < maskpos_st) maskpos_st = negTargetMasksList[i][0];
             if (negTargetMasksList[i][negTargetMasksList[i].length-1] > maskpos_ed) maskpos_ed = negTargetMasksList[i][negTargetMasksList[i].length-1];

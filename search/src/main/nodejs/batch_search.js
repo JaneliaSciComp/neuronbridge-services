@@ -5,18 +5,19 @@ import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
 import {DEBUG, getObjectWithRetry} from './utils';
 
-const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
-
 export const batchSearch = async (event) => {
-
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
 
     // The next three log statements are parsed by the analyzer. DO NOT CHANGE.
     console.log('Input event:', JSON.stringify(event));
     console.log(`Job Id: ${jobId}`);
     console.log(`Batch Id: ${batchId}`);
+    logWithMemoryUsage(''); // log initial memory stats
 
     const batchParams = {
+        jobId,
+        batchId,
+        tasksTableName,
         libraryBucket: jobParameters.libraryBucket,
         libraries: jobParameters.libraries,
         searchBucket: jobParameters.searchBucket,
@@ -28,7 +29,16 @@ export const batchSearch = async (event) => {
         mirrorMask: jobParameters.mirrorMask || false,
         minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
     };
+    validateBatchParams(batchParams);
+    if (DEBUG) {
+        logWithMemoryUsage(`Compare ${batchParams.maskKeys.length} masks with mips between [${startIndex},${endIndex}] from ${batchParams.libraries.length} libraries`);
+    }
+    const nresults = await executeColorDepthsSearches(batchParams, startIndex, endIndex);
+    logWithMemoryUsage(`Completed Batch Id: ${batchId}`); // log final memory stats
+    return nresults;
+};
 
+const validateBatchParams = (batchParams) => {
     if (!batchParams.libraries) {
         throw new Error('No target images to search');
     }
@@ -41,14 +51,16 @@ export const batchSearch = async (event) => {
     if (batchParams.maskThresholds.length !== batchParams.maskKeys.length) {
         throw new Error('Number of mask thresholds does not match number of masks');
     }
-    const searchKeys = await getSearchKeys(batchParams.libraryBucket, batchParams.libraries, startIndex, endIndex);
-    if (DEBUG) console.log(`Loaded ${searchKeys.length} search keys: [${startIndex}, ${endIndex}]`);
+};
 
-    if (DEBUG) console.log(`Comparing ${batchParams.maskKeys.length} masks with ${searchKeys.length} library mips`);
-    let cdsResults = await findAllColorDepthMatches({
+const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => {
+    if (DEBUG) {
+        logWithMemoryUsage(`Compare ${batchParams.maskKeys.length} masks with mips between [${startIndex},${endIndex}] from ${batchParams.libraries.length} libraries`);
+    }
+    const cdsResults = await findAllColorDepthMatches({
         maskKeys: batchParams.maskKeys,
         maskThresholds: batchParams.maskThresholds,
-        libraryKeys: searchKeys,
+        libraries: batchParams.libraries,
         awsMasksBucket: batchParams.searchBucket,
         awsLibrariesBucket: batchParams.libraryBucket,
         awsLibrariesThumbnailsBucket: process.env.SEARCHED_THUMBNAILS_BUCKET || batchParams.libraryBucket,
@@ -57,16 +69,9 @@ export const batchSearch = async (event) => {
         xyShift: batchParams.xyShift,
         mirrorMask: batchParams.mirrorMask,
         minMatchingPixRatio: batchParams.minMatchingPixRatio
-    });
-    console.log(`Found ${cdsResults.length} matches.`);
-
-    const matchedMetadata = cdsResults.map(perMaskMetadata)
-        .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
-    const ret = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
-
-    await writeCDSResults(ret, tasksTableName, jobId, batchId);
-    console.log("Wrote results to DynamoDB");
-
+    }, startIndex, endIndex);
+    logWithMemoryUsage(`Found ${cdsResults.length} matches.`);
+    await writeCDSResults(cdsResults, batchParams.tasksTableName, batchParams.jobId, batchParams.batchId);
     return cdsResults.length;
 };
 
@@ -88,7 +93,7 @@ function getRandomInt(min, max) {
 const getKeys = async (libraryBucket, libraryKey) => {
     const randomPrefix = getRandomInt(0, 99);
     const keyName = `${libraryKey}/KEYS/${randomPrefix}/keys_denormalized.json`;
-    console.log(`Get keys from: ${keyName}`);
+    logWithMemoryUsage(`Get keys from: ${keyName}`);
     return await getObjectWithRetry(libraryBucket, keyName);
 };
 
@@ -148,12 +153,16 @@ const perMaskMetadata = (params) => {
     };
 };
 
-export const findAllColorDepthMatches = async (params) => {
+export const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
+    const libraryKeys = await getSearchKeys(params.awsLibrariesBucket, params.libraries, startIndex, endIndex);
+    if (DEBUG) {
+        logWithMemoryUsage(`Loaded ${libraryKeys.length} search keys: [${startIndex}, ${endIndex}]`);
+    }
     const cdsPromise = await params.maskKeys
         .map(async (maskKey, maskIndex) => await runMaskSearches({
             maskKey: maskKey,
             maskThreshold: params.maskThresholds[maskIndex],
-            libraryKeys: params.libraryKeys,
+            libraryKeys: libraryKeys,
             awsMasksBucket: params.awsMasksBucket,
             awsLibrariesBucket: params.awsLibrariesBucket,
             awsLibrariesThumbnailsBucket: params.awsLibrariesThumbnailsBucket,
@@ -173,7 +182,7 @@ const runMaskSearches = async (params) => {
     const zTolerance = params.pixColorFluctuation == null ? 0.0 : params.pixColorFluctuation / 100.0;
     const maskThreshold = params.maskThreshold != null ? params.maskThreshold : 0;
 
-    let maskImage = await loadMIPRange(params.awsMasksBucket, params.maskKey, 0, 0);
+    const maskImage = await loadMIPRange(params.awsMasksBucket, params.maskKey, 0, 0);
 
     const cdMask = GenerateColorMIPMasks({
         width: maskImage.width,
@@ -186,24 +195,25 @@ const runMaskSearches = async (params) => {
         mirrorMask: params.mirrorMask,
         mirrorNegMask: false
     });
-
-    let results = [];
     if (!cdMask.maskPositions) {
         // mask is empty
         console.log(`Empty mask image: ${params.maskKey}`);
-        return results;
+        return [];
     }
     const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
+    let results = [];
     for (let i = 0; i < params.libraryKeys.length; i++) {
-        const libMetadata = getLibraryMIPMetadata(params.libraryKeys[i]);
         const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], cdMask.maskpos_st, cdMask.maskpos_ed);
         if (tarImage.data != null) {
             const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
-            if (DEBUG) console.log(`Comparison result with ${params.libraryKeys[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
+            if (DEBUG) {
+                console.log(`Comparison result with ${params.libraryKeys[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
+                logWithMemoryUsage(`Compared ${params.maskKey} with ${params.libraryKeys[i]}`);
+            }
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 results.push({
                     maskMIP: maskMetadata,
-                    libraryMIP: libMetadata,
+                    libraryMIP: getLibraryMIPMetadata(params.libraryKeys[i]),
                     matchingPixels: sr.matchingPixNum,
                     matchingRatio: sr.matchingPixNumToMaskRatio,
                     mirrored: sr.bestScoreMirrored,
@@ -232,15 +242,12 @@ const getLibraryMIPMetadata = (mipKey) => {
     const mipName = mipPath.name;
     const mipExt = mipPath.ext;
     // displayable mips are always png and the thumbnails jpg
-    let mipImageKey;
-    if (!mipExt) {
-        mipImageKey = getDisplayableMIPKey(mipKey) + '.png';
-    } else {
+    const mipImageKey = !mipExt
+        ? getDisplayableMIPKey(mipKey) + '.png'
         // keep in mind that the ext returned by path contains the dot
         // because there are cases when displayable mip does not have the extension
         // we remove it first to guarantee is never there and then append it to guarantee it will always append it
-        mipImageKey = getDisplayableMIPKey(mipKey).replace(new RegExp('\\' + mipExt +  '$'), '') + '.png';
-    }
+        : getDisplayableMIPKey(mipKey).replace(new RegExp('\\' + mipExt +  '$'), '') + '.png';
     const mipThumbnailKey = mipImageKey.replace(new RegExp('\\.(png|tif)$'), '.jpg');
     const mipDirNames = mipKey.split("/");
     const nPathComponents = mipDirNames.length;
@@ -270,7 +277,7 @@ const getLibraryMIPMetadata = (mipKey) => {
 
 const getDisplayableMIPKey = (mipKey) => {
     const reg = /.+(?<mipName>\/[^/]+(-CDM(_[^-]*)?)(?<cdmSuffix>-.*)?\..*$)/;
-    let groups = mipKey.match(reg).groups;
+    const groups = mipKey.match(reg).groups;
     const removableGroupStart = groups && groups.cdmSuffix ? mipKey.indexOf(groups.cdmSuffix) : -1;
     const mipName = removableGroupStart > 0 ? mipKey.substring(0, removableGroupStart) : mipKey;
     return mipName
@@ -319,9 +326,16 @@ const populateEMMetadataFromName = (mipName, mipMetadata) => {
     return mipMetadata;
 };
 
-const writeCDSResults = async (results, tableName, jobId, batchId) => {
+
+const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
     const TTL_DELTA = 60 * 60; // 1 hour TTL
     const ttl = (Math.floor(+new Date() / 1000) + TTL_DELTA).toString();
+
+    const matchedMetadata = cdsResults
+        .map(perMaskMetadata)
+        .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
+
+    const groupedResults = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
 
     const params = {
         TableName: tableName,
@@ -329,9 +343,22 @@ const writeCDSResults = async (results, tableName, jobId, batchId) => {
             "jobId": {S: jobId},
             "batchId": {N: ""+batchId},
             "ttl": {N: ttl},
-            "results": {S: JSON.stringify(results)}
+            "results": {S: JSON.stringify(groupedResults)}
         }
     };
 
+    const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
     return await ddb.putItem(params).promise();
+};
+
+const logWithMemoryUsage = (msg) => {
+    var mem = process.memoryUsage();
+    console.log(msg,
+        `Memory usage:`,
+        `resident: ${mem.rss / 1048576} MB`,
+        `available: ${mem.heapTotal / 1048576} MB`,
+        `used: ${mem.heapUsed / 1048576} MB`,
+        `external: ${mem.external / 1048576} MB`,
+        `arrayBuffers: ${mem.arrayBuffers / 1048576} MB`
+    );
 };
