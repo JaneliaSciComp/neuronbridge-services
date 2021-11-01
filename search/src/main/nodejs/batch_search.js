@@ -30,9 +30,6 @@ export const batchSearch = async (event) => {
         minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
     };
     validateBatchParams(batchParams);
-    if (DEBUG) {
-        logWithMemoryUsage(`Compare ${batchParams.maskKeys.length} masks with mips between [${startIndex},${endIndex}] from ${batchParams.libraries.length} libraries`);
-    }
     const nresults = await executeColorDepthsSearches(batchParams, startIndex, endIndex);
     logWithMemoryUsage(`Completed Batch Id: ${batchId}`); // log final memory stats
     return nresults;
@@ -70,7 +67,7 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
         mirrorMask: batchParams.mirrorMask,
         minMatchingPixRatio: batchParams.minMatchingPixRatio
     }, startIndex, endIndex);
-    logWithMemoryUsage(`Found ${cdsResults.length} matches.`);
+    logWithMemoryUsage(`Batch Id: ${batchParams.batchId} - found ${cdsResults.length} matches.`);
     await writeCDSResults(cdsResults, batchParams.tasksTableName, batchParams.jobId, batchParams.batchId);
     return cdsResults.length;
 };
