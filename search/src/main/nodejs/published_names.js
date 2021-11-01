@@ -136,8 +136,6 @@ export const publishedNames = async event => {
     let lastEvaluatedKey;
     const foundItems = [];
 
-    console.log(queryParams);
-
     do {
       const data = await db.query(queryParams).promise();
       console.log({ConsumedCapacity: data.ConsumedCapacity, lastEvaluatedKey});
