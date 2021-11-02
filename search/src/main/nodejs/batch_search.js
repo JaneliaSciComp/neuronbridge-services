@@ -100,11 +100,11 @@ const groupBy = (...keys) => xs =>
 const updateGB = (...keys) => (acc, e) => {
     const foundI = acc.findIndex( d => keys.every( key => d[key] === e[key]));
     const divided = divProps(...keys)(e);
-  if (foundI === -1) {
-    return [...acc, {...divided.labels, results:[divided.results]}];
-  }
-  acc[foundI].results = [...acc[foundI].results, divided.results];
-  return acc;
+    if (foundI === -1) {
+        return [...acc, {...divided.labels, results: [divided.results]}];
+    }
+    acc[foundI].results = [...acc[foundI].results, divided.results];
+    return acc;
 };
 
 const divProps =(...keys) => e =>
