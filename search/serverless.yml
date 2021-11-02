@@ -534,8 +534,9 @@ functions:
       OLD_CLIENT_ID: ${self:custom.oldClientId}
     events:
       - cognitoUserPool:
-          pool: CognitoUserPool
+          pool: ${self:service}-user-pool-${self:provider.stage}
           trigger: UserMigration
+          existing: true
 
   publishedNames:
     runtime: nodejs14.x
