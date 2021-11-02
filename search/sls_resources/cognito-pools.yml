@@ -9,7 +9,7 @@ Resources:
       AutoVerifiedAttributes:
         - email
       AdminCreateUserConfig:
-        AllowAdminCreateUserOnly: false
+        AllowAdminCreateUserOnly: ${self:custom.enableAccountCreation.${opt:stage}, self:custom.enableAccountCreation.other}
       Schema:
         - Name: migrated
           Required: false

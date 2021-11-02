@@ -46,6 +46,13 @@ custom:
     devpre: v2.3.0
     prodpre: v2.3.0
 
+  enableAccountCreation:
+    dev: false
+    val: false
+    prod: true
+    devpre: false
+    devprod: true
+    other: false
   # we shouldn't need backups on any stage apart from production.
   enableBackups:
     prod: true
