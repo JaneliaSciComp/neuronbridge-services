@@ -8,6 +8,8 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: false
       Schema:
         - Name: migrated
           Required: false
