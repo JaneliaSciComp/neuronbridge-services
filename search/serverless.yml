@@ -299,25 +299,6 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-  cdsStarter:
-    runtime: ${self:custom.nodeJSRuntime}
-    handler: src/main/nodejs/cds_starter.cdsStarter
-    memorySize: 256
-    timeout: 25
-    maximumEventAge: 120
-    maximumRetryAttempts: 1
-    environment:
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      BATCH_SIZE: ${self:custom.searchBatchSize}
-      DEBUG: ${self:custom.debug}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      MAX_PARALLELISM: ${self:custom.searchParallelization}
-      PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
-      REDUCE_FUNCTION: !Ref CombinerLambdaFunction
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      SEARCH_FUNCTION: !Ref SearchLambdaFunction
-      SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
-
   combiner:
     runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_combiner.searchCombiner
@@ -340,13 +321,12 @@ functions:
   search:
     runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/batch_search.batchSearch
-    memorySize: 512
+    memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       DEBUG: ${self:custom.debug}
-      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
       SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
-      NODE_OPTIONS: '--max-old-space-size=400'
+      NODE_OPTIONS: '--max-old-space-size=300'
 
   searchJava:
     package:
