@@ -8,6 +8,8 @@ Resources:
         - email
       AutoVerifiedAttributes:
         - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: ${self:custom.enableAccountCreation.${opt:stage}, self:custom.enableAccountCreation.other}
       Schema:
         - Name: migrated
           Required: false

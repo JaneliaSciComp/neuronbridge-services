@@ -38,11 +38,18 @@ custom:
   searchParallelization: 10000
   cdsTimeoutInSeconds: 300
 
-  # publishedNameTable only exists in prod or dev form,
-  # so if you need to use a different than the one configured, use PUBLISHED_NAMES_TABLE_SUFFIX environment var
+  # the default publishedNamesTableSuffix is configured in the config.yml from the parent directory
+  # and it can be overridden using the PUBLISHED_NAMES_TABLE_SUFFIX environment var
   publishedNamesTableSuffix: ${file(../config.yml):config.publishedNamesTableSuffix}
   publishedNamesTable: janelia-neuronbridge-published${self:custom.publishedNamesTableSuffix}
 
+  enableAccountCreation:
+    dev: false
+    val: false
+    prod: true
+    devpre: false
+    devprod: true
+    other: false
   # we shouldn't need backups on any stage apart from production.
   enableBackups:
     prod: true
@@ -504,8 +511,9 @@ functions:
       OLD_CLIENT_ID: ${self:custom.oldClientId}
     events:
       - cognitoUserPool:
-          pool: CognitoUserPool
+          pool: ${self:service}-user-pool-${self:provider.stage}
           trigger: UserMigration
+          existing: true
 
   publishedNames:
     runtime: ${self:custom.nodeJSRuntime}
