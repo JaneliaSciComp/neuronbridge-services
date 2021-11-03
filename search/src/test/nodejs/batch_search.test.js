@@ -1,12 +1,11 @@
 import * as batch_search from '../../main/nodejs/batch_search';
 import * as load_mip from '../../main/nodejs/load_mip';
+import * as utils from '../../main/nodejs/utils';
 
 test('batchSearch', () => {
     const batchParams = {
         searchPrefix: "janelia-flylight-color-depth-dev",
-        searchKeys: [
-            "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png"
-        ],
+        libraries: ["FlyEM_Hemibrain_v1.1"],
         maskPrefix: "janelia-flylight-color-depth-dev",
         maskKeys: [
             "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png"
@@ -25,7 +24,7 @@ test('batchSearch', () => {
     const search_params = {
         maskKeys: batchParams.maskKeys,
         maskThresholds: batchParams.maskThresholds,
-        libraryKeys: batchParams.searchKeys,
+        libraries: batchParams.libraries,
         awsMasksBucket: batchParams.maskPrefix,
         awsLibrariesBucket: batchParams.searchPrefix,
         awsLibrariesThumbnailsBucket: process.env.SEARCHED_THUMBNAILS_BUCKET || batchParams.searchPrefix,
@@ -76,6 +75,11 @@ test('batchSearch', () => {
     const loadMipRangeSpy = jest.spyOn(load_mip, 'loadMIPRange')
         .mockResolvedValueOnce({data: testdata, width: width, height: height})
         .mockResolvedValueOnce({data: testdata2, width: width, height: height});
+
+    const getKeysSpy = jest.spyOn(utils, 'getObjectWithRetry')
+        .mockResolvedValueOnce([
+            "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png"
+        ])
 
     return batch_search.findAllColorDepthMatches(search_params).then((result) => {
         expect(result[0].matchingPixels).toEqual(20000);
