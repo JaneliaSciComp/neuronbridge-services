@@ -61,7 +61,7 @@ PER_DAY_SEARCH_LIMITS=2 CONCURRENT_SEARCH_LIMITS=2 npm run sls -- deploy -s cgde
 ```
 Note: a negative value for a limit means unlimited.
 
-To update a single function, once you have a seployed stack
+To update a single function, once you have a deployed stack
 
 ```
 npm run sls -- deploy function -f <function_name> -s dev
