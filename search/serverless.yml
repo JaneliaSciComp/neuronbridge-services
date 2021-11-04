@@ -38,22 +38,31 @@ custom:
   searchParallelization: 10000
   cdsTimeoutInSeconds: 300
 
-  # the default publishedNamesTableSuffix is configured in the config.yml from the parent directory
-  # and it can be overridden using the PUBLISHED_NAMES_TABLE_SUFFIX environment var
-  publishedNamesTableSuffix: ${file(../config.yml):config.publishedNamesTableSuffix}
-  publishedNamesTable: janelia-neuronbridge-published${self:custom.publishedNamesTableSuffix}
+  # publishedNameTable uses a data version instead of prod or dev, so we have to map
+  # the data version to the stage in use, using the mapping below.
+  publishedNamesDb:
+    dev: v2.3.0
+    val: v2.2.0
+    prod: v2.3.0
+    devpre: v2.3.0
+    prodpre: v2.3.0
+    other: v2.3.0
+  publishedNamesTable: janelia-neuronbridge-published-${self:custom.publishedNamesDb.${self:provider.stage}, self:custom.publishedNamesDb.other}
 
+  # determines if users can create their own account on a site
   enableAccountCreation:
     dev: false
     val: false
     prod: true
     devpre: false
-    devprod: true
+    prodpre: true
     other: false
+
   # we shouldn't need backups on any stage apart from production.
   enableBackups:
     prod: true
     other: false
+
 
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
