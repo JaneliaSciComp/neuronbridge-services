@@ -14,11 +14,19 @@ custom:
   debug: true
 
   nodeJSRuntime: nodejs14.x
+
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
-  preReleaseDataBucket: ${file(../config.yml):config.preReleaseDataBucket}
-  libraryBucket: ${file(../config.yml):config.libraryBucket}
-  libraryThumbnailsBucket: ${file(../config.yml):config.libraryThumbnailsBucket}
+
+  libraryBucketSuffixes:
+    prod: ''
+    other: -${sls:stage}
+  libraryStageBucket: janelia-flylight-color-depth${self:custom.libraryBucketSuffixes.${self:provider.stage}, self:custom.libraryBucketSuffixes.other}
+  libraryThumbStageBucket: janelia-flylight-color-depth-thumbnails${self:custom.libraryBucketSuffixes.${self:provider.stage}, self:custom.libraryBucketSuffixes.other}
+
+  libraryBucket: ${env:IMAGE_DATA_BUCKET, self:custom.libraryStageBucket}
+  libraryThumbnailsBucket: ${env:IMAGE_THUMBNAILS_BUCKET, self:custom.libraryThumbStageBucket}
+
   pppmBucket: ${file(../config.yml):config.pppmBucket}
 
   oldSearchTable: janelia-neuronbridge-search-table-prod
@@ -34,34 +42,19 @@ custom:
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, 'dev'}
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
   parallelDispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
-  searchBatchSize: 40
-  searchParallelization: 10000
-  cdsTimeoutInSeconds: 300
+  searchBatchSize: ${file(../config.yml):config.searchBatchSize}
+  searchParallelization: ${file(../config.yml):config.searchParallelization}
+  cdsTimeoutInSeconds: ${file(../config.yml):config.cdsTimeoutInSeconds}
 
   # publishedNameTable uses a data version instead of prod or dev, so we have to map
   # the data version to the stage in use, using the mapping below.
-  publishedNamesDb:
-    dev: v2.3.0
-    val: v2.2.0
-    prod: v2.3.0
-    devpre: v2.3.0
-    prodpre: v2.3.0
-    other: v2.3.0
-  publishedNamesTable: janelia-neuronbridge-published-${self:custom.publishedNamesDb.${self:provider.stage}, self:custom.publishedNamesDb.other}
+  publishedNamesTable: janelia-neuronbridge-published-${env:PUBLISHED_NAMES_TABLE_SUFFIX, file(../config.yml):config.publishedNamesDb.${self:provider.stage}, file(../config.yml):config.publishedNamesDb.other}
 
   # determines if users can create their own account on a site
-  enableAccountCreation:
-    dev: false
-    val: false
-    prod: true
-    devpre: false
-    prodpre: true
-    other: false
+  disableAccountCreation: ${file(../config.yml):config.disableAccountCreation}
 
   # we shouldn't need backups on any stage apart from production.
-  enableBackups:
-    prod: true
-    other: false
+  enableBackups: ${file(../config.yml):config.enableBackups}
 
 
   appSync:

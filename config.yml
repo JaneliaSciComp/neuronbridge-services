@@ -2,9 +2,7 @@ config:
   project: NeuronBridge
   stage: ${opt:stage, 'dev'}
   version: 2.0.0
-  libraryBucket: ${env:IMAGE_DATA_BUCKET, 'janelia-flylight-color-depth-dev'}
-  pppmBucket: ${env:PPP_DATA_BUCKET, 'janelia-ppp-match-dev'}
-  libraryThumbnailsBucket: ${env:IMAGE_THUMBNAILS_BUCKET, 'janelia-flylight-color-depth-thumbnails-dev'}
+  pppmBucket: janelia-ppp-match-${sls:stage}
   alignmentTemplatesBucket: ${env:ALIGN_TEMPLATES_BUCKET, 'janelia-flylight-color-depth-dev'}
   searchBucket: janelia-neuronbridge-search-${opt:stage, 'dev'}
   downloadBucket: janelia-neuronbridge-downloads-${opt:stage, 'dev'}
@@ -14,5 +12,30 @@ config:
   perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 5}
   concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 1}
   concurrentAlignmentLimits: ${env:CONCURRENT_ALIGNMENT_LIMITS, 1}
+
+  searchBatchSize: 40
+  searchParallelization: 10000
+  cdsTimeoutInSeconds: 300
+
+  publishedNamesDb:
+    dev: 'v2.3.0'
+    val: 'v2.3.0'
+    prod: 'v2.3.0'
+    devpre: 'v2.3.0-devpre'
+    prodpre: 'v2.3.0-devpre'
+    other: 'v2.3.0'
+  # determines if users can create their own account on a site
+  disableAccountCreation:
+    dev: true
+    val: true
+    prod: false
+    devpre: true
+    prodpre: false
+    other: true
+  # we shouldn't need backups on any stage apart from production.
+  enableBackups:
+    prod: true
+    other: false
+
   tracing: true
   debug: ${env:DEBUG, false}
