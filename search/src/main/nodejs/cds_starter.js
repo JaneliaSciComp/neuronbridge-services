@@ -27,7 +27,7 @@ const DEFAULTS = {
   batchSize: 40
 };
 
-const defaultLibraryBucket = process.env.LIBRARY_BUCKET;
+const dataBucket = process.env.DATA_BUCKET
 const defaultSearchBucket = process.env.SEARCH_BUCKET;
 const parallelDispatchFunction = process.env.PARALLEL_DISPATCH_FUNCTION_ARN;
 const searchFunction = process.env.SEARCH_FUNCTION;
@@ -63,6 +63,7 @@ export const cdsStarter = async (event) => {
     const batchSize = parseInt(searchInputParams.batchSize) || defaultBatchSize();
     const maskKey = `${searchInputFolder}/${searchInputName}`;
     await checkSearchMask(searchId, searchBucket, maskKey);
+    const librariesPaths = await getLibrariesPaths(dataBucket);
     const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
     console.log("Search input params with libraries", searchInputParamsWithLibraries);
     const librariesPromises = await searchInputParamsWithLibraries.libraries
@@ -90,7 +91,7 @@ export const cdsStarter = async (event) => {
             return library;
         })
         .map(async l => {
-            const lsize = await getCount(libraryBucket, l.lkey);
+            const lsize = await getCount(librariesPaths.librariesBucket, l.lkey);
             return await {
                 ...l,
                 lsize: lsize
@@ -124,7 +125,8 @@ export const cdsStarter = async (event) => {
         maxResultsPerMask: searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask,
         searchBucket,
         maskKeys: [maskKey],
-        libraryBucket,
+        libraryBucket: librariesPaths.librariesBucket,
+        libraryThumbnailsBucket: librariesPaths.librariesThumbnailsBucket,
         libraries: libraries.map(l => l.lkey),
         gradientsFolders: libraries.map(l => l.gradientsFolder),
         zgapMasksFolders: libraries.map(l => l.zgapMasksFolder)
@@ -263,4 +265,20 @@ const getCount = async (libraryBucket, libraryKey) => {
         `${libraryKey}/counts_denormalized.json`
     );
     return countMetadata.objectCount;
+};
+
+const getLibrariesPaths = async (dataBucket) => {
+    if (DEBUG) console.log(`Get count from:${dataBucket}:paths.json`);
+    const librariesPath = await getObjectWithRetry(
+        dataBucket,
+        'paths.json'
+    );
+    return {
+        librariesBucket: getBucketNameFromURL(librariesPath.imageryBaseURL),
+        librariesThumbnailsBucket: getBucketNameFromURL(librariesPath.thumbnailsBaseURLs)
+    }
+};
+
+const getBucketNameFromURL = (bucketURL) => {
+    return bucketURL.substring(bucketURL.lastIndexOf('/') + 1);
 };

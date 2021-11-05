@@ -290,7 +290,6 @@ functions:
       DEBUG: ${self:custom.debug}
       JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
       JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
       MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
       MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
@@ -298,6 +297,7 @@ functions:
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
       PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
       REDUCE_FUNCTION: !Ref CombinerLambdaFunction
+      DATA_BUCKET: ${self:custom.dataBucket}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       SEARCH_FUNCTION: !Ref SearchLambdaFunction
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
@@ -334,20 +334,7 @@ functions:
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       DEBUG: ${self:custom.debug}
-      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
       NODE_OPTIONS: '--max-old-space-size=300'
-
-  searchJava:
-    package:
-      artifact: target/neuronbridge-search-${self:custom.version}.jar
-    runtime: java8
-    handler: org.janelia.colordepthsearch.BatchSearch
-    memorySize: 384
-    timeout: ${self:custom.cdsTimeoutInSeconds}
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCHED_IMAGES_BUCKET: ${self:custom.libraryBucket}
-      SEARCHED_THUMBNAILS_BUCKET: ${self:custom.libraryThumbnailsBucket}
 
   searchCopyAlignment:
     runtime: ${self:custom.nodeJSRuntime}

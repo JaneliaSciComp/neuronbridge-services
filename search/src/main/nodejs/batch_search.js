@@ -5,6 +5,7 @@ import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
 import {DEBUG, getObjectWithRetry} from './utils';
 
+
 export const batchSearch = async (event) => {
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
 
@@ -19,6 +20,7 @@ export const batchSearch = async (event) => {
         batchId,
         tasksTableName,
         libraryBucket: jobParameters.libraryBucket,
+        libraryThumbnailsBucket: jobParameters.libraryThumbnailsBucket,
         libraries: jobParameters.libraries,
         searchBucket: jobParameters.searchBucket,
         maskKeys: jobParameters.maskKeys,
@@ -60,7 +62,7 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
         libraries: batchParams.libraries,
         awsMasksBucket: batchParams.searchBucket,
         awsLibrariesBucket: batchParams.libraryBucket,
-        awsLibrariesThumbnailsBucket: process.env.SEARCHED_THUMBNAILS_BUCKET || batchParams.libraryBucket,
+        awsLibrariesThumbnailsBucket: batchParams.libraryThumbnailsBucket,
         dataThreshold: batchParams.dataThreshold,
         pixColorFluctuation: batchParams.pixColorFluctuation,
         xyShift: batchParams.xyShift,
