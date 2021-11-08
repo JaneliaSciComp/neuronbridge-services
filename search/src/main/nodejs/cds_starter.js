@@ -27,7 +27,7 @@ const DEFAULTS = {
   batchSize: 40
 };
 
-const dataBucket = process.env.DATA_BUCKET
+const dataBucket = process.env.DATA_BUCKET;
 const defaultSearchBucket = process.env.SEARCH_BUCKET;
 const parallelDispatchFunction = process.env.PARALLEL_DISPATCH_FUNCTION_ARN;
 const searchFunction = process.env.SEARCH_FUNCTION;
@@ -275,7 +275,7 @@ const getLibrariesPaths = async (dataBucket) => {
     return {
         librariesBucket: getBucketNameFromURL(librariesPath.imageryBaseURL),
         librariesThumbnailsBucket: getBucketNameFromURL(librariesPath.thumbnailsBaseURLs)
-    }
+    };
 };
 
 const getBucketNameFromURL = (bucketURL) => {

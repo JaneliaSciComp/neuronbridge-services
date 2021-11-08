@@ -39,7 +39,7 @@ custom:
   announcementsTable: janelia-neuronbridge-${self:provider.stage}-announcments
 
   # Resources from burst-compute
-  burstComputeStage: ${env:BURST_COMPUTE_STAGE, 'dev'}
+  burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
   parallelDispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
   searchBatchSize: ${file(../config.yml):config.searchBatchSize}
