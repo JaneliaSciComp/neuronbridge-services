@@ -53,7 +53,6 @@ export const cdsStarter = async (event) => {
 
     const searchId = searchInputParams.searchId;
     const searchBucket = searchInputParams.searchBucket || defaultSearchBucket;
-    const libraryBucket = searchInputParams.libraryBucket || defaultLibraryBucket;
 
     const searchInputName = searchInputParams.searchMask
         ? searchInputParams.searchMask
