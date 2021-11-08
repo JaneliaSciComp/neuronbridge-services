@@ -266,12 +266,16 @@ Resources:
                 Resource:
                   - arn:aws:s3:::janelia-ppp-match-prod/*
                   - arn:aws:s3:::janelia-ppp-match-dev/*
+                  - arn:aws:s3:::janelia-ppp-match-dev-pre/*
+                  - arn:aws:s3:::${self:custom.pppmBucket}/*
               - Effect: 'Allow'
                 Action:
                   - "s3:ListBucket"
                 Resource:
                   - arn:aws:s3:::janelia-ppp-match-prod
                   - arn:aws:s3:::janelia-ppp-match-dev
+                  - arn:aws:s3:::janelia-ppp-match-dev-pre
+                  - arn:aws:s3:::${self:custom.pppmBucket}
         - PolicyName: 'NeuronBridge_LibraryBucket_Read'
           PolicyDocument:
             Version: '2012-10-17'
