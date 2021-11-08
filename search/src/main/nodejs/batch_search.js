@@ -5,6 +5,7 @@ import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
 import {DEBUG, getObjectWithRetry} from './utils';
 
+const defaultBatchResultsMinToLive = process.env.BATCH_RESULTS_MIN_TO_LIVE || 20;
 
 export const batchSearch = async (event) => {
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
@@ -327,14 +328,14 @@ const populateEMMetadataFromName = (mipName, mipMetadata) => {
 
 
 const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
-    const TTL_DELTA = 60 * 60; // 1 hour TTL
-    const ttl = (Math.floor(+new Date() / 1000) + TTL_DELTA).toString();
+    const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
+    const ttl = (Math.floor(+new Date() / 1000) + ttlDelta).toString();
 
     const matchedMetadata = cdsResults
         .map(perMaskMetadata)
         .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
 
-    const groupedResults = groupBy("maskId","maskLibraryName", "maskPublishedName", "maskImageURL")(matchedMetadata);
+    const groupedResults = groupBy('maskId', 'maskLibraryName', 'maskPublishedName', 'maskImageURL')(matchedMetadata);
 
     const params = {
         TableName: tableName,
