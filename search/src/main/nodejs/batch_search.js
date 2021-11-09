@@ -1,11 +1,11 @@
-import AWS from 'aws-sdk';
 import path from 'path';
+import zlib from 'zlib';
 
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
-import {DEBUG, getObjectWithRetry} from './utils';
+import {DEBUG, getObjectWithRetry, putDbItemWithRetry} from './utils';
 
-const defaultBatchResultsMinToLive = process.env.BATCH_RESULTS_MIN_TO_LIVE || 20;
+const defaultBatchResultsMinToLive = process.env.BATCH_RESULTS_MIN_TO_LIVE || 15; // default ttl for batch results 15min if not set in the config
 
 export const batchSearch = async (event) => {
     const { tasksTableName, jobId, batchId, startIndex, endIndex, jobParameters } = event;
@@ -101,7 +101,7 @@ const groupBy = (...keys) => xs =>
     xs.reduce(updateGB(...keys), []);
 
 const updateGB = (...keys) => (acc, e) => {
-    const foundI = acc.findIndex( d => keys.every( key => d[key] === e[key]));
+    const foundI = acc.findIndex(d => keys.every( key => d[key] === e[key]));
     const divided = divProps(...keys)(e);
     if (foundI === -1) {
         return [...acc, {...divided.labels, results: [divided.results]}];
@@ -336,19 +336,20 @@ const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
         .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
 
     const groupedResults = groupBy('maskId', 'maskLibraryName', 'maskPublishedName', 'maskImageURL')(matchedMetadata);
+    const resultsSValue = JSON.stringify(groupedResults);
 
-    const params = {
-        TableName: tableName,
-        Item: {
-            "jobId": {S: jobId},
-            "batchId": {N: ""+batchId},
-            "ttl": {N: ttl},
-            "results": {S: JSON.stringify(groupedResults)}
-        }
+    const resultsAttr = resultsSValue.length < 4096
+        ? { results: {S: resultsSValue} }
+        : { resultsMimeType: {S: 'application/gzip'}, results: {B: zlib.gzipSync(resultsSValue)} };
+
+    const item = {
+        "jobId": {S: jobId},
+        "batchId": {N: ""+batchId},
+        "ttl": {N: ttl},
+        ...resultsAttr
     };
 
-    const ddb = new AWS.DynamoDB({apiVersion: '2012-08-10'});
-    return await ddb.putItem(params).promise();
+    return await putDbItemWithRetry(tableName, item);
 };
 
 const logWithMemoryUsage = (msg) => {

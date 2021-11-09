@@ -20,7 +20,7 @@ custom:
 
   libraryBucketSuffixes:
     prod: ''
-    other: -${sls:stage}
+    other: -${self:provider.stage}
   libraryStageBucket: janelia-flylight-color-depth${self:custom.libraryBucketSuffixes.${self:provider.stage}, self:custom.libraryBucketSuffixes.other}
   libraryThumbStageBucket: janelia-flylight-color-depth-thumbnails${self:custom.libraryBucketSuffixes.${self:provider.stage}, self:custom.libraryBucketSuffixes.other}
 

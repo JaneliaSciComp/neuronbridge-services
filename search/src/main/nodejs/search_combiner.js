@@ -2,14 +2,14 @@ import AWS from 'aws-sdk';
 import {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey} from './searchutils';
 import {streamObject, removeKey, DEBUG} from './utils';
 import {updateSearchMetadata, SEARCH_COMPLETED} from './awsappsyncutils';
+import zlib from 'zlib';
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
 const mergeBatchResults = async (searchId, items, allBatchResults) => {
     for(const item of items) {
         try {
-            const batchResults = JSON.parse(item.results);
-            batchResults.forEach(batchResult => {
+            extractResults(item).forEach(batchResult => {
                 if (allBatchResults[batchResult.maskId]) {
                     allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
                 } else {
@@ -26,6 +26,13 @@ const mergeBatchResults = async (searchId, items, allBatchResults) => {
             throw e;
         }
     }
+};
+
+const extractResults = (item) => {
+    const resultsSValue = item.resultsMimeType === 'application/gzip'
+        ? zlib.gunzipSync(item.results)
+        : item.results;
+    return JSON.parse(resultsSValue);
 };
 
 const mergeResults = (rs1, rs2) => {
@@ -47,7 +54,7 @@ export const searchCombiner = async (event) => {
     if (DEBUG) console.log('Input event:', JSON.stringify(event));
 
     // Parameters
-    const { jobId, tasksTableName, timedOut, completed, withErrors } = event;
+    const { jobId, tasksTableName, timedOut, completed, withErrors, fatalErrors } = event;
     const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
     const fullSearchInputName = maskKeys[0];
     const searchInputName = fullSearchInputName.substring(fullSearchInputName.lastIndexOf("/")+1);
@@ -55,7 +62,19 @@ export const searchCombiner = async (event) => {
     let allBatchResults = {};
 
     const now = new Date();
-    if (timedOut) {
+    if (fatalErrors && fatalErrors.length > 0) {
+        // if there are fatalErrors do not try any reducing step because
+        // the process had already been invoked and most likely failed
+        // so simply report the error just in case it has not been reported yet
+        console.log(`Job ${jobId} - ${searchId} completed with fatal errors`);
+        await updateSearchMetadata({
+            id: searchId,
+            step: SEARCH_COMPLETED,
+            errorMessage: "Color depth search completed with fatal errors",
+            cdsFinished: now.toISOString()
+        });
+        return event;
+    } else if (timedOut) {
         console.log(`Job ${jobId} - ${searchId} timed out`);
         await updateSearchMetadata({
             id: searchId,

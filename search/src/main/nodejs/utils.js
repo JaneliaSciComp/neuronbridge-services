@@ -11,7 +11,8 @@ const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
 const stepFunction = new AWS.StepFunctions();
 const cognitoISP = new AWS.CognitoIdentityServiceProvider();
-const db = new AWS.DynamoDB.DocumentClient();
+const dbClient = new AWS.DynamoDB.DocumentClient();
+const db = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
 export const DEBUG = Boolean(process.env.DEBUG);
 
@@ -339,7 +340,7 @@ async function getSearchRecords(ownerId, TableName) {
     };
 
     try {
-        const data = await db.scan(params).promise();
+        const data = await dbClient.scan(params).promise();
         if (data.Count > 0) {
             return data.Items;
         }
@@ -350,21 +351,37 @@ async function getSearchRecords(ownerId, TableName) {
     }
 }
 
-
 export const searchesToMigrate = async (username, oldUsernames) => {
-  // check the ids in the new dynamo db table vs the old.
-  // if old table contains any ids that are not in the new
-  // table, then migration is required.
-  const oldSearches = await getSearchRecords(
-    oldUsernames[0],
-    process.env.OLD_SEARCH_TABLE
-  );
-  console.log(oldSearches);
-  const currentSearches = await getSearchRecords(username, process.env.SEARCH_TABLE);
-  const currentLookup = currentSearches.map(search => search.id);
-  const notMigrated = oldSearches.filter(
-    search => !currentLookup.includes(search.id)
-  );
-  console.log(notMigrated);
-  return notMigrated;
+    // check the ids in the new dynamo db table vs the old.
+    // if old table contains any ids that are not in the new
+    // table, then migration is required.
+    const oldSearches = await getSearchRecords(
+        oldUsernames[0],
+        process.env.OLD_SEARCH_TABLE
+    );
+    console.log(oldSearches);
+    const currentSearches = await getSearchRecords(username, process.env.SEARCH_TABLE);
+    const currentLookup = currentSearches.map(search => search.id);
+    const notMigrated = oldSearches.filter(
+        search => !currentLookup.includes(search.id)
+    );
+    console.log(notMigrated);
+    return notMigrated;
+};
+
+export const putDbItemWithRetry = async (tableName, item) => {
+    return await backOff(() => putDbItem(tableName, item), {
+        ...retryOptions,
+        retry: (e, attemptNumber) => {
+            console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} to insert ${item} -> ${tableName}`, e);
+            return true;
+        }
+    });
+};
+
+export const putDbItem = async (tableName, item) => {
+    return await db.putItem({
+        TableName: tableName,
+        Item: item
+    }).promise();
 };

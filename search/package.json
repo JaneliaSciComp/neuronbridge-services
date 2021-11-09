@@ -26,7 +26,8 @@
     "react-native": "^0.59.10",
     "stream": "0.0.2",
     "upng-js": "^2.1.0",
-    "uuid": "^8.2.0"
+    "uuid": "^8.2.0",
+    "zlib": "^1.0.5"
   },
   "devDependencies": {
     "@babel/node": "^7.12.1",
