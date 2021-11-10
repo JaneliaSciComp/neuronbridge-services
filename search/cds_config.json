@@ -19,7 +19,7 @@
       "FlyLight_Gen1_MCFO"
     ],
     "emLibraries": [
-      "FlyEM_VNC_v0.5"
+      "FlyEM_VNC_v0.6"
     ],
     "searchFolder": "searchable_neurons"
   }
