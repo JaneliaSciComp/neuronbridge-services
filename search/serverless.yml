@@ -27,7 +27,7 @@ custom:
   libraryBucket: ${env:IMAGE_DATA_BUCKET, self:custom.libraryStageBucket}
   libraryThumbnailsBucket: ${env:IMAGE_THUMBNAILS_BUCKET, self:custom.libraryThumbStageBucket}
 
-  pppmBucket: ${file(../config.yml):config.pppmBucket}
+  pppmBucket: ${env:PPPM_DATA_BUCKET, file(../config.yml):config.pppmBucket}
 
   oldSearchTable: janelia-neuronbridge-search-table-prod
   oldSearchBucket: janelia-neuronbridge-searches-prod
