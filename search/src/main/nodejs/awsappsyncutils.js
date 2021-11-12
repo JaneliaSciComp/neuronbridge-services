@@ -180,6 +180,7 @@ export const createSearchMetadata = async (searchData) => {
         computedMIPs
         errorMessage
         alignmentErrorMessage
+        anatomicalRegion
       }
     }`),
     variables: {

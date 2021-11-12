@@ -76,7 +76,8 @@ async function createNewSearchFromImage(image, event, identityId) {
     searchDir: newSearchId,
     upload: originalImage,
     simulateMIPGeneration: false,
-    uploadThumbnail: newThumbnailName
+    uploadThumbnail: newThumbnailName,
+    anatomicalRegion: image.anatomicalRegion
   };
   // save new data object- in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
