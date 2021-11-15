@@ -208,6 +208,7 @@ export const updateSearchMetadata = async (searchData) => {
                 uploadThumbnail
                 searchType
                 algorithm
+                anatomicalRegion
                 maskThreshold
                 dataThreshold
                 pixColorFluctuation

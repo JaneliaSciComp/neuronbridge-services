@@ -222,6 +222,7 @@ input UpdateSearchInput {
     alignStarted: AWSDateTime
     alignFinished: AWSDateTime
     alignmentSize: Int
+    anatomicalRegion: String
     displayableMask: String
     searchMask: String
     computedMIPs: [String]
