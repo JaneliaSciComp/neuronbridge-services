@@ -20,7 +20,7 @@ async function getSearchRecord(searchId) {
 }
 
 async function createDefaultChannel(searchData) {
-  const { id, upload, searchInputFolder, identityId, searchDir } = searchData;
+  const { id, upload, searchInputFolder, identityId, searchDir, anatomicalRegion } = searchData;
   // TODO: add a check for the image extension here. We should only be copying
   // png, jpeg, bmp, tiff or gif images that are already aligned. The 3D stacks
   // need to go through the aligner which will output the channels for masking
@@ -65,7 +65,7 @@ async function createDefaultChannel(searchData) {
   // create a thumbnail of the uploaded image
   const thumbnailName = "upload_thumbnail.png";
   const original = await Jimp.read(imageContent);
-  const thumbnail = original.scaleToFit(150, 70);
+  const thumbnail = anatomicalRegion === "vnc" ? original.scaleToFit(70, 150) : original.scaleToFit(150, 70);
   const thumbnailBuffer = await thumbnail.getBufferAsync(pngMime);
   const thumbnailPath = `private/${identityId}/${searchDir}/${thumbnailName}`;
   await putS3Content(searchBucket, thumbnailPath, pngMime, thumbnailBuffer);
