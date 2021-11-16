@@ -6,6 +6,8 @@ import zlib from 'zlib';
 
 var docClient = new AWS.DynamoDB.DocumentClient();
 
+const maxResultsLength = process.env.MAX_CUSTOM_RESULTS || -1;
+
 const mergeBatchResults = async (searchId, items, allBatchResults) => {
     for(const item of items) {
         try {
@@ -37,12 +39,14 @@ const extractResults = (item) => {
 
 const mergeResults = (rs1, rs2) => {
     if (rs1.maskId === rs2.maskId) {
+        const mergedResults = [...rs1.results, ...rs2.results];
+        mergedResults.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
         return {
             maskId: rs1.maskId,
             maskPublishedName: rs1.maskPublishedName,
             maskLibraryName: rs1.maskLibraryName,
             maskImageURL: rs1.maskImageURL,
-            results: [...rs1.results, ...rs2.results]
+            results: maxResultsLength > 0 ? mergedResults.slice(0, maxResultsLength) : mergedResults
         };
     } else {
         console.log(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);

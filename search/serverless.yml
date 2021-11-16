@@ -56,6 +56,7 @@ custom:
   # we shouldn't need backups on any stage apart from production.
   enableBackups: ${file(../config.yml):config.enableBackups}
 
+  maxCustomColorDepthSearchResults: ${env:MAX_CUSTOM_RESULTS, 5000}
 
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
@@ -317,6 +318,7 @@ functions:
       DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+      MAX_CUSTOM_RESULTS: ${self:custom.maxCustomColorDepthSearchResults}
 
   monitor:
     runtime: ${self:custom.nodeJSRuntime}
