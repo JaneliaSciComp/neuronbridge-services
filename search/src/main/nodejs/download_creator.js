@@ -53,7 +53,7 @@ async function getPrecomputedSearchResults(searchId, ids, algo="cdm") {
   return [resultsObj.results.filter(result => ids.includes(result.id)), resultsObj.maskLibraryName];
 }
 
-const getStream = (key, algo) => {
+const getReadStream = (key, algo) => {
   let streamCreated = false;
 
   const passThroughStream = new PassThrough();
@@ -83,13 +83,13 @@ const getStream = (key, algo) => {
 
 const streamTo = (key, callback) => {
   var passthrough = new PassThrough();
-  s3.upload(
-    {
-      Bucket: downloadBucket,
-      Key: key,
-      Body: passthrough,
-      ContentType: "application/zip"
-    },
+  const uploadParams = {
+    Bucket: downloadBucket,
+    Key: key,
+    Body: passthrough,
+    ContentType: "application/zip"
+  };
+  s3.upload(uploadParams,
     (err, data) => {
       if (err) {
         console.error("upload error", err);
@@ -125,23 +125,10 @@ export const downloadCreator = async (event) => {
 
   // Loop over the ids and generate streams for each one.
   await new Promise((resolve, reject) => {
-    // Create an archive that streams directly to the download bucket.
-    const archive = archiver("zip");
-    archive
-      .on("error", error => {
-        console.log("Archive Error");
-        throw new Error(
-          `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
-        );
-      })
-      .on("progress", data => {
-        console.log("archive event: progress", data);
-      });
     const writeStream = streamTo(downloadTarget, resolve);
 
     writeStream.on("close", () => {
       console.log(`✅  close write stream`);
-      resolve();
     });
     writeStream.on("end", () => {
       console.log(`🛑  end write stream`);
@@ -155,6 +142,19 @@ export const downloadCreator = async (event) => {
       reject();
     });
 
+    // Create an archive that streams directly to the download bucket.
+    const archive = archiver("zip");
+    archive
+      .on("error", error => {
+        console.log("Archive Error");
+        throw new Error(
+          `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
+        );
+      })
+      .on("progress", data => {
+        console.log("archive event: progress", data);
+      });
+
     archive.pipe(writeStream);
 
     chosenResults.forEach(result => {
@@ -163,11 +163,12 @@ export const downloadCreator = async (event) => {
       // Use the information in the resultSet object to find the image path
       // Pass the image from the source bucket into the download bucket via
       // the archiver.
-      archive.append(getStream(filePath, algo), { name: fileName });
+      console.log(`ℹ️  appending ${fileName} to archive`);
+      archive.append(getReadStream(filePath, algo), { name: fileName });
     });
 
     // Once all image transfers are complete, close the archive
-    console.log(`⭐  finalizing write stream`);
+    console.log(`⭐  all files added to write stream`);
     archive.finalize();
   }).catch(error => {
     console.log("Promise Error");

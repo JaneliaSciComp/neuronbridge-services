@@ -404,9 +404,7 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
   downloadCreator:
-    # this lambda does not currently work on node v 14, so it needs to
-    # stay on version 12
-    runtime: nodejs12.x # ${self:custom.nodeJSRuntime}
+    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/download_creator.downloadCreator
     memorySize: 256
     timeout: 200
