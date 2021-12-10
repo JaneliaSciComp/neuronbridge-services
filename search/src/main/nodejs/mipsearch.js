@@ -356,6 +356,7 @@ const getMaskPosArray = (mskarray, width, height, thresm) => {
 export const GenerateColorMIPMasks = (params) => {
     let i;
 
+    console.log("Generate mask with params:", params);
     const width = params.width;
     const height = params.height;
     const queryImage = params.queryImage;
@@ -373,18 +374,22 @@ export const GenerateColorMIPMasks = (params) => {
 
     // shifting
     const targetMasksList = generateShiftedMasks(maskPositions, xyshift, width, height);
+    const nMasks = targetMasksList ? targetMasksList.length : 0;
     const negTargetMasksList = negMaskPositions
         ? generateShiftedMasks(negMaskPositions, xyshift, width, height)
         : null;
+    const nNegTargetMasks = negTargetMasksList ? negTargetMasksList.length : 0;
 
     // mirroring
     const mirrorTargetMasksList = mirrorMask
         ? targetMasksList.map(m => generateMirroredMask(m, width))
         : null;
+    const nMirroredMasks = mirrorTargetMasksList ? mirrorTargetMasksList.length : 0;
 
     const negMirrorTargetMasksList = mirrorMask && negTargetMasksList
         ? negTargetMasksList.map(m => generateMirroredMask(m, width))
         : null;
+    const nNegMirrorMasks = negMirrorTargetMasksList ? negMirrorTargetMasksList.length : 0;
 
     let maskpos_st = width * height;
     let maskpos_ed = 0;
@@ -411,6 +416,7 @@ export const GenerateColorMIPMasks = (params) => {
         }
     }
 
+    console.log(`Use ${nMasks} target masks, ${nMirroredMasks} mirrored masks, ${nNegTargetMasks} negative masks, ${nNegMirrorMasks} negative mirrored masks`);
     return {
         queryImage: queryImage,
         negQueryImage: negQueryImage,

@@ -14,13 +14,6 @@ import {
 import cdsConfig from '../../../cds_config.json';
 
 const DEFAULTS = {
-  maskThreshold: 100,
-  dataThreshold: 100,
-  pixColorFluctuation: 2.0,
-  xyShift: 2,
-  mirrorMask: true,
-  minMatchingPixRatio: 2,
-  maxResultsPerMask: -1,
   maxParallelism: 3000,
   perDaySearchLimits: 1,
   concurrentSearchLimits: 1,
@@ -115,13 +108,13 @@ export const cdsStarter = async (event) => {
 
     const jobParams = {
         searchId,
-        dataThreshold: parseInt(searchInputParams.dataThreshold) || DEFAULTS.dataThreshold,
-        pixColorFluctuation: parseFloat(searchInputParams.pixColorFluctuation) || DEFAULTS.pixColorFluctuation,
-        xyShift: parseInt(searchInputParams.xyShift) || DEFAULTS.xyShift,
-        mirrorMask: searchInputParams.mirrorMask || DEFAULTS.mirrorMask,
-        minMatchingPixRatio: searchInputParams.minMatchingPixRatio || DEFAULTS.minMatchingPixRatio,
-        maskThresholds: [parseInt(searchInputParams.maskThreshold) || DEFAULTS.maskThreshold],
-        maxResultsPerMask: searchInputParams.maxResultsPerMask || DEFAULTS.maxResultsPerMask,
+        dataThreshold: parseInt(searchInputParams.dataThreshold),
+        pixColorFluctuation: parseFloat(searchInputParams.pixColorFluctuation),
+        xyShift: parseInt(searchInputParams.xyShift),
+        mirrorMask: searchInputParams.mirrorMask,
+        minMatchingPixRatio: searchInputParams.minMatchingPixRatio,
+        maskThresholds: [parseInt(searchInputParams.maskThreshold)],
+        maxResultsPerMask: searchInputParams.maxResultsPerMask,
         searchBucket,
         maskKeys: [maskKey],
         libraryBucket: librariesPaths.librariesBucket,
