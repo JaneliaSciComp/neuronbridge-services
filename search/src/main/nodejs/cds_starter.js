@@ -2,6 +2,7 @@ import {getSearchMetadataKey} from './searchutils';
 import {
     DEBUG,
     getObjectWithRetry,
+    getS3ContentWithRetry,
     invokeFunction,
     putObject,
     verifyKey
@@ -260,10 +261,16 @@ const getCount = async (libraryBucket, libraryKey) => {
 };
 
 const getLibrariesPaths = async (dataBucket) => {
-    if (DEBUG) console.log(`Get count from:${dataBucket}:paths.json`);
+    if (DEBUG) console.log(`Get libraries location based on :${dataBucket}:current.txt`);
+    const currentVersionBody = await getS3ContentWithRetry(
+        dataBucket,
+        'current.txt'
+    );
+    const currentVersion = currentVersionBody.toString().toString().trim();
+    if (DEBUG) console.log(`Current version set to: ${currentVersion}`);
     const librariesPath = await getObjectWithRetry(
         dataBucket,
-        'paths.json'
+        `${currentVersion}/config.json`
     );
     return {
         librariesBucket: getBucketNameFromURL(librariesPath.imageryBaseURL),
