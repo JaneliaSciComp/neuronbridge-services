@@ -8,9 +8,9 @@
     ## [Start] Static Group Authorization Checks **
     #set($isStaticGroupAuthorized = $util.defaultIfNull(
               $isStaticGroupAuthorized, false))
-    ## Authorization rule: { allow: groups, groups: ["neuronbridge-admin"], groupClaim: "cognito:groups" } **
+    ## Authorization rule: { allow: groups, groups: ["neuronbridge-admins"], groupClaim: "cognito:groups" } **
     #set( $userGroups = $util.defaultIfNull($ctx.identity.claims.get("cognito:groups"), []) )
-    #set( $allowedGroups = ["neuronbridge-admin"] )
+    #set( $allowedGroups = ["neuronbridge-admins"] )
     #foreach( $userGroup in $userGroups )
       #if( $allowedGroups.contains($userGroup) )
         #set( $isStaticGroupAuthorized = true )
