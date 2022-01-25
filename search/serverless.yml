@@ -20,6 +20,7 @@ custom:
 
   libraryBucketSuffixes:
     prod: ''
+    val: ''
     other: -${self:provider.stage}
   libraryStageBucket: janelia-flylight-color-depth${self:custom.libraryBucketSuffixes.${self:provider.stage}, self:custom.libraryBucketSuffixes.other}
   libraryThumbStageBucket: janelia-flylight-color-depth-thumbnails${self:custom.libraryBucketSuffixes.${self:provider.stage}, self:custom.libraryBucketSuffixes.other}
@@ -139,22 +140,38 @@ provider:
           Action:
             - s3:GetObject
             - s3:GetObjectTagging
+          Resource:
+            - "arn:aws:s3:::janelia-flylight-color-depth/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth-prodpre/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth-dev/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth-devpre/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails-dev/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails-devpre/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails-prodpre/*"
+            - "arn:aws:s3:::${self:custom.searchBucket}/*"
+            - "arn:aws:s3:::${self:custom.downloadBucket}/*"
+            - "arn:aws:s3:::${self:custom.oldSearchBucket}/*"
+            - "arn:aws:s3:::${self:custom.dataBucket}/*"
+            - "arn:aws:s3:::${self:custom.pppmBucket}/*"
+        - Effect: Allow
+          Action:
             - s3:ListBucket
           Resource:
-            - "arn:aws:s3:::${self:custom.libraryBucket}"
-            - "arn:aws:s3:::${self:custom.libraryBucket}/*"
-            - "arn:aws:s3:::${self:custom.libraryThumbnailsBucket}"
-            - "arn:aws:s3:::${self:custom.libraryThumbnailsBucket}/*"
+            - "arn:aws:s3:::janelia-flylight-color-depth"
+            - "arn:aws:s3:::janelia-flylight-color-depth-prodpre"
+            - "arn:aws:s3:::janelia-flylight-color-depth-dev"
+            - "arn:aws:s3:::janelia-flylight-color-depth-devpre"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails-dev"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails-devpre"
+            - "arn:aws:s3:::janelia-flylight-color-depth-thumbnails-prodpre"
             - "arn:aws:s3:::${self:custom.searchBucket}"
-            - "arn:aws:s3:::${self:custom.searchBucket}/*"
             - "arn:aws:s3:::${self:custom.downloadBucket}"
-            - "arn:aws:s3:::${self:custom.downloadBucket}/*"
             - "arn:aws:s3:::${self:custom.oldSearchBucket}"
-            - "arn:aws:s3:::${self:custom.oldSearchBucket}/*"
             - "arn:aws:s3:::${self:custom.dataBucket}"
-            - "arn:aws:s3:::${self:custom.dataBucket}/*"
             - "arn:aws:s3:::${self:custom.pppmBucket}"
-            - "arn:aws:s3:::${self:custom.pppmBucket}/*"
+
         - Effect: Allow
           Action:
             - s3:PutObject
