@@ -37,6 +37,7 @@ custom:
   searchBucket: ${file(../config.yml):config.searchBucket}
   searchTable: janelia-neuronbridge-${self:provider.stage}-search-table
   announcementsTable: janelia-neuronbridge-${self:provider.stage}-announcments
+  preferencesTable: janelia-neuronbridge-${self:provider.stage}-preferences
 
   # Resources from burst-compute
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
@@ -521,6 +522,31 @@ functions:
       - httpApi:
           method: GET
           path: /published_names
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+  preferences:
+    runtime: nodejs14.x
+    timeout: 10
+    role: preferencesRole
+    handler: src/main/nodejs/preferences.handler
+    environment:
+      DEBUG: ${self:custom.debug}
+      TABLE: ${self:custom.preferencesTable}
+    events:
+      - httpApi:
+          method: GET
+          path: /preferences
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+      - httpApi:
+          method: POST
+          path: /preferences
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+      - httpApi:
+          method: DELETE
+          path: /preferences
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
