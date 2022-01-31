@@ -43,8 +43,6 @@ async function getAnnouncements(args) {
     params.ExpressionAttributeValues[":num"] = date;
   }
 
-  console.log(params);
-
   let lastEvaluatedKey;
   const foundItems = [];
 
