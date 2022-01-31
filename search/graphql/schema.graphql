@@ -5,9 +5,9 @@
 }
 
 type Query {
-    getSearch(id: ID!): Search @aws_cognito_user_pools @aws_iam @aws_auth(cognito_groups: ["neuronbridge-admin"])
+    getSearch(id: ID!): Search @aws_cognito_user_pools @aws_iam @aws_auth(cognito_groups: ["neuronbridge-admins"])
     listSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam
-    listAllSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam @aws_auth(cognito_groups: ["neuronbridge-admin"])
+    listAllSearches(filter: TableSearchFilterInput, limit: Int, nextToken: String): SearchConnection @aws_cognito_user_pools @aws_iam @aws_auth(cognito_groups: ["neuronbridge-admins"])
 }
 
 type Mutation {
