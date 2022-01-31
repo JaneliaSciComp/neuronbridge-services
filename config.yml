@@ -17,7 +17,7 @@ config:
   cdsTimeoutInSeconds: 300
 
   publishedNamesDb:
-    dev: 'v2.3.0'
+    dev: 'v2.4.0'
     val: 'v2.3.0'
     prod: 'v2.3.0'
     devpre: 'v2.3.0-devpre'
