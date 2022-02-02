@@ -14,7 +14,7 @@ config:
 
   searchBatchSize: 40
   searchParallelization: 10000
-  cdsTimeoutInSeconds: 300
+  cdsTimeoutInSeconds: 400
 
   publishedNamesDb:
     dev: 'v2.4.0'
