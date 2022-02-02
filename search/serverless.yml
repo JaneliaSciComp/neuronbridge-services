@@ -592,6 +592,24 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
+  mailinglist:
+    runtime: nodejs14.x
+    timeout: 10
+    role: mailinglistRole
+    handler: src/main/nodejs/mailinglist.handler
+    environment:
+      DEBUG: ${self:custom.debug}
+      TABLE: ${self:custom.preferencesTable}
+      COGNITOPOOLID:
+        Ref: CognitoUserPool
+    events:
+      - httpApi:
+          method: GET
+          path: /mailinglist
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
+
 stepFunctions:
   validate: true # enable pre-deployment definition validation
   stateMachines:
