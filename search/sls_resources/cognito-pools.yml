@@ -131,6 +131,28 @@ Resources:
     Properties:
       IdentityPoolId:
         Ref: CognitoIdentityPool
+      RoleMappings:
+        RoleMapping:
+          AmbiguousRoleResolution: AuthenticatedRole
+          IdentityProvider:
+            { Fn::Join: [
+              "",
+              [
+                "cognito-idp.",
+                {
+                  Ref: "AWS::Region"
+                },
+                ".amazonaws.com/",
+                {
+                  Ref: "CognitoUserPool"
+                },
+                ":",
+                {
+                  Ref: CognitoUserPoolClient
+                }
+              ]
+            ]}
+          Type: Token
       Roles:
         authenticated:
           Fn::GetAtt: [CognitoAuthRole, Arn]
@@ -288,9 +310,6 @@ Resources:
                   - arn:aws:s3:::${self:custom.libraryBucket}
                   - arn:aws:s3:::${self:custom.libraryThumbnailsBucket}
 
-
-
-
   CognitoAdminRole:
     Type: AWS::IAM::Role
     Properties:
@@ -330,6 +349,54 @@ Resources:
                 Resource:
                   - arn:aws:s3:::${self:custom.searchBucket}
                   - arn:aws:s3:::${self:custom.downloadBucket}
+        - PolicyName: 'NeuronBridge_DataBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.dataBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.dataBucket}
+        - PolicyName: 'NeuronBridge_PPPMBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.pppmBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.pppmBucket}
+        - PolicyName: 'NeuronBridge_LibraryBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.libraryBucket}/*
+                  - arn:aws:s3:::${self:custom.libraryThumbnailsBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.libraryBucket}
+                  - arn:aws:s3:::${self:custom.libraryThumbnailsBucket}
+
 
   CognitoUnAuthRole:
     Type: AWS::IAM::Role
