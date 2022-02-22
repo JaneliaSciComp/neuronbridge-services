@@ -4,8 +4,7 @@
     "alignmentSpace": "JRC2018_Unisex_20x_HR",
     "lmLibraries": [
       "FlyLight_Split-GAL4_Drivers",
-      "FlyLight_Gen1_MCFO",
-      "FlyLight_Annotator_Gen1_MCFO"
+      "FlyLight_Gen1_MCFO"
     ],
     "emLibraries": [
       "FlyEM_Hemibrain_v1.2.1"
