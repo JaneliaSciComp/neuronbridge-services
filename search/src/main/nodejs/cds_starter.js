@@ -260,11 +260,13 @@ const getCount = async (libraryBucket, libraryKey) => {
     return countMetadata.objectCount;
 };
 
+const dataFile = process.env.STAGE.match(/^prod/) ? "current.txt" : "next.txt";
+
 const getLibrariesPaths = async (dataBucket) => {
-    if (DEBUG) console.log(`Get libraries location based on :${dataBucket}:current.txt`);
+    if (DEBUG) console.log(`Get libraries location based on :${dataBucket}:${dataFile}`);
     const currentVersionBody = await getS3ContentWithRetry(
         dataBucket,
-        'current.txt'
+        dataFile
     );
     const currentVersion = currentVersionBody.toString().toString().trim();
     if (DEBUG) console.log(`Current version set to: ${currentVersion}`);

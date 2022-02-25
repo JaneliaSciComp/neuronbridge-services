@@ -322,6 +322,7 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       SEARCH_FUNCTION: !Ref SearchLambdaFunction
       SEARCH_TIMEOUT_SECS: ${self:custom.cdsTimeoutInSeconds}
+      STAGE: ${self:provider.stage}
     events:
       - httpApi:
           method: POST
