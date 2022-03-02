@@ -148,6 +148,7 @@ const perMaskMetadata = (params) => {
 
         matchingPixels: params.matchingPixels,
         matchingRatio: params.matchingRatio,
+        mirrored: params.mirrored,
         gradientAreaGap: params.gradientAreaGap,
         normalizedScore: params.matchingPixels
     };
@@ -211,7 +212,7 @@ const runMaskSearches = async (params) => {
                 logWithMemoryUsage(`Compared ${params.maskKey} with ${params.libraryKeys[i]}`);
             }
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
-                results.push({
+                const r = {
                     maskMIP: maskMetadata,
                     libraryMIP: getLibraryMIPMetadata(params.libraryKeys[i]),
                     matchingPixels: sr.matchingPixNum,
@@ -220,7 +221,11 @@ const runMaskSearches = async (params) => {
                     isMatch: true,
                     isError: false,
                     gradientAreaGap: -1
-                });
+                };
+                if (DEBUG) {
+                    console.log(`Match found between ${params.maskKey} and ${params.libraryKeys[i]}`, r);
+                }
+                results.push(r);
             }
         }
     }
