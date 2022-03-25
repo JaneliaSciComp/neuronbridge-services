@@ -128,7 +128,14 @@ const getNewRecords = async (e) => {
 };
 
 const startColorDepthSearch = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits, s => s.step === SEARCH_IN_PROGRESS);
+    const limitsMessage = await checkLimits(searchParams,
+                                            concurrentColorDepthSearchLimits,
+                                            perDayColorDepthSearchLimits,
+                                {
+                                                singular: 'search',
+                                                plural: 'searches'
+                                            },
+                                s => s.step === SEARCH_IN_PROGRESS);
     if (limitsMessage) {
         console.log(`No color depth search started because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
@@ -184,12 +191,19 @@ const createDisplayableMask = async (bucket, prefix, key) => {
 };
 
 const startAlignment = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams, concurrentAlignmentLimits, perDayAlignmentLimits, s => s.step === ALIGNMENT_JOB_SUBMITTED);
+    const limitsMessage = await checkLimits(searchParams,
+                                            concurrentAlignmentLimits,
+                                            perDayAlignmentLimits,
+                                {
+                                                singular: 'alignment',
+                                                plural: 'alignments'
+                                            },
+                                s => s.step === ALIGNMENT_JOB_SUBMITTED);
     if (limitsMessage) {
         console.log(`No job invoked because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
             id: searchParams.id || searchParams.searchId,
-            errorMessage: `Alignment was not started because ${limitsMessage}`
+            errorMessage: `Your alignment could not be started because you are already running ${limitsMessage} `
         });
         return {
             statusCode: 403,
@@ -204,7 +218,7 @@ const startAlignment = async (searchParams) => {
     }
 };
 
-const checkLimits = async (searchParams, concurrentSearches, perDayLimits, searchesFilter) => {
+const checkLimits = async (searchParams, concurrentSearches, perDayLimits, limitChecked, searchesFilter) => {
     if (concurrentSearches < 0 && perDayLimits < 0) {
         // no limits
         return null;
@@ -217,11 +231,14 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits, searc
         lastUpdated: new Date()
     });
     if (perDayLimits >= 0 && searches.length >= perDayLimits) {
-        return `it already reached the daily limits`;
+        return `you already reached the daily limits`;
     }
     const currentSearches =  searches.filter(searchesFilter);
     if (concurrentSearches >= 0 && currentSearches.length >=  concurrentSearches) {
-        return `it is already running ${currentSearches.length} searches - the maximum allowed concurrent searches`;
+        const limitMessage = currentSearches.length < 2
+            ? limitChecked.singular
+            : limitChecked.plural;
+        return `you are already running ${currentSearches.length} ${limitMessage} - the maximum number of allowed concurrent ${limitChecked.plural}`;
     }
     return null;
 };
