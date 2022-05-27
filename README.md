@@ -1,4 +1,4 @@
-# AWS Services for NeuronBridge
+# NeuronBridge backend services
 
 [![DOI](https://zenodo.org/badge/260239328.svg)](https://zenodo.org/badge/latestdoi/260239328)
 [![CircleCI](https://circleci.com/gh/JaneliaSciComp/neuronbridge-services.svg?style=svg)](https://circleci.com/gh/JaneliaSciComp/neuronbridge-services)
