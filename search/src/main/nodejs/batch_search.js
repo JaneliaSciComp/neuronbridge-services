@@ -291,7 +291,7 @@ const getDisplayableMIPKey = (mipKey) => {
 };
 
 const isEmLibrary = (lname) => {
-    return lname != null && lname.match(/flyem/i) && lname.match(/hemibrain/i);
+    return lname != null && lname.match(/flyem/i) && (lname.match(/hemibrain/i) || lname.match(/vnc/i));
 };
 
 const populateLMMetadataFromName = (mipName, mipMetadata) => {
