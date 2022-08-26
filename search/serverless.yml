@@ -1,7 +1,5 @@
 service: janelia-neuronbridge-cds
 
-projectDir: ../
-
 plugins:
   - serverless-appsync-plugin
   - serverless-bundle
@@ -123,7 +121,6 @@ provider:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
     DEVELOPER: ${env:USER}
-  lambdaHashingVersion: 20201221
   stackTags:
     PROJECT: NeuronBridge
     VERSION: ${self:custom.version}
@@ -267,7 +264,6 @@ provider:
 
 
   httpApi:
-    useProviderTags: true
     payload: "2.0"
     cors: true
     authorizers:
@@ -427,7 +423,7 @@ functions:
     runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/download_creator.downloadCreator
     memorySize: 256
-    timeout: 200
+    timeout: 29
     # maximum timeout for an http API gateway is 29 seconds, so this
     # could bite us. Might have to resort to triggering a lambda and
     # then have the site poll for results against the dynamoDB.
@@ -562,7 +558,7 @@ functions:
 
 
   preferences:
-    runtime: nodejs14.x
+    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: preferencesRole
     handler: src/main/nodejs/preferences.handler
@@ -587,7 +583,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   announcements:
-    runtime: nodejs14.x
+    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: announcementsRole
     handler: src/main/nodejs/announcements.announcements
@@ -612,7 +608,7 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   mailinglist:
-    runtime: nodejs14.x
+    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: mailinglistRole
     handler: src/main/nodejs/mailinglist.handler

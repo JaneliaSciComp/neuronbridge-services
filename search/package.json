@@ -32,7 +32,7 @@
   "devDependencies": {
     "@babel/node": "^7.12.1",
     "@babel/preset-env": "^7.12.1",
-    "aws-sdk": "^2.1016.0",
+    "aws-sdk": "^2.1199.0",
     "eslint": "^7.10.0",
     "eslint-config-airbnb-base": "^14.2.0",
     "eslint-config-standard": "^14.1.1",
@@ -44,10 +44,10 @@
     "jest": "^26.4.2",
     "jest-json-schema": "^6.1.0",
     "prettier": "^2.7.1",
-    "serverless": "^2.56.0",
-    "serverless-appsync-plugin": "^1.12.0",
-    "serverless-bundle": "^4.3.1",
-    "serverless-deployment-bucket": "^1.5.1",
-    "serverless-step-functions": "^3.0.0"
+    "serverless": "^3.22.0",
+    "serverless-appsync-plugin": "^1.14.0",
+    "serverless-bundle": "^5.4.0",
+    "serverless-deployment-bucket": "^1.6.0",
+    "serverless-step-functions": "^3.8.0"
   }
 }
