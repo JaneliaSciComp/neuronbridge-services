@@ -1,7 +1,7 @@
 config:
   project: NeuronBridge
   stage: ${opt:stage, 'dev'}
-  version: 2.0.0
+  version: 3.0.0
   pppmBucket: janelia-ppp-match-${env:SEARCH_DATA_LEVEL, opt:stage, 'dev'}
   alignmentTemplatesBucket: ${env:ALIGN_TEMPLATES_BUCKET, 'janelia-flylight-color-depth-dev'}
   searchBucket: janelia-neuronbridge-search-${opt:stage, 'dev'}
