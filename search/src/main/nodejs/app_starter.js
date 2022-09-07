@@ -18,7 +18,8 @@ import {
 import {generateMIPs} from './mockMIPGeneration';
 import {cdsStarter} from './cds_starter';
 
-const jobDefinition = process.env.JOB_DEFINITION;
+const brainAlignJobDefinition = process.env.BRAIN_ALIGN_JOB_DEFINITION;
+const vncAlignJobDefinition = process.env.VNC_ALIGN_JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
 const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1;
 const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
@@ -244,17 +245,15 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits, limit
 };
 
 const submitAlignmentJob = async (searchParams) => {
-    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const searchInputMetadata = await getS3ContentMetadata(searchBucket, fullSearchInputImage);
     console.log('Search input metadata', searchInputMetadata);
     const searchInputSize = searchInputMetadata.ContentLength;
     const searchInputContentType = searchInputMetadata.ContentType;
-    const comparisonAlgorithm = searchParams.algorithm === 'avg' ? 'Median' : 'Max';
     let estimatedMemory; // estimated memory in MB
     if (searchInputContentType === 'application/zip') {
         estimatedMemory = searchInputSize / (1024.0 * 1024.0) * 4 * 8;
         console.log(`Estimate memory for zip files to ${estimatedMemory}`);
-    } else if (fullSearchInputImage.toLowerCase().endsWith('.h5j')) {
+    } else if (searchParams.searchInputName.toLowerCase().endsWith('.h5j')) {
         // for h5j we consider a compression factor of "only" 36
         // so in some cases this may result in OOM because there are situations when
         // the compression factor may be ~200x
@@ -265,39 +264,7 @@ const submitAlignmentJob = async (searchParams) => {
     }
     const computeResources = selectComputeResources(estimatedMemory);
     console.log(`Estimated memory ${estimatedMemory} -> cpus: ${computeResources.cpus}, mem: ${computeResources.mem}`);
-    const jobResources = {
-        'vcpus': computeResources.cpus,
-        'memory': computeResources.mem,
-        'environment': [{
-            name: 'ALIGNMENT_MEMORY',
-            value: computeResources.mem + 'M'
-        }]
-    };
-    const jobName = `align-${searchParams.id}`;
-    let jobParameters = {
-        search_id: searchParams.id,
-        input_filename: fullSearchInputImage,
-        output_folder: searchParams.searchInputFolder,
-        comparison_alg: comparisonAlgorithm,
-        nslots: computeResources.cpus + ''
-    };
-    if (searchParams.userDefinedImageParams) {
-        const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '0';
-        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '0';
-        const refChannel = searchParams.referenceChannel;
-        // resolution values must be set
-        jobParameters.force_voxel_size = searchParams.voxelX ? 'true' : 'false';
-        jobParameters.xy_resolution = xyRes;
-        jobParameters.z_resolution = zRes;
-        jobParameters.reference_channel = refChannel;
-    }
-    const params = {
-        jobDefinition: jobDefinition,
-        jobQueue: jobQueue,
-        jobName: jobName,
-        containerOverrides: jobResources,
-        parameters: jobParameters
-    };
+    const params = setAlignmentJobParams(searchParams, computeResources);
     console.log('Job parameters', params);
     try {
         // submit batch job
@@ -366,5 +333,76 @@ const selectComputeResources = estimatedMemory => {
             mem: 100*1024,
             cpus: 40
         };
+    }
+};
+
+const setAlignmentJobParams = (searchParams, computeResources) => {
+    if (!searchParams.area || searchParams.area.toLowerCase() === 'brain') {
+        return setBrainAlignmentJobParams(searchParams, computeResources);
+    } else if (searchParams.area.toLowerCase() === 'vnc') {
+        return setVNCAlignmentJobParams(searchParams, computeResources);
+    } else {
+        return throw Error("Unsupported alignment JOB for ", searchParams);
+    }
+}
+
+const setBrainAlignmentJobParams = (searchParams, computeResources) => {
+    const jobName = `align-brain-${searchParams.id}`;
+    const alignmentInput = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
+    const comparisonAlgorithm = searchParams.algorithm === 'avg' ? 'Median' : 'Max';
+    let jobParameters = {
+        search_id: searchParams.id,
+        input_filename: alignmentInput,
+        output_folder: searchParams.searchInputFolder,
+        comparison_alg: comparisonAlgorithm,
+        nslots: computeResources.cpus + ''
+    };
+    if (searchParams.userDefinedImageParams) {
+        const xyRes = searchParams.voxelX ? searchParams.voxelX + '' : '0';
+        const zRes = searchParams.voxelZ ? searchParams.voxelZ + '' : '0';
+        const refChannel = searchParams.referenceChannel;
+        // resolution values must be set
+        jobParameters.force_voxel_size = searchParams.voxelX ? 'true' : 'false';
+        jobParameters.xy_resolution = xyRes;
+        jobParameters.z_resolution = zRes;
+        jobParameters.reference_channel = refChannel;
+    }
+    return {
+        jobDefinition: brainAlignJobDefinition,
+        jobQueue: jobQueue,
+        jobName: jobName,
+        containerOverrides: {
+            'vcpus': computeResources.cpus,
+            'memory': computeResources.mem,
+            'environment': [{
+                name: 'ALIGNMENT_MEMORY',
+                value: computeResources.mem + 'M'
+            }]
+        },
+        parameters: jobParameters
+    }
+};
+
+const setVNCAlignmentJobParams = (searchParams, computeResources) => {
+    const jobName = `align-vnc-${searchParams.id}`;
+    let jobParameters = {
+        search_id: searchParams.id,
+        input_filename: alignmentInput,
+        output_folder: searchParams.searchInputFolder,
+        nslots: computeResources.cpus + ''
+    };
+    return {
+        jobDefinition: vncAlignJobDefinition,
+        jobQueue: jobQueue,
+        jobName: jobName,
+        containerOverrides: {
+            'vcpus': computeResources.cpus,
+            'memory': computeResources.mem,
+            'environment': [{
+                name: 'ALIGNMENT_MEMORY',
+                value: computeResources.mem + 'M'
+            }]
+        },
+        parameters: jobParameters
     }
 };
