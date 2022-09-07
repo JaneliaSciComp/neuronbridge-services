@@ -306,8 +306,9 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       BATCH_SIZE: ${self:custom.searchBatchSize}
       DEBUG: ${self:custom.debug}
-      JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-definition
-      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue-highpriority
+      BRAIN_ALIGN_JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-brain-job-definition
+      VNC_ALIGN_JOB_DEFINITION: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-vnc-job-definition
+      JOB_QUEUE: ${file(../align/serverless.yml):service}-${self:provider.stage}-align-job-queue
       MAX_ALIGNMENTS_PER_DAY: ${file(../config.yml):config.perDayAlignmentLimits}
       MAX_ALLOWED_CONCURRENT_ALIGNMENTS: ${file(../config.yml):config.concurrentAlignmentLimits}
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
