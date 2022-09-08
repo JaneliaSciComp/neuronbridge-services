@@ -1,7 +1,7 @@
 import archiver from "archiver";
 import { v1 as uuidv1 } from "uuid";
 import AWS from "aws-sdk";
-import { getObjectWithRetry } from "./utils";
+import { getObjectWithRetry, getS3ContentWithRetry } from "./utils";
 import { PassThrough } from "stream";
 import path from "path";
 
@@ -41,12 +41,13 @@ async function getInteractiveSearchResults(searchId, ids) {
 
 async function getPrecomputedSearchResults(searchId, ids, algo="cdm") {
   // get precomputedDataRootPath from s3://janelia-neuronbridge-data-dev/paths.json
-  const pathInfo = await getObjectWithRetry(dataBucket, "paths.json");
+  const version = await getS3ContentWithRetry(dataBucket, "current.txt");
+  const trimmedVersion = version.toString().replace(/\r?\n|\r/,'');
   const metadataDir = (algo === "ppp") ? 'pppresults' : 'cdsresults';
 
   // get results from
   // s3://janelia-neuronbridge-data-dev/{precomputedDataRootPath}/metadata/cdsresults/{searchId}.json
-  const resultsKey = `${pathInfo.precomputedDataRootPath}/metadata/${metadataDir}/${searchId}.json`;
+  const resultsKey = `${trimmedVersion}/metadata/${metadataDir}/${searchId}.json`;
   const resultsObj = await getObjectWithRetry(dataBucket, resultsKey);
 
   // filter the list of results based on the ids passed in.
