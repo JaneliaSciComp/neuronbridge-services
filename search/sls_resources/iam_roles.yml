@@ -132,6 +132,38 @@ Resources:
                   - logs:PutLogEvents
                 Resource: "*"
 
+  publishingDOI:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: ${self:service}-${self:provider.stage}-publishingDOI
+      Description: Allow publishing DOIs lambda to read/write DynamoDB
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ${self:service}-${self:provider.stage}-publishingDOI
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:Scan"
+                  - "dynamodb:Query"
+                Resource: !Sub arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table/${self:custom.publishingDOITable}
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+
+
 
   publishedNames:
     Type: AWS::IAM::Role

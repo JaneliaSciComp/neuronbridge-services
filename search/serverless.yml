@@ -39,6 +39,7 @@ custom:
   searchTable: janelia-neuronbridge-${self:provider.stage}-search-table
   announcementsTable: janelia-neuronbridge-${self:provider.stage}-announcments
   preferencesTable: janelia-neuronbridge-${self:provider.stage}-preferences
+  publishingDOITable: janelia-neuronbridge-publishing-doi
 
   # Resources from burst-compute
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
@@ -542,6 +543,23 @@ functions:
           path: /published_names
           authorizer:
             name: neuronBridgeJwtAuthorizer
+
+  publishingDOI:
+    runtime: ${self:custom.nodeJSRuntime}
+    timeout: 10
+    role: publishingDOI
+    handler: src/main/nodejs/publishingDOI.publishingDOI
+    environment:
+      DEBUG: ${self:custom.debug}
+      NAMES_TABLE: ${self:custom.publishingDOITable}
+      ITEM_LIMIT: 100
+    events:
+      - httpApi:
+          method: GET
+          path: /publishing_dois
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
 
   preferences:
     runtime: nodejs14.x
