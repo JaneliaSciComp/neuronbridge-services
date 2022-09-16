@@ -30,27 +30,82 @@ const mergeBatchResults = async (searchId, items, allBatchResults) => {
     }
 };
 
+// Extract results from the database and map to the final result
 const extractResults = (item) => {
     const resultsSValue = item.resultsMimeType === 'application/gzip'
         ? zlib.gunzipSync(item.results)
         : item.results;
-    return JSON.parse(resultsSValue);
+    const intermediateResult = JSON.parse(resultsSValue);
+    return convertItermediateResults(intermediateResult);
 };
 
+// Convert intermediate results to final results
+const convertItermediateResults = (item) => {
+    const inputImage = {
+        id: item.maskId,
+        libraryName: item.maskLibraryName,
+        publishedName: item.maskPublishedName,
+        files: {
+          ColorDepthMip: item.maskImageURL,
+        },
+    };
+    const results = item && item.results
+        ? item.results.map(m => convertMatch(m))
+        : [];
+    return {
+        inputImage: inputImage,
+        results: results,
+    };
+};
+
+const convertMatch = (cdm) => {
+    return {
+        image: {
+            id: cdm.id,
+            libraryName: cdm.libraryName,
+            publishedName: cdm.publishedName,
+            alignmentSpace: cdm.alignmentSpace,
+            gender: cdm.gender,
+            anatomicalArea: cdm.anatomicalArea,
+            slideCode: cdm.slideCode,
+            objective: cdm.objective,
+            channel: cdm.channel,
+            files: {
+              ColorDepthMip: cdm.imageURL,
+              ColorDepthMipThumbnail: cdm.thumbnailURL,
+            },
+        },
+        files: {
+            ColorDepthMipInput: cdm.maskImageName,
+            ColorDepthMipMatch: cdm.imageName,
+        },
+        mirrored: cdm.mirrored,
+        normalizedScore: cdm.normalizedScore,
+        matchingPixels: cdm.matchingPixels,
+        matchingRatio: cdm.matchingRatio,
+    };
+};
+
+// Merge results in the final form
 const mergeResults = (rs1, rs2) => {
-    if (rs1.maskId === rs2.maskId) {
-        const mergedResults = [...rs1.results, ...rs2.results];
-        mergedResults.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
+    if (!rs1.inputImage) {
+        throw new Error('Results cannot be merged because rs1.inputImage is not set', rs1, rs2);
+    }
+    if (!rs2.inputImage) {
+        throw new Error('Results cannot be merged because rs2.inputImage is not set', rs1, rs2);
+    }
+    if (rs1.inputImage.id === rs2.inputImage.id) {
+        const allMergedResults = [...rs1.results, ...rs2.results];
+        // sort the merged results
+        allMergedResults.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
+        // if merged results is too large, truncate it
+        const mergedResults = maxResultsLength > 0 ? allMergedResults.slice(0, maxResultsLength) : allMergedResults;
         return {
-            maskId: rs1.maskId,
-            maskPublishedName: rs1.maskPublishedName,
-            maskLibraryName: rs1.maskLibraryName,
-            maskImageURL: rs1.maskImageURL,
-            results: maxResultsLength > 0 ? mergedResults.slice(0, maxResultsLength) : mergedResults
+            inputImage: rs1.inputImage,
+            results: mergedResults,
         };
     } else {
-        console.log(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
-        throw new Error(`Results could not be merged because ${rs1.maskId} is different from  ${rs2.maskId}`);
+        throw new Error(`Results could not be merged because mask IDs: ${rs1.inputImage.id} and ${rs2.inputImage.id} are different`);
     }
 };
 
