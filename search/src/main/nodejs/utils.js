@@ -91,8 +91,8 @@ export const getS3ContentMetadata = async (bucket, key) => {
     }
 };
 
-export const putObjectWithRetry = async (bucket, key, data) => {
-    return await backOff(() => putObject(bucket, key, data), {
+export const putObjectWithRetry = async (bucket, key, data, space="\t") => {
+    return await backOff(() => putObject(bucket, key, data, space), {
         ...retryOptions,
         retry: (e, attemptNumber) => {
             console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} putting object ${bucket}:${key}`, e);
@@ -102,14 +102,14 @@ export const putObjectWithRetry = async (bucket, key, data) => {
 };
 
 // Write an object into S3 as JSON
-export const putObject = async (Bucket, Key, data) => {
+export const putObject = async (Bucket, Key, data, space="\t") => {
     try {
         if (DEBUG)
             console.log(`Putting object to ${Bucket}:${Key}`);
         const res =  await s3.putObject({
             Bucket,
             Key,
-            Body: JSON.stringify(data, null , "\t"),
+            Body: JSON.stringify(data, null, space),
             ContentType: 'application/json'
         }).promise();
         if (DEBUG) {
@@ -144,6 +144,9 @@ export const putS3Content = async (Bucket, Key, contentType, content) => {
     return `s3://${Bucket}/${Key}`;
 };
 
+// Source is in the format '/${bucket}/${path}' and you probably want
+// to encode it with encodeURI(), in case there are any invalid
+// characters in there.
 export const copyS3Content = async (Bucket, Source, Key) => {
    try {
        if (DEBUG) {
