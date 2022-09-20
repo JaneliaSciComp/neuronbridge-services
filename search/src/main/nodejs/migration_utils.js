@@ -1,3 +1,11 @@
+function generateMipMatchPath(imageUrl) {
+  const parts = imageUrl.split('/');
+  const filename = parts.pop();
+  parts.push('searchable_neurons/pngs');
+  parts.push(filename);
+  return parts.join('/');
+}
+
 function convertResult(result, anatomicalArea, searchType) {
   // TODO: need to figure out if this is an EM or LM result
   // based on searchType and set the appropriate attributes, eg:
@@ -19,7 +27,7 @@ function convertResult(result, anatomicalArea, searchType) {
     },
     files: {
       ColorDepthMipInput: result.ColorDepthMipInput || "",
-      ColorDepthMipMatch: result.ColorDepthMipMatch || "",
+      ColorDepthMipMatch: generateMipMatchPath(result.imageURL),
     },
     mirrored: result.mirrored || false,
     normalizedScore: result.normalizedScore,
