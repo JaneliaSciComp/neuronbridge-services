@@ -1,0 +1,40 @@
+{
+  "maskId": "1077847238_undefined (2)_1_mask",
+  "maskPublishedName": null,
+  "maskLibraryName": null,
+  "maskImageURL": "https://s3.amazonaws.com/janelia-neuronbridge-search-dev/private/us-east-1:fa7ca00c-9ffc-426c-ad55-2c05b0f4a4d2/0751e020-9b09-11ec-98f4-5f9e052d4953/1077847238_undefined (2)_1_mask.png",
+  "results": [
+    {
+      "maskImageName": "private/us-east-1:fa7ca00c-9ffc-426c-ad55-2c05b0f4a4d2/0751e020-9b09-11ec-98f4-5f9e052d4953/1077847238_undefined (2)_1_mask.png",
+      "imageURL": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.png",
+      "thumbnailURL": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.jpg",
+      "id": "1077847238-JRC2018_Unisex_20x_HR-CDM",
+      "libraryName": "FlyEM_Hemibrain_v1.2.1",
+      "publishedName": "1077847238",
+      "imageName": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/36/1077847238-JRC2018_Unisex_20x_HR-CDM.tif",
+      "gender": "f",
+      "alignmentSpace": "JRC2018_Unisex_20x_HR",
+      "matchingPixels": 4151,
+      "matchingRatio": 0.9971174633677636,
+      "mirrored": false,
+      "gradientAreaGap": -1,
+      "normalizedScore": 4151
+    },
+    {
+      "maskImageName": "private/us-east-1:fa7ca00c-9ffc-426c-ad55-2c05b0f4a4d2/0751e020-9b09-11ec-98f4-5f9e052d4953/1077847238_undefined (2)_1_mask.png",
+      "imageURL": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.png",
+      "thumbnailURL": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.jpg",
+      "id": "1110972158-JRC2018_Unisex_20x_HR-CDM",
+      "libraryName": "FlyEM_Hemibrain_v1.2.1",
+      "publishedName": "1110972158",
+      "imageName": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/47/1110972158-JRC2018_Unisex_20x_HR-CDM.tif",
+      "gender": "f",
+      "alignmentSpace": "JRC2018_Unisex_20x_HR",
+      "matchingPixels": 85,
+      "matchingRatio": 0.020417967811674275,
+      "mirrored": false,
+      "gradientAreaGap": -1,
+      "normalizedScore": 85
+    }
+  ]
+}

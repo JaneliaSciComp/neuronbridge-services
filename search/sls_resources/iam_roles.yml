@@ -163,7 +163,47 @@ Resources:
                   - logs:PutLogEvents
                 Resource: "*"
 
-
+  searchMigration:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      RoleName: ${self:service}-${self:provider.stage}-searchMigration
+      Description: Allow searchMigration lambda to read/write DynamoDB and S3
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: ${self:service}-${self:provider.stage}-searchMigration
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:Scan"
+                  - "dynamodb:Query"
+                Resource: !Sub arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table/${self:custom.searchTable}
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
+              - Effect: Allow
+                Action:
+                  - s3:HeadObject
+                  - s3:GetObject
+                  - s3:GetObjectTagging
+                  - s3:ListBucket
+                  - s3:PutObject
+                  - s3:PutObjectTagging
+                Resource:
+                  - "arn:aws:s3:::${self:custom.searchBucket}/"
+                  - "arn:aws:s3:::${self:custom.searchBucket}/*"
 
   publishedNames:
     Type: AWS::IAM::Role

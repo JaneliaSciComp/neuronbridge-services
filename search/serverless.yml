@@ -628,6 +628,15 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
+  searchMigration:
+    runtime: ${self:custom.nodeJSRuntime}
+    timeout: 10
+    role: searchMigration
+    handler: src/main/nodejs/search_migration.searchMigration
+    environment:
+      DEBUG: ${self:custom.debug}
+      SEARCH_TABLE: ${self:custom.searchTable}
+      SEARCH_BUCKET: ${self:custom.searchBucket}
 
 stepFunctions:
   validate: true # enable pre-deployment definition validation

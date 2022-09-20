@@ -1,0 +1,63 @@
+{
+  "inputImage": {
+    "alignmentSpace": "JRC2018_Unisex_20x_HR",
+    "anatomicalArea": "brain",
+    "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask",
+    "files": {
+      "ColorDepthMip": "us-east-1:6cbb8db0-b5b6-4856-ace4-0899c1b42871/c20637c0-9a3e-11ec-b6e7-f15422c60133/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask.png",
+      "ColorDepthMipThumbnail": "",
+      "CDSResults": "",
+      "VisuallyLosslessStack": ""
+    }
+  },
+  "results": [
+    {
+      "files": {
+        "ColorDepthMipInput": "",
+        "ColorDepthMipMatch": ""
+      },
+      "image": {
+        "alignmentSpace": "JRC2018_Unisex_20x_HR",
+        "anatomicalArea": "brain",
+        "files": {
+          "AlignedBodySWC": "",
+          "ColorDepthMip": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+          "ColorDepthMipThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg"
+        },
+        "gender": "f",
+        "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",
+        "libraryName": "FlyLight_Split-GAL4_Drivers",
+        "objective": "20x",
+        "slideCode": "20140407_33_G4",
+        "publishedName": "MB543B"
+      },
+      "matchingPixels": 5379,
+      "mirrored": false,
+      "normalizedScore": 5379
+    },
+    {
+      "files": {
+        "ColorDepthMipInput": "",
+        "ColorDepthMipMatch": ""
+      },
+      "image": {
+        "alignmentSpace": "JRC2018_Unisex_20x_HR",
+        "anatomicalArea": "brain",
+        "files": {
+          "AlignedBodySWC": "",
+          "ColorDepthMip": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+          "ColorDepthMipThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg"
+        },
+        "gender": "f",
+        "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",
+        "libraryName": "FlyLight_Split-GAL4_Drivers",
+        "objective": "20x",
+        "slideCode": "20140407_33_G4",
+        "publishedName": "MB543B"
+      },
+      "matchingPixels": 5379,
+      "mirrored": false,
+      "normalizedScore": 5379
+    }
+  ]
+}
