@@ -1,9 +1,9 @@
 function generateMipMatchPath(imageUrl) {
-  const parts = imageUrl.split('/');
+  const parts = imageUrl.split("/");
   const filename = parts.pop();
-  parts.push('searchable_neurons/pngs');
+  parts.push("searchable_neurons/pngs");
   parts.push(filename);
-  return parts.join('/');
+  return parts.join("/");
 }
 
 function convertResult(result, anatomicalArea, searchType) {
@@ -59,10 +59,7 @@ export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
         VisuallyLosslessStack: "",
         ColorDepthMipThumbnail: "",
         ColorDepthMip: inputJSON.maskImageURL
-          ? inputJSON.maskImageURL.replace(
-              "https://s3.amazonaws.com/janelia-neuronbridge-search-dev/private/",
-              ""
-            )
+          ? inputJSON.maskImageURL.split("/").slice(-2).join("/")
           : "",
       },
       alignmentSpace: "JRC2018_Unisex_20x_HR",
