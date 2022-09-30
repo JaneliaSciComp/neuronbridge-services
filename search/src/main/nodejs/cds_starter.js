@@ -1,18 +1,18 @@
 import {getSearchMetadataKey} from './searchutils';
 import {
     DEBUG,
-    getObjectWithRetry,
-    getS3ContentWithRetry,
     invokeFunction,
     putObject,
-    verifyKey
 } from './utils';
 import {
     SEARCH_IN_PROGRESS,
-    getSearchMetadata,
     updateSearchMetadata
 } from './awsappsyncutils';
-import cdsConfig from '../../../cds_config.json';
+import {
+    getSearchInputParams,
+    checkSearchMask,
+    getSearchedLibraries
+} from './cds_input';
 
 const DEFAULTS = {
   maxParallelism: 3000,
@@ -56,47 +56,9 @@ export const cdsStarter = async (event) => {
     const batchSize = parseInt(searchInputParams.batchSize) || defaultBatchSize();
     const maskKey = `${searchInputFolder}/${searchInputName}`;
     await checkSearchMask(searchId, searchBucket, maskKey);
-    const librariesPaths = await getLibrariesPaths(dataBucket);
-    const searchInputParamsWithLibraries = setSearchLibraries(searchInputParams);
-    console.log("Search input params with libraries", searchInputParamsWithLibraries);
-    const librariesPromises = await searchInputParamsWithLibraries.libraries
-        .map(lname => {
-            // for searching use MIPs from the searchableMIPs folder
-            const libraryAlignmentSpace = searchInputParamsWithLibraries.libraryAlignmentSpace
-                ? `${searchInputParamsWithLibraries.libraryAlignmentSpace}/`
-                : '';
-            const searchableMIPSFolder = searchInputParamsWithLibraries.searchableMIPSFolder
-                ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.searchableMIPSFolder}`
-                : `${libraryAlignmentSpace}${lname}`;
-            const gradientsFolder = searchInputParamsWithLibraries.gradientsFolder
-                ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.gradientsFolder}`
-                : null;
-            const zgapMasksFolder = searchInputParamsWithLibraries.zgapMasksFolder
-                ? `${libraryAlignmentSpace}${lname}/${searchInputParamsWithLibraries.zgapMasksFolder}`
-                : null;
-            const library = {
-                lname: lname,
-                lkey: searchableMIPSFolder,
-                gradientsFolder: gradientsFolder,
-                zgapMasksFolder: zgapMasksFolder
-            };
-            console.log("Lookup library", library);
-            return library;
-        })
-        .map(async l => {
-            const lsize = await getCount(librariesPaths.librariesBucket, l.lkey);
-            return await {
-                ...l,
-                lsize: lsize
-            };
-        });
-    const libraries =  await Promise.all(librariesPromises);
-    console.log(`Input MIP libraries: `, libraries);
-    const totalSearches = libraries
-        .map(l => l.lsize)
-        .reduce((acc, lsize) => acc + lsize, 0);
-    console.log(`Found ${totalSearches} MIPs in libraries: `, libraries);
-    if (totalSearches === 0) {
+    const libraries = await getSearchedLibraries(searchInputParams, dataBucket);
+    console.log("Search input params with libraries", libraries);
+    if (libraries.totalSearches === 0) {
         const errMsg = `No libraries found for searching ${searchInputName}`;
         // set the error
         await updateSearchMetadata({
@@ -120,9 +82,7 @@ export const cdsStarter = async (event) => {
         maskKeys: [maskKey],
         libraryBucket: librariesPaths.librariesBucket,
         libraryThumbnailsBucket: librariesPaths.librariesThumbnailsBucket,
-        libraries: libraries.map(l => l.lkey),
-        gradientsFolders: libraries.map(l => l.gradientsFolder),
-        zgapMasksFolders: libraries.map(l => l.zgapMasksFolder)
+        libraries: libraries.map(l => l.searchedNeuronsFolder),
     };
     // Schedule the burst compute job
     const dispatchParams = {
@@ -177,109 +137,4 @@ export const cdsStarter = async (event) => {
     });
 
     return cdsInvocationResult;
-};
-
-const getSearchInputParams = async (event) => {
-    let searchMetadata;
-    // Both searchInputFolder and searchInputName must be provided because
-    // the full input path is `${searchInputFolder}/${searchInputName}`
-    if (!event.searchInputName || !event.searchInputFolder) {
-        // If searchInputName or searchInputFolder is not given the searchId must be provided
-        // so that the searchInput path can be retrieved from the database.
-        const searchId = event.searchId;
-        if (!searchId) {
-            throw new Error('Missing required parameter: "searchId"');
-        }
-        searchMetadata = await getSearchMetadata(searchId);
-    } else {
-        searchMetadata = event;
-    }
-    if (!!searchMetadata && !!searchMetadata.searchMask) {
-        // if a searchMask is set use that for search otherwise use the upload
-        console.log(
-            `Use ${searchMetadata.searchMask} for searching instead of ${searchMetadata.searchInputName}`
-        );
-        searchMetadata.searchInputName = searchMetadata.searchMask;
-    }
-    return searchMetadata;
-};
-
-const checkSearchMask = async (searchId, bucket, maskKey) => {
-    const checkMaskFlag = await verifyKey(bucket, maskKey);
-    if (checkMaskFlag === false) {
-        const errMsg = `Mask s3://${bucket}/${maskKey} not found`;
-        // set the error
-        await updateSearchMetadata({
-            id: searchId,
-            step: SEARCH_IN_PROGRESS,
-            errorMessage: errMsg
-        });
-        throw new Error(errMsg);
-    }
-};
-
-/**
- * Create search libraries based on anatomicalRegion and searchType from cdsConfig.
- *
- * @param searchData
- * @returns {*&{libraries: (*|*[]), libraryAlignmentSpace: *, searchableMIPSFolder: *}}
- */
-const setSearchLibraries = (searchData) => {
-    const anatomicalRegion = searchData.anatomicalRegion || 'brain';
-    console.log(`Getting search libraries for ${anatomicalRegion}:${searchData.searchType}`);
-    const searchCfg = cdsConfig.find(cfg => cfg.area.toLowerCase() === anatomicalRegion.toLowerCase());
-    if (!searchCfg) {
-        console.error(`No CDS configuration found for ${anatomicalRegion}:${searchData.searchType} in`, searchCfg);
-        return {
-            ...searchData,
-            libraries: [],
-        };
-    }
-    const searchType = searchData.searchType;
-    const searchLibraries = searchType === 'em2lm' || searchType === 'lmTarget'
-        ? searchCfg.lmLibraries
-        : (searchType === 'lm2em' || searchType === 'emTarget'
-            ? searchCfg.emLibraries
-            : searchData.libraries || []);
-    console.log(`Search libraries for ${anatomicalRegion}:${searchData.searchType}:`, searchLibraries);
-    return {
-        ...searchData,
-        libraryAlignmentSpace: searchCfg.alignmentSpace,
-        searchableMIPSFolder: searchCfg.searchFolder,
-        libraries: searchLibraries,
-    };
-
-};
-
-const getCount = async (libraryBucket, libraryKey) => {
-    if (DEBUG) console.log("Get count from:", libraryKey);
-    const countMetadata = await getObjectWithRetry(
-        libraryBucket,
-        `${libraryKey}/counts_denormalized.json`
-    );
-    return countMetadata.objectCount;
-};
-
-const dataFile = process.env.STAGE.match(/^prod/) ? "current.txt" : "next.txt";
-
-const getLibrariesPaths = async (dataBucket) => {
-    if (DEBUG) console.log(`Get libraries location based on :${dataBucket}:${dataFile}`);
-    const currentVersionBody = await getS3ContentWithRetry(
-        dataBucket,
-        dataFile
-    );
-    const currentVersion = currentVersionBody.toString().toString().trim();
-    if (DEBUG) console.log(`Current version set to: ${currentVersion}`);
-    const librariesPath = await getObjectWithRetry(
-        dataBucket,
-        `${currentVersion}/config.json`
-    );
-    return {
-        librariesBucket: getBucketNameFromURL(librariesPath.imageryBaseURL),
-        librariesThumbnailsBucket: getBucketNameFromURL(librariesPath.thumbnailsBaseURLs)
-    };
-};
-
-const getBucketNameFromURL = (bucketURL) => {
-    return bucketURL.substring(bucketURL.lastIndexOf('/') + 1);
 };

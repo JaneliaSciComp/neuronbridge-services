@@ -245,6 +245,7 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits, limit
 };
 
 const submitAlignmentJob = async (searchParams) => {
+    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const searchInputMetadata = await getS3ContentMetadata(searchBucket, fullSearchInputImage);
     console.log('Search input metadata', searchInputMetadata);
     const searchInputSize = searchInputMetadata.ContentLength;
@@ -342,9 +343,9 @@ const setAlignmentJobParams = (searchParams, computeResources) => {
     } else if (searchParams.area.toLowerCase() === 'vnc') {
         return setVNCAlignmentJobParams(searchParams, computeResources);
     } else {
-        return throw Error("Unsupported alignment JOB for ", searchParams);
+        throw Error("Unsupported alignment JOB for ", searchParams);
     }
-}
+};
 
 const setBrainAlignmentJobParams = (searchParams, computeResources) => {
     const jobName = `align-brain-${searchParams.id}`;
@@ -377,14 +378,15 @@ const setBrainAlignmentJobParams = (searchParams, computeResources) => {
             'environment': [{
                 name: 'ALIGNMENT_MEMORY',
                 value: computeResources.mem + 'M'
-            }]
+            }],
         },
-        parameters: jobParameters
-    }
+        parameters: jobParameters,
+    };
 };
 
 const setVNCAlignmentJobParams = (searchParams, computeResources) => {
     const jobName = `align-vnc-${searchParams.id}`;
+    const alignmentInput = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     let jobParameters = {
         search_id: searchParams.id,
         input_filename: alignmentInput,
@@ -401,8 +403,8 @@ const setVNCAlignmentJobParams = (searchParams, computeResources) => {
             'environment': [{
                 name: 'ALIGNMENT_MEMORY',
                 value: computeResources.mem + 'M'
-            }]
+            }],
         },
-        parameters: jobParameters
-    }
+        parameters: jobParameters,
+    };
 };
