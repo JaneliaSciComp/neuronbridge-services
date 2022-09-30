@@ -90,8 +90,6 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
 
 const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
     const searchedMIPs = await getSearchedMIPs(params.libraries, startIndex, endIndex);
-
-    console.log("!!!! SEARCHED MIPS ", searchedMIPs);
     if (DEBUG) {
         logWithMemoryUsage(`Loaded ${searchedMIPs.length} search keys: [${startIndex}, ${endIndex}]`);
     }
@@ -108,8 +106,6 @@ const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
             minMatchingPixRatio: params.minMatchingPixRatio
         }));
     const cdsResults = await Promise.all(cdsPromise);
-
-    console.log("!!!!! ALL RESULTS", cdsResults);
     return cdsResults.flat();
 };
 
@@ -188,10 +184,13 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
         .map(async librarySelection => {
             const libraryBucket = librarySelection.library.libraryBucket;
             const libraryPrefix = librarySelection.library.searchedNeuronsFolder;
-            const selectedMIPs = await getMIPs(libraryBucket, libraryPrefix,
-                librarySelection.startRange, librarySelection.endRange);
-            console.log("!!!! MIPS NO THUMB", selectedMIPs);
-                // add thumbnail bucket to the result
+            const selectedMIPs = await getMIPs(
+                libraryBucket,
+                libraryPrefix,
+                librarySelection.startRange,
+                librarySelection.endRange
+            );
+            // add thumbnail bucket to the result
             return selectedMIPs.map(m => ({
                 ...m,
                 thumbnailBucketName: librarySelection.library.libraryThumbnailsBucket,
@@ -200,7 +199,7 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
     
     const searchableTagets = await Promise.all(searchableTargetsPromise);
     // no need to slice the final result because we only selected the needed MIPs from library
-    return searchableTagets.flatMap(l => l);
+    return searchableTagets.flat();
 };
 
 function getRandomInt(min, max) {
@@ -324,7 +323,6 @@ const runMaskSearches = async (params) => {
                     isError: false,
                     gradientAreaGap: -1
                 };
-                console.log("!!!!! MATCH RESULT", r);
                 if (DEBUG) {
                     console.log(`Match found between ${params.maskKey} and ${params.targetMIPs[i]}`, r);
                 }
@@ -439,15 +437,11 @@ const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
     const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
     const ttl = (Math.floor(+new Date() / 1000) + ttlDelta).toString();
 
-    console.log("!!!!!!!!! CDS RESULTS", cdsResults);
-
     const matchedMetadata = cdsResults
         .map(perMaskMetadata)
         .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
 
     const groupedResults = groupBy('maskId', 'maskLibraryName', 'maskPublishedName', 'maskImageURL')(matchedMetadata);
-
-    console.log("!!!!!!!!! GROUPED CDS RESULTS", groupedResults);
 
     const resultsSValue = JSON.stringify(groupedResults);
 
@@ -462,7 +456,6 @@ const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
         ...resultsAttr,
     };
 
-    console.log('!!!!!! ITEM', item);
     return await putDbItemWithRetry(tableName, item);
 };
 
