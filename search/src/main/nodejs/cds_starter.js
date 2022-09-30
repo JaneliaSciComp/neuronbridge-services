@@ -56,9 +56,9 @@ export const cdsStarter = async (event) => {
     const batchSize = parseInt(searchInputParams.batchSize) || defaultBatchSize();
     const maskKey = `${searchInputFolder}/${searchInputName}`;
     await checkSearchMask(searchId, searchBucket, maskKey);
-    const libraries = await getSearchedLibraries(searchInputParams, dataBucket);
+    const searchedData = await getSearchedLibraries(searchInputParams, dataBucket);
     console.log("Search input params with libraries", libraries);
-    if (libraries.totalSearches === 0) {
+    if (searchedData.totalSearches === 0) {
         const errMsg = `No libraries found for searching ${searchInputName}`;
         // set the error
         await updateSearchMetadata({
@@ -80,9 +80,7 @@ export const cdsStarter = async (event) => {
         maxResultsPerMask: searchInputParams.maxResultsPerMask,
         searchBucket,
         maskKeys: [maskKey],
-        libraryBucket: librariesPaths.librariesBucket,
-        libraryThumbnailsBucket: librariesPaths.librariesThumbnailsBucket,
-        libraries: libraries.map(l => l.searchedNeuronsFolder),
+        libraries: searchedData.searchedLibraries,
     };
     // Schedule the burst compute job
     const dispatchParams = {
@@ -110,15 +108,14 @@ export const cdsStarter = async (event) => {
     const now = new Date();
     const searchMetadata = {
         startTime: now.toISOString(),
-        searchType: searchInputParamsWithLibraries.searchType,
-        parameters: searchInputParamsWithLibraries,
-        libraries: libraries,
-        nsearches: totalSearches,
+        searchType: searchedData.searchType,
+        parameters: searchedData,
+        nsearches: searchedData.totalSearches,
         branchingFactor: branchingFactor,
         partitions: numBatches,
         jobId
     };
-    const searchMetadataKey = getSearchMetadataKey(`${searchInputParamsWithLibraries.searchInputFolder}/${searchInputParamsWithLibraries.searchInputName}`);
+    const searchMetadataKey = getSearchMetadataKey(`${searchInputFolder}/${searchInputName}`);
     await putObject(searchBucket, searchMetadataKey, searchMetadata);
     // Update search metadata if searchId is provided
     await updateSearchMetadata({

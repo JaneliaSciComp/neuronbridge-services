@@ -62,10 +62,18 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
     const dataConfig = await getDataConfig(dataBucket);
     // find all enabled datasets for the specified anatomical area
     const searchCfgs = Object.keys(dataConfig.dataSets)
-                        .map(ds => dataConfig.dataSets[ds])
-                        .filter(cfg => {
-                            return cfg.anatomicalArea.toLowerCase() === anatomicalRegion.toLowerCase() && !cfg.disabled
-                        })
+        .map(dsKey => {
+            const ds = dataConfig.dataSets[dsKey];
+            const anatomicalAreaCfg = dataConfig.anatomicalAreas[ds.anatomicalArea];
+            return {
+                ...ds,
+                alignmentSpace: anatomicalAreaCfg.alignmentSpace,
+                disabled: anatomicalAreaCfg.disabled,
+            };
+        })
+        .filter(cfg => {
+            return cfg.anatomicalArea.toLowerCase() === anatomicalRegion.toLowerCase() && !cfg.disabled
+        })
     if (!searchCfgs) {
         console.error(`No CDS configuration found for ${anatomicalRegion}:${searchData.searchType} in`, dataConfig);
         return {
@@ -78,10 +86,10 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
     let libraryNamesGetter;
     if (searchType === 'em2lm' || searchType === 'lmTarget') {
         // from all matching configurations collect 'lmLibraries' together with alignmentSpace and bucket
-        libraryNamesGetter = cfg => cfg.lmLibraries;
+        libraryNamesGetter = cfg => cfg.customSearch.lmLibraries;
     } else if (searchType === 'lm2em' || searchType === 'emTarget') {
         // from all matching configurations collect 'emLibraries' together with alignmentSpace and bucket
-        libraryNamesGetter = cfg => cfg.emLibraries;
+        libraryNamesGetter = cfg => cfg.customSearch.emLibraries;
     } else {
         console.error(`Unsupported searchType: ${searchType}`, searchData);
         libraryNamesGetter = cfg => [];
@@ -103,8 +111,8 @@ const getDataConfig = async (dataBucket) => {
     // dataRefFile is the file that points to the current version.
     // If it is a production environment use 'current.txt' otherwise for dev environments use 'next.txt'
     const dataRefFile = process.env.STAGE.match(/^prod/)
-                            ? 'current.txt'
-                            : 'next.txt';
+        ? 'current.txt'
+        : 'next.txt';
 
     if (DEBUG) console.log(`Get libraries location based on :${dataBucket}:${dataRefFile}`);
     const currentVersionBody = await getS3ContentWithRetry(
@@ -134,12 +142,12 @@ const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter) => {
 
 const getAllSearchedLibrariesFromConfigs = (cfgs, libraryNamesGetter) => {
     const lcList = cfgs.flatMap(cfg => libraryNamesGetter(cfg).map(libraryName => {
-        const searchedNeuronsFolder = cfg.searchFolder;
+        const searchedNeuronsFolder = cfg.customSearch.searchFolder;
         const alignmentSpace = cfg.alignmentSpace;
         // if searchFolder is set append it to <alignmentSpace>/<libraryName>
         const searchedNeuronsPrefix = searchedNeuronsFolder
-                                        ? `${alignmentSpace}/${libraryName}/${searchedNeuronsFolder}`
-                                        : `${alignmentSpace}/${libraryName}`;
+            ? `${alignmentSpace}/${libraryName}/${searchedNeuronsFolder}`
+            : `${alignmentSpace}/${libraryName}`;
 
         return new Map({
             libraryBucket: getBucketNameFromURL(cfg.prefixes.ColorDepthMip),
@@ -154,8 +162,8 @@ const getAllSearchedLibrariesFromConfigs = (cfgs, libraryNamesGetter) => {
 
 const getBucketNameFromURL = (bucketURL) => {
     const normalizedBucketURL = bucketURL.endsWith('/')
-                                    ? bucketURL.slice(0, -1)
-                                    : bucketURL;
+        ? bucketURL.slice(0, -1)
+        : bucketURL;
     return normalizedBucketURL.substring(normalizedBucketURL.lastIndexOf('/') + 1);
 };
 

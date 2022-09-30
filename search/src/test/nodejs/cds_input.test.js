@@ -40,19 +40,21 @@ describe('prepare custom cds input', () => {
         };
         const testBucketName = 'testDataBucket';
         const searchedData = await getSearchedLibraries(inputSearchedData, testBucketName);
+        console.log(searchedData);
         expect(searchedData.searchType).toBe('lm2em');
         expect(searchedData.anatomicalRegion).toBe('brain');
         expect(searchedData.searchedLibraries.length).toBe(2);
         expect(searchedData.totalSearches).toBeGreaterThan(0);
         searchedData.searchedLibraries.forEach(lc => {
-            expect(lc.libraryBucket).toBe('janelia-flylight-color-depth');
-            expect(lc.libraryThumbnailsBucket).toBe('janelia-flylight-color-depth-thumbnails');
+            expect(lc.libraryBucket).toContain('janelia-flylight-color-depth');
+            expect(lc.libraryThumbnailsBucket).toContain('janelia-flylight-color-depth');
+            expect(lc.libraryThumbnailsBucket).toContain('thumbnails');
             expect(lc.alignmentSpace).toBe('JRC2018_Unisex_20x_HR');
             expect(lc.hasOwnProperty('libraryName')).toBe(true);
             expect(lc.hasOwnProperty('searchedNeuronsFolder')).toBe(true);
             expect(lc.searchedNeuronsFolder).toBe(`${lc.alignmentSpace}/${lc.libraryName}/searchable_neurons`);
         })
-    })
+    });
 
     it('get searchable input libraries for LM search', async () => {  
         jest.spyOn(utils, 'getS3ContentWithRetry')
@@ -68,19 +70,21 @@ describe('prepare custom cds input', () => {
         };
         const testBucketName = 'testDataBucket';
         const searchedData = await getSearchedLibraries(inputSearchedData, testBucketName);
+        console.log(searchedData);
         expect(searchedData.searchType).toBe('em2lm');
         expect(searchedData.anatomicalRegion).toBe('vnc');
-        expect(searchedData.searchedLibraries.length).toBe(3);
+        expect(searchedData.searchedLibraries.length).toBe(5);
         expect(searchedData.totalSearches).toBeGreaterThan(0);
         searchedData.searchedLibraries.forEach(lc => {
-            expect(lc.libraryBucket).toBe('janelia-flylight-color-depth');
-            expect(lc.libraryThumbnailsBucket).toBe('janelia-flylight-color-depth-thumbnails');
+            expect(lc.libraryBucket).toContain('janelia-flylight-color-depth');
+            expect(lc.libraryThumbnailsBucket).toContain('janelia-flylight-color-depth');
+            expect(lc.libraryThumbnailsBucket).toContain('thumbnails');
             expect(lc.alignmentSpace).toBe('JRC2018_VNC_Unisex_40x_DS');
             expect(lc.hasOwnProperty('libraryName')).toBe(true);
             expect(lc.hasOwnProperty('searchedNeuronsFolder')).toBe(true);
             expect(lc.searchedNeuronsFolder).toBe(`${lc.alignmentSpace}/${lc.libraryName}/searchable_neurons`);
         })
-    })
+    });
 
     it('get searchable input for invalid searchType', async () => {
         jest.spyOn(utils, 'getS3ContentWithRetry')
@@ -98,6 +102,6 @@ describe('prepare custom cds input', () => {
         const searchedData = await getSearchedLibraries(inputSearchedData, testBucketName);
         expect(searchedData.totalSearches).toBe(0);
         expect(searchedData.searchedLibraries.length).toBe(0);
-    })
+    });
 
-})
+});

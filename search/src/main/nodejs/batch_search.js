@@ -16,12 +16,19 @@ export const batchSearch = async (event) => {
     console.log(`Batch Id: ${batchId}`);
     logWithMemoryUsage(''); // log initial memory stats
 
+    // jobParameters.libraries is an array of objects containing:
+    // {
+    //     libraryBucket: <string>,
+    //     libraryThumbnailsBucket: <string>,
+    //     alignmentSpace: <string>,
+    //     libraryName: <string>,
+    //     searchedNeuronsFolder: <string>,
+    //     lsize: <number>
+    // }
     const batchParams = {
         jobId,
         batchId,
         tasksTableName,
-        libraryBucket: jobParameters.libraryBucket,
-        libraryThumbnailsBucket: jobParameters.libraryThumbnailsBucket,
         libraries: jobParameters.libraries,
         searchBucket: jobParameters.searchBucket,
         maskKeys: jobParameters.maskKeys,
@@ -42,6 +49,14 @@ const validateBatchParams = (batchParams) => {
     if (!batchParams.libraries) {
         throw new Error('No target images to search');
     }
+    // validate each library
+    batchParams.libraries.forEach(l => {
+        if (!l.libraryBucket) {
+            throw new Error(`No bucket specified for library ${l.libraryName}`);
+        } else if (!l.searchedNeuronsFolder) {
+            throw new Error(`No search prefix specified for library ${l.libraryName}`);
+        }
+    })
     if (!batchParams.maskKeys) {
         throw new Error('No masks to search');
     }
@@ -58,12 +73,10 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
         logWithMemoryUsage(`Compare ${batchParams.maskKeys.length} masks with mips between [${startIndex},${endIndex}] from ${batchParams.libraries.length} libraries`);
     }
     const cdsResults = await findAllColorDepthMatches({
+        masksBucket: batchParams.searchBucket,
         maskKeys: batchParams.maskKeys,
         maskThresholds: batchParams.maskThresholds,
         libraries: batchParams.libraries,
-        awsMasksBucket: batchParams.searchBucket,
-        awsLibrariesBucket: batchParams.libraryBucket,
-        awsLibrariesThumbnailsBucket: batchParams.libraryThumbnailsBucket,
         dataThreshold: batchParams.dataThreshold,
         pixColorFluctuation: batchParams.pixColorFluctuation,
         xyShift: batchParams.xyShift,
@@ -75,26 +88,138 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
     return cdsResults.length;
 };
 
-const getSearchKeys = async (libraryBucket, libraries, startIndex, endIndex) => {
-    const searchableTargetsPromise =  await libraries
-        .map(async key => {
-            return await {
-                searchableKeys: await getKeys(libraryBucket, key)
-            };
+const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
+    const searchedMIPs = await getSearchedMIPs(params.libraries, startIndex, endIndex);
+
+    console.log("!!!! SEARCHED MIPS ", searchedMIPs);
+    if (DEBUG) {
+        logWithMemoryUsage(`Loaded ${searchedMIPs.length} search keys: [${startIndex}, ${endIndex}]`);
+    }
+    const cdsPromise = await params.maskKeys
+        .map(async (maskKey, maskIndex) => await runMaskSearches({
+            masksBucket: params.masksBucket,
+            maskKey: maskKey,
+            maskThreshold: params.maskThresholds[maskIndex],
+            targetMIPs: searchedMIPs,
+            dataThreshold: params.dataThreshold,
+            pixColorFluctuation: params.pixColorFluctuation,
+            xyShift: params.xyShift,
+            mirrorMask: params.mirrorMask,
+            minMatchingPixRatio: params.minMatchingPixRatio
+        }));
+    const cdsResults = await Promise.all(cdsPromise);
+
+    console.log("!!!!! ALL RESULTS", cdsResults);
+    return cdsResults.flat();
+};
+
+
+const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
+    libraries.reduce
+    const initialValue = {
+        currentIndex: 0,
+        selectedLibraries: [],
+    };
+    const selectedLibraries = libraries.reduce(
+        (previousValue, l) => {
+            if (previousValue.currentIndex >= endIndex) {
+                // this is past the selected range already so simply return
+                // everything is to the right of the selected range (...)...[...]
+                // selected libraries remain unchanged
+                return {
+                    currentIndex: previousValue.currentIndex + l.lsize,
+                    selectedLibraries: previousValue.selectedLibraries,
+                };
+            }
+            if (previousValue.currentIndex < startIndex) {
+                // nothing has been selected yet
+                if (previousValue.currentIndex + l.lsize < startIndex) {
+                    // the selected range has not been reached yet
+                    // everything is to the left of the selected range [...]...(...)
+                    // selectedLibraries remain unchanged
+                } else {
+                    if (previousValue.currentIndex + l.lsize > endIndex) {
+                        // the selected range is entirely inside this library [ ... (...) ... ]
+                        previousValue.selectedLibraries.push({
+                            library: l,
+                            startRange: startIndex - previousValue.currentIndex,
+                            endRange: endIndex - previousValue.currentIndex,
+                        });
+                    } else {
+                        // add the portion of the MIPs that falls inside the selected range [ .. (... ] ...) ...]
+                        previousValue.selectedLibraries.push({
+                            library: l,
+                            startRange: startIndex - previousValue.currentIndex,
+                            endRange: l.lsize,
+                        });
+                    }
+                }
+                return {
+                    currentIndex: previousValue.currentIndex + l.lsize,
+                    selectedLibraries: previousValue.selectedLibraries,
+                }
+            } else {
+                // this is still within the selected range
+                if (previousValue.currentIndex + l.lsize < endIndex) {
+                    // all MIPs from this library should be selected (... [...] ...)
+                    previousValue.selectedLibraries.push({
+                        library: l,
+                        startRange: 0,
+                        endRange: l.lsize,
+                    });
+                } else {
+                    // the selected range ends with this library (... [ ...) ... ]
+                    previousValue.selectedLibraries.push({
+                        library: l,
+                        startRange: 0,
+                        endRange: endIndex - previousValue.currentIndex,
+                    });
+                }
+                return {
+                    currentIndex: previousValue.currentIndex + l.lsize,
+                    selectedLibraries: previousValue.selectedLibraries,
+                }
+            }
+        },
+        initialValue
+    ).selectedLibraries;
+
+    const searchableTargetsPromise =  await selectedLibraries
+        .map(async librarySelection => {
+            const libraryBucket = librarySelection.library.libraryBucket;
+            const libraryPrefix = librarySelection.library.searchedNeuronsFolder;
+            const selectedMIPs = await getMIPs(libraryBucket, libraryPrefix,
+                librarySelection.startRange, librarySelection.endRange);
+            console.log("!!!! MIPS NO THUMB", selectedMIPs);
+                // add thumbnail bucket to the result
+            return selectedMIPs.map(m => ({
+                ...m,
+                thumbnailBucketName: librarySelection.library.libraryThumbnailsBucket,
+            }))
         });
-    const searchableTargets = await Promise.all(searchableTargetsPromise);
-    return searchableTargets.flatMap(l => l.searchableKeys).slice(startIndex, endIndex);
+    
+    const searchableTagets = await Promise.all(searchableTargetsPromise);
+    // no need to slice the final result because we only selected the needed MIPs from library
+    return searchableTagets.flatMap(l => l);
 };
 
 function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-const getKeys = async (libraryBucket, libraryKey) => {
+const getMIPs = async (libraryBucket, libraryKey, start, end) => {
+    // all library MIPs are listed in a keys_denormalied.json
+    // which is replicated in 100 locations
+    // to get the MIP locations selects one location randomly
+    // and reads the MIPs from the keys_denormalized.json located in the selected location
     const randomPrefix = getRandomInt(0, 99);
     const keyName = `${libraryKey}/KEYS/${randomPrefix}/keys_denormalized.json`;
     logWithMemoryUsage(`Get keys from: ${keyName}`);
-    return await getObjectWithRetry(libraryBucket, keyName);
+    const allLibraryMips = await getObjectWithRetry(libraryBucket, keyName);
+    return allLibraryMips.slice(start, end).map(mip => ({
+        bucketName: libraryBucket,
+        mipKey: mip,
+    }));
 };
 
 const groupBy = (...keys) => xs =>
@@ -154,36 +279,13 @@ const perMaskMetadata = (params) => {
     };
 };
 
-export const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
-    const libraryKeys = await getSearchKeys(params.awsLibrariesBucket, params.libraries, startIndex, endIndex);
-    if (DEBUG) {
-        logWithMemoryUsage(`Loaded ${libraryKeys.length} search keys: [${startIndex}, ${endIndex}]`);
-    }
-    const cdsPromise = await params.maskKeys
-        .map(async (maskKey, maskIndex) => await runMaskSearches({
-            maskKey: maskKey,
-            maskThreshold: params.maskThresholds[maskIndex],
-            libraryKeys: libraryKeys,
-            awsMasksBucket: params.awsMasksBucket,
-            awsLibrariesBucket: params.awsLibrariesBucket,
-            awsLibrariesThumbnailsBucket: params.awsLibrariesThumbnailsBucket,
-            dataThreshold: params.dataThreshold,
-            pixColorFluctuation: params.pixColorFluctuation,
-            xyShift: params.xyShift,
-            mirrorMask: params.mirrorMask,
-            minMatchingPixRatio: params.minMatchingPixRatio
-        }));
-    const cdsResults = await Promise.all(cdsPromise);
-    return cdsResults.flat();
-};
-
 const runMaskSearches = async (params) => {
-    const maskMetadata = getMaskMIPMetdata(params.awsMasksBucket, params.maskKey);
+    const maskMetadata = getMaskMIPMetdata(params.masksBucket, params.maskKey);
 
     const zTolerance = params.pixColorFluctuation == null ? 0.0 : params.pixColorFluctuation / 100.0;
     const maskThreshold = params.maskThreshold != null ? params.maskThreshold : 0;
 
-    const maskImage = await loadMIPRange(params.awsMasksBucket, params.maskKey, 0, 0);
+    const maskImage = await loadMIPRange(params.masksBucket, params.maskKey, 0, 0);
 
     const cdMask = GenerateColorMIPMasks({
         width: maskImage.width,
@@ -203,18 +305,18 @@ const runMaskSearches = async (params) => {
     }
     const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
     let results = [];
-    for (let i = 0; i < params.libraryKeys.length; i++) {
-        const tarImage = await loadMIPRange(params.awsLibrariesBucket, params.libraryKeys[i], cdMask.maskpos_st, cdMask.maskpos_ed);
+    for (let i = 0; i < params.targetMIPs.length; i++) {
+        const tarImage = await loadMIPRange(params.targetMIPs[i].bucketName, params.targetMIPs[i].mipKey, cdMask.maskpos_st, cdMask.maskpos_ed);
         if (tarImage.data != null) {
             const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
             if (DEBUG) {
-                console.log(`Comparison result with ${params.libraryKeys[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
-                logWithMemoryUsage(`Compared ${params.maskKey} with ${params.libraryKeys[i]}`);
+                console.log(`Comparison result with ${params.targetMIPs[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
+                logWithMemoryUsage(`Compared ${params.maskKey} with ${params.targetMIPs[i]}`);
             }
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 const r = {
                     maskMIP: maskMetadata,
-                    libraryMIP: getLibraryMIPMetadata(params.libraryKeys[i]),
+                    libraryMIP: getLibraryMIPMetadata(params.targetMIPs[i].mipKey),
                     matchingPixels: sr.matchingPixNum,
                     matchingRatio: sr.matchingPixNumToMaskRatio,
                     mirrored: sr.bestScoreMirrored,
@@ -222,8 +324,9 @@ const runMaskSearches = async (params) => {
                     isError: false,
                     gradientAreaGap: -1
                 };
+                console.log("!!!!! MATCH RESULT", r);
                 if (DEBUG) {
-                    console.log(`Match found between ${params.maskKey} and ${params.libraryKeys[i]}`, r);
+                    console.log(`Match found between ${params.maskKey} and ${params.targetMIPs[i]}`, r);
                 }
                 results.push(r);
             }
@@ -336,24 +439,30 @@ const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
     const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
     const ttl = (Math.floor(+new Date() / 1000) + ttlDelta).toString();
 
+    console.log("!!!!!!!!! CDS RESULTS", cdsResults);
+
     const matchedMetadata = cdsResults
         .map(perMaskMetadata)
         .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
 
     const groupedResults = groupBy('maskId', 'maskLibraryName', 'maskPublishedName', 'maskImageURL')(matchedMetadata);
+
+    console.log("!!!!!!!!! GROUPED CDS RESULTS", groupedResults);
+
     const resultsSValue = JSON.stringify(groupedResults);
 
-    const resultsAttr = resultsSValue.length < 4096
+    const resultsAttr = resultsSValue.length < 8192
         ? { results: {S: resultsSValue} }
         : { resultsMimeType: {S: 'application/gzip'}, results: {B: zlib.gzipSync(resultsSValue)} };
 
     const item = {
-        "jobId": {S: jobId},
-        "batchId": {N: ""+batchId},
-        "ttl": {N: ttl},
-        ...resultsAttr
+        jobId: {S: jobId},
+        batchId: {N: ""+batchId},
+        ttl: {N: ttl},
+        ...resultsAttr,
     };
 
+    console.log('!!!!!! ITEM', item);
     return await putDbItemWithRetry(tableName, item);
 };
 
