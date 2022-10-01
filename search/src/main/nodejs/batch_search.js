@@ -193,6 +193,8 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
             // add thumbnail bucket to the result
             return selectedMIPs.map(m => ({
                 ...m,
+                alignmentSpace: librarySelection.library.alignmentSpace,
+                libraryName: librarySelection.library.libraryName,
                 thumbnailBucketName: librarySelection.library.libraryThumbnailsBucket,
             }))
         });
@@ -315,7 +317,7 @@ const runMaskSearches = async (params) => {
             if (sr.matchingPixNumToMaskRatio > pixMatchRatioThreshold) {
                 const r = {
                     maskMIP: maskMetadata,
-                    libraryMIP: getLibraryMIPMetadata(params.targetMIPs[i].mipKey),
+                    libraryMIP: getLibraryMIPMetadata(params.targetMIPs[i]),
                     matchingPixels: sr.matchingPixNum,
                     matchingRatio: sr.matchingPixNumToMaskRatio,
                     mirrored: sr.bestScoreMirrored,
@@ -333,47 +335,37 @@ const runMaskSearches = async (params) => {
     return results;
 };
 
-const getMaskMIPMetdata = (awsMasksBucket, mipKey) => {
+const getMaskMIPMetdata = (maskBucket, mipKey) => {
     const mipPath = path.parse(mipKey);
     return {
         id: mipPath.name,
         cdmPath: mipKey,
         imageName: mipKey,
-        imageURL: `https://s3.amazonaws.com/${awsMasksBucket}/${mipKey}`
+        imageURL: `https://s3.amazonaws.com/${maskBucket}/${mipKey}`
     };
 };
 
-const getLibraryMIPMetadata = (mipKey) => {
-    const mipPath = path.parse(mipKey);
+const getLibraryMIPMetadata = (libraryMip) => {
+    const mipPath = path.parse(libraryMip.mipKey);
     const mipName = mipPath.name;
     const mipExt = mipPath.ext;
     // displayable mips are always png and the thumbnails jpg
     const mipImageKey = !mipExt
-        ? getDisplayableMIPKey(mipKey) + '.png'
+        ? getDisplayableMIPKey(libraryMip.mipKey) + '.png'
         // keep in mind that the ext returned by path contains the dot
         // because there are cases when displayable mip does not have the extension
         // we remove it first to guarantee is never there and then append it to guarantee it will always append it
-        : getDisplayableMIPKey(mipKey).replace(new RegExp('\\' + mipExt +  '$'), '') + '.png';
+        : getDisplayableMIPKey(libraryMip.mipKey).replace(new RegExp('\\' + mipExt +  '$'), '') + '.png';
     const mipThumbnailKey = mipImageKey.replace(new RegExp('\\.(png|tif)$'), '.jpg');
-    const mipDirNames = mipKey.split("/");
-    const nPathComponents = mipDirNames.length;
     let mip = {
         id: mipName,
-        cdmPath: mipKey,
-        imageName: mipKey,
+        cdmPath: libraryMip.mipKey,
+        imageName: libraryMip.mipKey,
         imageURL: `${mipImageKey}`, // use relative names
         thumbnailURL: `${mipThumbnailKey}`, // use relative names
-        alignmentSpace: nPathComponents > 3 ? mipDirNames[0] : null,
-        libraryName: nPathComponents > 3 ? mipDirNames[1] : mipDirNames[0],
+        alignmentSpace: libraryMip.alignmentSpace,
+        libraryName: libraryMip.libraryName,
     };
-    if (nPathComponents > 3) {
-        // the folder structure is <alignmentSpace>/<libraryName>/...images
-        mip["alignmentSpace"] = mipDirNames[0];
-        mip["libraryName"] = mipDirNames[1];
-    } else if (nPathComponents > 2) {
-        // the folder structure is <libraryName>/...images
-        mip["libraryName"] = mipDirNames[0];
-    }
     if (isEmLibrary(mip.libraryName)) {
         return populateEMMetadataFromName(mipName, mip);
     } else {
