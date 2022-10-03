@@ -72,7 +72,7 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
             };
         })
         .filter(ds => {
-            const enabled = ds.customSearch && !ds.customSearch.disabled;
+            const enabled = ds.customSearch !== undefined;
             return enabled && ds.anatomicalArea.toLowerCase() === anatomicalRegion.toLowerCase();
         })
     if (!searchCfgs) {

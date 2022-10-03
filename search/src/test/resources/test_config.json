@@ -32,7 +32,6 @@
                 "VisuallyLosslessStack": "https://s3.amazonaws.com/janelia-flylight-imagery/"
             },
             "customSearch": {
-                "disabled": false,
                 "alignmentSpace": "JRC2018_Unisex_20x_HR",
                 "searchFolder": "searchable_neurons",
                 "lmLibraries": [
@@ -67,7 +66,6 @@
                 "VisuallyLosslessStack": "https://s3.amazonaws.com/janelia-flylight-imagery/"
             },
             "customSearch": {
-                "disabled": false,
                 "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
                 "searchFolder": "searchable_neurons",
                 "lmLibraries": [
@@ -101,7 +99,6 @@
                 "VisuallyLosslessStack": "https://s3.amazonaws.com/janelia-flylight-imagery/"
             },
             "customSearch": {
-                "disabled": false,
                 "alignmentSpace": "JRC2018_Unisex_20x_HR",
                 "searchFolder": "searchable_neurons",
                 "lmLibraries": [
@@ -135,7 +132,6 @@
                 "VisuallyLosslessStack": "https://s3.amazonaws.com/janelia-flylight-imagery/"
             },
             "customSearch": {
-                "disabled": false,
                 "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
                 "searchFolder": "searchable_neurons",
                 "lmLibraries": [
