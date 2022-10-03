@@ -57,22 +57,23 @@ export const checkSearchMask = async (searchId, bucket, maskKey) => {
  * @param searchData
  */
 export const getSearchedLibraries = async (searchData, dataBucket) => {
-    const anatomicalRegion = searchData.anatomicalRegion || 'brain';
+    const anatomicalRegion = searchData.anatomicalRegion || 'Brain';
     console.log(`Getting search libraries for ${anatomicalRegion}:${searchData.searchType}`);
     const dataConfig = await getDataConfig(dataBucket);
     // find all enabled datasets for the specified anatomical area
-    const searchCfgs = Object.keys(dataConfig.dataSets)
-        .map(dsKey => {
-            const ds = dataConfig.dataSets[dsKey];
+    const searchCfgs = Object.keys(dataConfig.stores)
+        .map(dataStoreKey => {
+            const ds = dataConfig.stores[dataStoreKey];
             const anatomicalAreaCfg = dataConfig.anatomicalAreas[ds.anatomicalArea];
             return {
                 ...ds,
+                store: dataStoreKey,
                 alignmentSpace: anatomicalAreaCfg.alignmentSpace,
-                disabled: anatomicalAreaCfg.disabled,
             };
         })
-        .filter(cfg => {
-            return cfg.anatomicalArea.toLowerCase() === anatomicalRegion.toLowerCase() && !cfg.disabled
+        .filter(ds => {
+            const enabled = ds.customSearch && !ds.customSearch.disabled;
+            return enabled && ds.anatomicalArea.toLowerCase() === anatomicalRegion.toLowerCase();
         })
     if (!searchCfgs) {
         console.error(`No CDS configuration found for ${anatomicalRegion}:${searchData.searchType} in`, dataConfig);
@@ -129,7 +130,7 @@ const getDataConfig = async (dataBucket) => {
 };
 
 const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter) => {
-    const searchedLibraries = getAllSearchedLibrariesFromConfigs(cfgs, libraryNamesGetter);
+    const searchedLibraries = getAllSearchedLibrariesFromConfiguredStores(cfgs, libraryNamesGetter);
     const getLibraryCountsPromises = await searchedLibraries.map(async libraryConfig => {
         const lsize = await getCount(libraryConfig.libraryBucket, libraryConfig.searchedNeuronsFolder);
         return await {
@@ -140,19 +141,20 @@ const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter) => {
     return await Promise.all(getLibraryCountsPromises);
 }
 
-const getAllSearchedLibrariesFromConfigs = (cfgs, libraryNamesGetter) => {
-    const lcList = cfgs.flatMap(cfg => libraryNamesGetter(cfg).map(libraryName => {
-        const searchedNeuronsFolder = cfg.customSearch.searchFolder;
-        const alignmentSpace = cfg.alignmentSpace;
+const getAllSearchedLibrariesFromConfiguredStores = (dataStores, libraryNamesGetter) => {
+    const lcList = dataStores.flatMap(dataStore => libraryNamesGetter(dataStore).map(libraryName => {
+        const searchedNeuronsFolder = dataStore.customSearch.searchFolder;
+        const alignmentSpace = dataStore.alignmentSpace;
         // if searchFolder is set append it to <alignmentSpace>/<libraryName>
         const searchedNeuronsPrefix = searchedNeuronsFolder
             ? `${alignmentSpace}/${libraryName}/${searchedNeuronsFolder}`
             : `${alignmentSpace}/${libraryName}`;
 
         return new Map({
-            libraryBucket: getBucketNameFromURL(cfg.prefixes.ColorDepthMip),
-            libraryThumbnailsBucket: getBucketNameFromURL(cfg.prefixes.ColorDepthMipThumbnail),
-            alignmentSpace: cfg.alignmentSpace,
+            store: dataStore.store,
+            libraryBucket: getBucketNameFromURL(dataStore.prefixes.ColorDepthMip),
+            libraryThumbnailsBucket: getBucketNameFromURL(dataStore.prefixes.ColorDepthMipThumbnail),
+            alignmentSpace: dataStore.alignmentSpace,
             libraryName: libraryName,
             searchedNeuronsFolder: searchedNeuronsPrefix,
         });

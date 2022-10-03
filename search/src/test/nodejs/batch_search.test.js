@@ -22,6 +22,7 @@ describe('batchSearch', () => {
         maxResultsPerMask: -1,
         libraries: [ 
             {
+                store: "fl:brain:1.0",
                 libraryBucket: 'janelia-flylight-color-depth',
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
@@ -29,6 +30,7 @@ describe('batchSearch', () => {
                 searchedNeuronsFolder: 'JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/searchable_neurons',
                 lsize: 5
             }, {
+                store: "fl:brain:2.0",
                 libraryBucket: 'janelia-flylight-color-depth-devpre',
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-devpre-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
@@ -36,6 +38,7 @@ describe('batchSearch', () => {
                 searchedNeuronsFolder: 'JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v2.0/searchable_neurons',
                 lsize: 5
             }, {
+                store: "fl:brain:3.0",
                 libraryBucket: 'janelia-flylight-color-depth-devpre',
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-devpre-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
@@ -167,6 +170,7 @@ describe('batchSearch', () => {
                                 imageURL: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.png",
                                 thumbnailURL: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.jpg",
                                 id: "1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM",
+                                libraryStore: "fl:brain:2.0",
                                 libraryName: "FlyEM_Hemibrain_v2.0",
                                 publishedName: "1002360103",
                                 imageName: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.png",

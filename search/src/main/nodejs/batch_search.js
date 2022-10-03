@@ -18,6 +18,7 @@ export const batchSearch = async (event) => {
 
     // jobParameters.libraries is an array of objects containing:
     // {
+    //     store: <string>
     //     libraryBucket: <string>,
     //     libraryThumbnailsBucket: <string>,
     //     alignmentSpace: <string>,
@@ -182,6 +183,7 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
 
     const searchableTargetsPromise =  await selectedLibraries
         .map(async librarySelection => {
+            const imageStore = librarySelection.library.store;
             const libraryBucket = librarySelection.library.libraryBucket;
             const libraryPrefix = librarySelection.library.searchedNeuronsFolder;
             const selectedMIPs = await getMIPs(
@@ -193,6 +195,7 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
             // add thumbnail bucket to the result
             return selectedMIPs.map(m => ({
                 ...m,
+                store: imageStore,
                 alignmentSpace: librarySelection.library.alignmentSpace,
                 libraryName: librarySelection.library.libraryName,
                 thumbnailBucketName: librarySelection.library.libraryThumbnailsBucket,
@@ -223,27 +226,6 @@ const getMIPs = async (libraryBucket, libraryKey, start, end) => {
     }));
 };
 
-const groupBy = (...keys) => xs =>
-    xs.reduce(updateGB(...keys), []);
-
-const updateGB = (...keys) => (acc, e) => {
-    const foundI = acc.findIndex(d => keys.every( key => d[key] === e[key]));
-    const divided = divProps(...keys)(e);
-    if (foundI === -1) {
-        return [...acc, {...divided.labels, results: [divided.results]}];
-    }
-    acc[foundI].results = [...acc[foundI].results, divided.results];
-    return acc;
-};
-
-const divProps =(...keys) => e =>
-    Object.entries(e).reduce(
-        ( acc, [k, v] ) =>
-            keys.includes(k)? {...acc, labels:{...acc.labels, [k]:v}}
-                : {...acc, results:{...acc.results, [k]:v}}
-        , {labels:{}, results:{}}
-    );
-
 const perMaskMetadata = (params) => {
     return {
         maskId: params.maskMIP.id,
@@ -258,6 +240,7 @@ const perMaskMetadata = (params) => {
         thumbnailURL: params.libraryMIP.thumbnailURL,
 
         id: params.libraryMIP.id,
+        libraryStore: params.libraryMIP.store,
         libraryName: params.libraryMIP.libraryName,
         publishedName: params.libraryMIP.publishedName,
         imageArchivePath: params.libraryMIP.imageArchivePath,
@@ -359,6 +342,7 @@ const getLibraryMIPMetadata = (libraryMip) => {
     const mipThumbnailKey = mipImageKey.replace(new RegExp('\\.(png|tif)$'), '.jpg');
     let mip = {
         id: mipName,
+        store: libraryMip.store,
         cdmPath: libraryMip.mipKey,
         imageName: libraryMip.mipKey,
         imageURL: `${mipImageKey}`, // use relative names
@@ -413,7 +397,6 @@ const populateLMMetadataFromName = (mipName, mipMetadata) => {
             mipMetadata["channel"] = matched[1];
         }
     }
-
     return mipMetadata;
 };
 
@@ -423,7 +406,6 @@ const populateEMMetadataFromName = (mipName, mipMetadata) => {
     mipMetadata["gender"] = "f"; // default to female for now
     return mipMetadata;
 };
-
 
 const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
     const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
@@ -450,6 +432,27 @@ const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
 
     return await putDbItemWithRetry(tableName, item);
 };
+
+const groupBy = (...keys) => xs =>
+    xs.reduce(updateGB(...keys), []);
+
+const updateGB = (...keys) => (acc, e) => {
+    const foundI = acc.findIndex(d => keys.every( key => d[key] === e[key]));
+    const divided = divProps(...keys)(e);
+    if (foundI === -1) {
+        return [...acc, {...divided.labels, results: [divided.results]}];
+    }
+    acc[foundI].results = [...acc[foundI].results, divided.results];
+    return acc;
+};
+
+const divProps =(...keys) => e =>
+    Object.entries(e).reduce(
+        ( acc, [k, v] ) =>
+            keys.includes(k)? {...acc, labels:{...acc.labels, [k]:v}}
+                : {...acc, results:{...acc.results, [k]:v}}
+        , {labels:{}, results:{}}
+    );
 
 const logWithMemoryUsage = (msg) => {
     var mem = process.memoryUsage();

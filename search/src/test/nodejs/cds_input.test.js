@@ -73,7 +73,7 @@ describe('prepare custom cds input', () => {
         console.log(searchedData);
         expect(searchedData.searchType).toBe('em2lm');
         expect(searchedData.anatomicalRegion).toBe('vnc');
-        expect(searchedData.searchedLibraries.length).toBe(5);
+        expect(searchedData.searchedLibraries.length).toBe(4);
         expect(searchedData.totalSearches).toBeGreaterThan(0);
         searchedData.searchedLibraries.forEach(lc => {
             expect(lc.libraryBucket).toContain('janelia-flylight-color-depth');
