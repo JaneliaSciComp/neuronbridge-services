@@ -62,6 +62,7 @@ const convertMatch = (cdm) => {
     return {
         image: {
             id: cdm.id,
+            store: cdm.libraryStore,
             libraryName: cdm.libraryName,
             publishedName: cdm.publishedName,
             alignmentSpace: cdm.alignmentSpace,
