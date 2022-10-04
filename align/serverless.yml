@@ -194,6 +194,7 @@ resources:
           mip_templates_dir: ${self:custom.mipTemplatesFolder}
           vnc_templates_dir: ${self:custom.vncAlignmentTemplatesFolder}
           nslots: ${self:custom.defaultAlignmentThreads}
+          reference_channel: "Signal_amount"
         ContainerProperties:
           Image: ${self:custom.alignmentVNCContainerImage}
           Vcpus: 16
@@ -217,6 +218,8 @@ resources:
             - "Ref::vnc_templates_dir"
             - "--nslots"
             - "Ref::nslots"
+            - "--reference-channel"
+            - "Ref::reference_channel"
             - "--search-id"
             - "Ref::search_id"
             - "-i"
