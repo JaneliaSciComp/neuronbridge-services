@@ -20,12 +20,14 @@ function convertResult(result, anatomicalArea, searchType) {
       libraryName: result.libraryName,
       gender: result.gender,
       files: {
+        store: "fl:pre_release:vnc",
         AlignedBodySWC: result.AlignedBodySWC || "",
         CDM: result.imageURL,
         CDMThumbnail: result.thumbnailURL,
       },
     },
     files: {
+      store: "fl:pre_release:vnc",
       CDMInput: result.CDMInput || "",
       CDMMatch: generateMipMatchPath(result.imageURL),
     },
@@ -55,6 +57,7 @@ export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
   const output = {
     inputImage: {
       files: {
+        store: "fl:pre_release:vnc",
         CDSResults: "",
         VisuallyLosslessStack: "",
         CDMThumbnail: "",
