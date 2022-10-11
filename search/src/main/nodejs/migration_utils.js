@@ -21,13 +21,13 @@ function convertResult(result, anatomicalArea, searchType) {
       gender: result.gender,
       files: {
         AlignedBodySWC: result.AlignedBodySWC || "",
-        ColorDepthMip: result.imageURL,
-        ColorDepthMipThumbnail: result.thumbnailURL,
+        CDM: result.imageURL,
+        CDMThumbnail: result.thumbnailURL,
       },
     },
     files: {
-      ColorDepthMipInput: result.ColorDepthMipInput || "",
-      ColorDepthMipMatch: generateMipMatchPath(result.imageURL),
+      CDMInput: result.CDMInput || "",
+      CDMMatch: generateMipMatchPath(result.imageURL),
     },
     mirrored: result.mirrored || false,
     normalizedScore: result.normalizedScore,
@@ -57,8 +57,8 @@ export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
       files: {
         CDSResults: "",
         VisuallyLosslessStack: "",
-        ColorDepthMipThumbnail: "",
-        ColorDepthMip: inputJSON.maskImageURL
+        CDMThumbnail: "",
+        CDM: inputJSON.maskImageURL
           ? inputJSON.maskImageURL.split("/").slice(-2).join("/")
           : "",
       },
