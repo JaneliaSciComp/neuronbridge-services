@@ -2,27 +2,30 @@
   "inputImage": {
     "alignmentSpace": "JRC2018_Unisex_20x_HR",
     "anatomicalArea": "brain",
-    "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask",
+    "filename": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask",
     "files": {
-      "ColorDepthMip": "c20637c0-9a3e-11ec-b6e7-f15422c60133/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask.png",
-      "ColorDepthMipThumbnail": "",
+      "CDM": "c20637c0-9a3e-11ec-b6e7-f15422c60133/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask.png",
+      "CDMThumbnail": "",
       "CDSResults": "",
-      "VisuallyLosslessStack": ""
+      "VisuallyLosslessStack": "",
+      "store": "fl:pre_release:vnc"
     }
   },
   "results": [
     {
       "files": {
-        "ColorDepthMipInput": "",
-        "ColorDepthMipMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png"
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+        "store": "fl:pre_release:vnc"
       },
       "image": {
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
         "anatomicalArea": "brain",
         "files": {
           "AlignedBodySWC": "",
-          "ColorDepthMip": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
-          "ColorDepthMipThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg"
+          "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+          "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
+          "store": "fl:pre_release:vnc"
         },
         "gender": "f",
         "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",
@@ -37,16 +40,18 @@
     },
     {
       "files": {
-        "ColorDepthMipInput": "",
-        "ColorDepthMipMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png"
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+        "store": "fl:pre_release:vnc"
       },
       "image": {
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
         "anatomicalArea": "brain",
         "files": {
           "AlignedBodySWC": "",
-          "ColorDepthMip": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
-          "ColorDepthMipThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg"
+          "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+          "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
+          "store": "fl:pre_release:vnc"
         },
         "gender": "f",
         "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",

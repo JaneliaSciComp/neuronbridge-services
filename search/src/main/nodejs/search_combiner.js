@@ -42,11 +42,11 @@ const extractResults = (item) => {
 // Convert intermediate results to final results
 const convertItermediateResults = (item) => {
     const inputImage = {
-        id: item.maskId,
+        filename: item.maskId,
         libraryName: item.maskLibraryName,
         publishedName: item.maskPublishedName,
         files: {
-          ColorDepthMip: item.maskImageURL,
+          CDM: item.maskImageURL,
         },
     };
     const results = item && item.results
@@ -72,13 +72,13 @@ const convertMatch = (cdm) => {
             objective: cdm.objective,
             channel: cdm.channel,
             files: {
-              ColorDepthMip: cdm.imageURL,
-              ColorDepthMipThumbnail: cdm.thumbnailURL,
+              CDM: cdm.imageURL,
+              CDMThumbnail: cdm.thumbnailURL,
             },
         },
         files: {
-            ColorDepthMipInput: cdm.maskImageName,
-            ColorDepthMipMatch: cdm.imageName,
+            CDMInput: cdm.maskImageName,
+            CDMMatch: cdm.imageName,
         },
         mirrored: cdm.mirrored,
         normalizedScore: cdm.normalizedScore,

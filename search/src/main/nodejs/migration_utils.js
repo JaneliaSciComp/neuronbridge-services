@@ -66,7 +66,7 @@ export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
           : "",
       },
       alignmentSpace: "JRC2018_Unisex_20x_HR",
-      id: inputJSON.maskId,
+      filename: inputJSON.maskId,
       anatomicalArea,
     },
     results: inputJSON.results

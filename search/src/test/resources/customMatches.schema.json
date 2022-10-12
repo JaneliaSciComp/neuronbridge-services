@@ -3,21 +3,6 @@
   "description": "The results of a matching algorithm run on an UploadImage.",
   "type": "object",
   "properties": {
-    "results": {
-      "title": "Results",
-      "description": "List of other images matching the input image.",
-      "type": "array",
-      "items": {
-        "anyOf": [
-          {
-            "$ref": "#/definitions/CDSMatch"
-          },
-          {
-            "$ref": "#/definitions/PPPMatch"
-          }
-        ]
-      }
-    },
     "inputImage": {
       "title": "Uploaded input image",
       "description": "Input image to the matching algorithm.",
@@ -26,53 +11,77 @@
           "$ref": "#/definitions/UploadedImage"
         }
       ]
+    },
+    "results": {
+      "title": "Results",
+      "description": "List of other images matching the input image.",
+      "type": "array",
+      "items": {
+        "discriminator": {
+          "propertyName": "type",
+          "mapping": {
+            "CDSMatch": "#/definitions/CDSMatch",
+            "PPPMatch": "#/definitions/PPPMatch"
+          }
+        },
+        "oneOf": [
+          {
+            "$ref": "#/definitions/CDSMatch"
+          },
+          {
+            "$ref": "#/definitions/PPPMatch"
+          }
+        ]
+      }
     }
   },
-  "required": ["results", "inputImage"],
+  "required": [
+    "inputImage",
+    "results"
+  ],
   "additionalProperties": false,
   "definitions": {
-    "Gender": {
-      "title": "Gender",
-      "description": "An enumeration.",
-      "enum": ["m", "f"],
-      "type": "string"
-    },
     "Files": {
       "title": "Files",
       "description": "Files associated with a NeuronImage or Match. These are either absolute URLs (e.g. starting with a protocol like http://) or relative paths. For relative paths, the first component should be replaced with its corresponding base URL from the DataConfig.",
       "type": "object",
       "properties": {
-        "ColorDepthMip": {
+        "store": {
+          "title": "Data Store",
+          "description": "Name of the DataStore that provides access to imagery for any relative paths in this object.",
+          "type": "string"
+        },
+        "CDM": {
           "title": "Color Depth MIP",
           "description": "The CDM of the image. For PPPM, this is the best matching channel of the matching LM stack and called 'Best Channel CDM' in the NeuronBridge GUI.",
           "type": "string"
         },
-        "ColorDepthMipThumbnail": {
+        "CDMThumbnail": {
           "title": "Thumbnail of the CDM",
-          "description": "The thumbnail sized version of the ColorDepthMip, if available.",
+          "description": "The thumbnail sized version of the CDM, if available.",
           "type": "string"
         },
-        "ColorDepthMipInput": {
+        "CDMInput": {
           "title": "CDM input",
           "description": "CDM-only. The actual color depth image that was input. 'Matched CDM' in the NeuronBridge GUI.",
           "type": "string"
         },
-        "ColorDepthMipMatch": {
+        "CDMMatch": {
           "title": "CDM match",
           "description": "CDM-only. The actual color depth image that was matched. 'Matched CDM' in the NeuronBridge GUI.",
           "type": "string"
         },
-        "ColorDepthMipBest": {
+        "CDMBest": {
           "title": "CDM of best-matching channel",
           "description": "PPPM-only. The CDM of best matching channel of the matching LM stack and called 'Best Channel CDM' in the NeuronBridge GUI.",
           "type": "string"
         },
-        "ColorDepthMipBestThumbnail": {
+        "CDMBestThumbnail": {
           "title": "Thumbnail of the CDM of best-matching channel",
           "description": "PPPM-only. The CDM of best matching channel of the matching LM stack and called 'Best Channel CDM' in the NeuronBridge GUI.",
           "type": "string"
         },
-        "ColorDepthMipSkel": {
+        "CDMSkel": {
           "title": "CDM with EM overlay",
           "description": "PPPM-only. The CDM of the best matching channel with the matching LM segmentation fragments overlaid. 'LM - Best Channel CDM with EM overlay' in the NeuronBridge GUI.",
           "type": "string"
@@ -92,8 +101,8 @@
           "description": "PPPM-only. LM signal content masked with the matching LM segmentation fragments, overlaid with the EM skeleton. 'PPPM Mask with EM Overlay' in the NeuronBridge GUI.",
           "type": "string"
         },
-        "SignalMipExpression": {
-          "title": "MIP of full LM line expression",
+        "Gal4Expression": {
+          "title": "CDM of full LM line expression",
           "description": "MCFO-only. A representative CDM image of the full expression of the line.",
           "type": "string"
         },
@@ -123,10 +132,60 @@
           "type": "string"
         }
       },
+      "required": [
+        "store"
+      ],
       "additionalProperties": false
     },
+    "UploadedImage": {
+      "title": "UploadedImage",
+      "description": "An uploaded image containing neurons. ",
+      "type": "object",
+      "properties": {
+        "filename": {
+          "title": "Filename",
+          "description": "Name of the uploaded file.",
+          "type": "string"
+        },
+        "alignmentSpace": {
+          "title": "Alignment space",
+          "description": "Alignment space to which this image was registered.",
+          "type": "string"
+        },
+        "anatomicalArea": {
+          "title": "Anatomical area",
+          "description": "Anatomical area represented in the image.",
+          "type": "string"
+        },
+        "files": {
+          "title": "Files",
+          "description": "Files associated with the image.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Files"
+            }
+          ]
+        }
+      },
+      "required": [
+        "filename",
+        "alignmentSpace",
+        "anatomicalArea",
+        "files"
+      ],
+      "additionalProperties": false
+    },
+    "Gender": {
+      "title": "Gender",
+      "description": "An enumeration.",
+      "enum": [
+        "m",
+        "f"
+      ],
+      "type": "string"
+    },
     "LMImage": {
-      "title": "LM image",
+      "title": "LMImage",
       "description": "A color depth image of a single channel of an LM image stack.",
       "type": "object",
       "properties": {
@@ -172,6 +231,14 @@
               "$ref": "#/definitions/Files"
             }
           ]
+        },
+        "type": {
+          "title": "Type",
+          "default": "LMImage",
+          "enum": [
+            "LMImage"
+          ],
+          "type": "string"
         },
         "slideCode": {
           "title": "Slide code",
@@ -255,6 +322,14 @@
             }
           ]
         },
+        "type": {
+          "title": "Type",
+          "default": "EMImage",
+          "enum": [
+            "EMImage"
+          ],
+          "type": "string"
+        },
         "neuronType": {
           "title": "Neuron type",
           "description": "Neuron type name from neuPrint",
@@ -285,7 +360,14 @@
         "image": {
           "title": "Matched image",
           "description": "The NeuronImage that was matched.",
-          "anyOf": [
+          "discriminator": {
+            "propertyName": "type",
+            "mapping": {
+              "LMImage": "#/definitions/LMImage",
+              "EMImage": "#/definitions/EMImage"
+            }
+          },
+          "oneOf": [
             {
               "$ref": "#/definitions/LMImage"
             },
@@ -307,6 +389,14 @@
           "title": "Mirror flag",
           "description": "Indicates whether the target image was found within a mirrored version of the matching image.",
           "type": "boolean"
+        },
+        "type": {
+          "title": "Type",
+          "default": "CDSMatch",
+          "enum": [
+            "CDSMatch"
+          ],
+          "type": "string"
         },
         "normalizedScore": {
           "title": "Normalized score",
@@ -329,14 +419,21 @@
       "additionalProperties": false
     },
     "PPPMatch": {
-      "title": "PPPM match",
+      "title": "PPPMatch",
       "description": "A PPPMatch is a match generated by the PPPM algorithm between an EMImage and a LMImage.",
       "type": "object",
       "properties": {
         "image": {
           "title": "Matched image",
           "description": "The NeuronImage that was matched.",
-          "anyOf": [
+          "discriminator": {
+            "propertyName": "type",
+            "mapping": {
+              "LMImage": "#/definitions/LMImage",
+              "EMImage": "#/definitions/EMImage"
+            }
+          },
+          "oneOf": [
             {
               "$ref": "#/definitions/LMImage"
             },
@@ -359,6 +456,14 @@
           "description": "Indicates whether the target image was found within a mirrored version of the matching image.",
           "type": "boolean"
         },
+        "type": {
+          "title": "Type",
+          "default": "PPPMatch",
+          "enum": [
+            "PPPMatch"
+          ],
+          "type": "string"
+        },
         "pppRank": {
           "title": "PPPM rank",
           "description": "Fractional rank reported by the PPPM algorithm. It's generally better to use the index of the image in the results.",
@@ -370,40 +475,13 @@
           "type": "integer"
         }
       },
-      "required": ["image", "files", "mirrored", "pppRank", "pppScore"],
-      "additionalProperties": false
-    },
-    "UploadedImage": {
-      "title": "UploadedImage",
-      "description": "An uploaded image containing neurons. ",
-      "type": "object",
-      "properties": {
-        "id": {
-          "title": "Image identifier",
-          "description": "The unique identifier for this image.",
-          "type": "string"
-        },
-        "alignmentSpace": {
-          "title": "Alignment space",
-          "description": "Alignment space to which this image was registered.",
-          "type": "string"
-        },
-        "anatomicalArea": {
-          "title": "Anatomical area",
-          "description": "Anatomical area represented in the image.",
-          "type": "string"
-        },
-        "files": {
-          "title": "Files",
-          "description": "Files associated with the image.",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Files"
-            }
-          ]
-        }
-      },
-      "required": ["alignmentSpace", "anatomicalArea", "files"],
+      "required": [
+        "image",
+        "files",
+        "mirrored",
+        "pppRank",
+        "pppScore"
+      ],
       "additionalProperties": false
     }
   }

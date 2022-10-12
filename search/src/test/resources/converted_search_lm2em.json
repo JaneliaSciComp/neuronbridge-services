@@ -1,10 +1,11 @@
 {
   "inputImage": {
-    "id": "1077847238_undefined (2)_1_mask",
+    "filename": "1077847238_undefined (2)_1_mask",
     "alignmentSpace": "JRC2018_Unisex_20x_HR",
     "files": {
-      "ColorDepthMip": "0751e020-9b09-11ec-98f4-5f9e052d4953/1077847238_undefined (2)_1_mask.png",
-      "ColorDepthMipThumbnail": "",
+      "store": "fl:pre_release:vnc",
+      "CDM": "0751e020-9b09-11ec-98f4-5f9e052d4953/1077847238_undefined (2)_1_mask.png",
+      "CDMThumbnail": "",
       "VisuallyLosslessStack": "",
       "CDSResults": ""
     },
@@ -20,16 +21,18 @@
         "anatomicalArea": "brain",
         "gender": "f",
         "files": {
-          "ColorDepthMip": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.png",
-          "ColorDepthMipThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.jpg",
+          "store": "fl:pre_release:vnc",
+          "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.png",
+          "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.jpg",
           "AlignedBodySWC": ""
         },
         "neuronType": "",
         "neuronInstance": ""
       },
       "files": {
-        "ColorDepthMipInput": "",
-        "ColorDepthMipMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1077847238-JRC2018_Unisex_20x_HR-CDM.png"
+        "store": "fl:pre_release:vnc",
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1077847238-JRC2018_Unisex_20x_HR-CDM.png"
       },
       "mirrored": false,
       "normalizedScore": 4151,
@@ -43,8 +46,9 @@
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
         "gender": "f",
         "files": {
-          "ColorDepthMip": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.png",
-          "ColorDepthMipThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.jpg",
+          "store": "fl:pre_release:vnc",
+          "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.png",
+          "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.jpg",
           "AlignedBodySWC": ""
         },
         "anatomicalArea": "brain",
@@ -52,8 +56,9 @@
         "neuronInstance": ""
       },
       "files": {
-        "ColorDepthMipInput": "",
-        "ColorDepthMipMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1110972158-JRC2018_Unisex_20x_HR-CDM.png"
+        "store": "fl:pre_release:vnc",
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1110972158-JRC2018_Unisex_20x_HR-CDM.png"
       },
       "mirrored": false,
       "normalizedScore": 85,
