@@ -57,7 +57,7 @@ const validateBatchParams = (batchParams) => {
         } else if (!l.searchedNeuronsFolder) {
             throw new Error(`No search prefix specified for library ${l.libraryName}`);
         }
-    })
+    });
     if (!batchParams.maskKeys) {
         throw new Error('No masks to search');
     }
@@ -112,7 +112,6 @@ const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
 
 
 const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
-    libraries.reduce
     const initialValue = {
         currentIndex: 0,
         selectedLibraries: [],
@@ -154,7 +153,7 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
                 return {
                     currentIndex: previousValue.currentIndex + l.lsize,
                     selectedLibraries: previousValue.selectedLibraries,
-                }
+                };
             } else {
                 // this is still within the selected range
                 if (previousValue.currentIndex + l.lsize < endIndex) {
@@ -175,7 +174,7 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
                 return {
                     currentIndex: previousValue.currentIndex + l.lsize,
                     selectedLibraries: previousValue.selectedLibraries,
-                }
+                };
             }
         },
         initialValue
@@ -199,9 +198,9 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
                 alignmentSpace: librarySelection.library.alignmentSpace,
                 libraryName: librarySelection.library.libraryName,
                 thumbnailBucketName: librarySelection.library.libraryThumbnailsBucket,
-            }))
+            }));
         });
-    
+
     const searchableTagets = await Promise.all(searchableTargetsPromise);
     // no need to slice the final result because we only selected the needed MIPs from library
     return searchableTagets.flat();

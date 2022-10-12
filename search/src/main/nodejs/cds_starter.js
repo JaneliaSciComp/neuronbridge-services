@@ -57,7 +57,7 @@ export const cdsStarter = async (event) => {
     const maskKey = `${searchInputFolder}/${searchInputName}`;
     await checkSearchMask(searchId, searchBucket, maskKey);
     const searchedData = await getSearchedLibraries(searchInputParams, dataBucket);
-    console.log("Search input params with libraries", libraries);
+    console.log("Search input params with libraries", searchedData);
     if (searchedData.totalSearches === 0) {
         const errMsg = `No libraries found for searching ${searchInputName}`;
         // set the error
@@ -91,7 +91,7 @@ export const cdsStarter = async (event) => {
         searchTimeoutSecs,
         jobParameters: jobParams,
         startIndex: 0,
-        endIndex: totalSearches,
+        endIndex: searchedData.totalSearches,
     };
     console.log('Starting ColorDepthSearch with:', dispatchParams);
     const cdsInvocationResult = await invokeFunction(parallelDispatchFunction, dispatchParams);

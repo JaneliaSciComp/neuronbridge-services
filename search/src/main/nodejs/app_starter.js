@@ -245,6 +245,7 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits, limit
 };
 
 const submitAlignmentJob = async (searchParams) => {
+    const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
     const searchInputMetadata = await getS3ContentMetadata(searchBucket, fullSearchInputImage);
     console.log('Search input metadata', searchInputMetadata);
     const searchInputSize = searchInputMetadata.ContentLength;

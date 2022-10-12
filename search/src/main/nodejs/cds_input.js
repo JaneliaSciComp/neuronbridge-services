@@ -74,7 +74,7 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
         .filter(ds => {
             const enabled = ds.customSearch !== undefined;
             return enabled && ds.anatomicalArea.toLowerCase() === anatomicalRegion.toLowerCase();
-        })
+        });
     if (!searchCfgs) {
         console.error(`No CDS configuration found for ${anatomicalRegion}:${searchData.searchType} in`, dataConfig);
         return {
@@ -139,7 +139,7 @@ const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter) => {
         };
     });
     return await Promise.all(getLibraryCountsPromises);
-}
+};
 
 const getAllSearchedLibrariesFromConfiguredStores = (dataStores, libraryNamesGetter) => {
     const lcList = dataStores.flatMap(dataStore => libraryNamesGetter(dataStore).map(libraryName => {
