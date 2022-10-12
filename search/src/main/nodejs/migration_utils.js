@@ -20,14 +20,16 @@ function convertResult(result, anatomicalArea, searchType) {
       libraryName: result.libraryName,
       gender: result.gender,
       files: {
+        store: "fl:pre_release:vnc",
         AlignedBodySWC: result.AlignedBodySWC || "",
-        ColorDepthMip: result.imageURL,
-        ColorDepthMipThumbnail: result.thumbnailURL,
+        CDM: result.imageURL,
+        CDMThumbnail: result.thumbnailURL,
       },
     },
     files: {
-      ColorDepthMipInput: result.ColorDepthMipInput || "",
-      ColorDepthMipMatch: generateMipMatchPath(result.imageURL),
+      store: "fl:pre_release:vnc",
+      CDMInput: result.CDMInput || "",
+      CDMMatch: generateMipMatchPath(result.imageURL),
     },
     mirrored: result.mirrored || false,
     normalizedScore: result.normalizedScore,
@@ -55,10 +57,11 @@ export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
   const output = {
     inputImage: {
       files: {
+        store: "fl:pre_release:vnc",
         CDSResults: "",
         VisuallyLosslessStack: "",
-        ColorDepthMipThumbnail: "",
-        ColorDepthMip: inputJSON.maskImageURL
+        CDMThumbnail: "",
+        CDM: inputJSON.maskImageURL
           ? inputJSON.maskImageURL.split("/").slice(-2).join("/")
           : "",
       },
