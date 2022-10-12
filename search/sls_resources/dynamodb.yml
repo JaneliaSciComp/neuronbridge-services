@@ -1,6 +1,19 @@
+Parameters:
+  WithDB:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+    Description: Enter true if SearchTable, AnnouncementsTable and PreferencesTable do not not exist
+Conditions:
+  CreateDBTables: !Equals
+    - !Ref WithDB
+    - true
 Resources:
   SearchTable:
     Type: "AWS::DynamoDB::Table"
+    Condition: CreateDBTables
     DeletionPolicy: Retain
     Properties:
       PointInTimeRecoverySpecification:
@@ -15,6 +28,7 @@ Resources:
       TableName: ${self:custom.searchTable}
   AnnouncementsTable:
     Type: "AWS::DynamoDB::Table"
+    Condition: CreateDBTables
     DeletionPolicy: Retain
     Properties:
       PointInTimeRecoverySpecification:
@@ -33,6 +47,7 @@ Resources:
       TableName: ${self:custom.announcementsTable}
   PreferencesTable:
     Type: "AWS::DynamoDB::Table"
+    Condition: CreateDBTables
     DeletionPolicy: Retain
     Properties:
       PointInTimeRecoverySpecification:

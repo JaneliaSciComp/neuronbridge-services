@@ -1,6 +1,19 @@
+Parameters:
+  WithSearchBucket:
+    Type: String
+    AllowedValues:
+      - true
+      - false
+    Default: false
+    Description: Enter true if SearchBucket does not exist
+Conditions:
+  CreateSearchBucket: !Equals
+    - !Ref WithSearchBucket
+    - true
 Resources:
   SearchBucket:
     Type: AWS::S3::Bucket
+    Condition: CreateSearchBucket
     DeletionPolicy: Retain
     Properties:
       BucketName: ${self:custom.searchBucket}
@@ -41,8 +54,3 @@ Resources:
             Prefix: ''
             Status: Enabled
             ExpirationInDays: '1'
-Outputs:
-  SearchBucketName:
-    Value:
-      Ref: SearchBucket
-
