@@ -55,5 +55,6 @@ Resources:
             Status: Enabled
             ExpirationInDays: '1'
 Outputs:
+  # SearchBucketName is needed for the client deployment
   SearchBucketName:
     Value: ${self:custom.searchBucket}

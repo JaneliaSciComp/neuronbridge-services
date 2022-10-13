@@ -1,7 +1,7 @@
 import AWS from 'aws-sdk';
-import {getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey} from './searchutils';
-import {streamObject, removeKey, DEBUG} from './utils';
-import {updateSearchMetadata, SEARCH_COMPLETED} from './awsappsyncutils';
+import { getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey } from './searchutils';
+import { streamObject, removeKey, DEBUG } from './utils';
+import { updateSearchMetadata, SEARCH_COMPLETED } from './awsappsyncutils';
 import zlib from 'zlib';
 
 var docClient = new AWS.DynamoDB.DocumentClient();
@@ -9,15 +9,35 @@ var docClient = new AWS.DynamoDB.DocumentClient();
 const maxResultsLength = process.env.MAX_CUSTOM_RESULTS || -1;
 
 const mergeBatchResults = async (searchId, items, allBatchResults) => {
-    for(const item of items) {
+    let nMergedResults = 0;
+    for (const item of items) {
         try {
-            extractResults(item).forEach(batchResult => {
-                if (allBatchResults[batchResult.maskId]) {
-                    allBatchResults[batchResult.maskId] = mergeResults(allBatchResults[batchResult.maskId], batchResult);
+            const batchResults = extractResults(item);
+            batchResults.forEach(batchResult => {
+                // batchResult looks like:
+                // {
+                //     inputImage: {
+                //         filename:
+                //         libraryName:
+                //     },
+                //     results: [
+                //         image: {
+                //             id:
+                //         },
+                //         files: {
+                //             CDMInput:
+                //             CDMMatch:
+                //         }
+                //     ]
+                // }
+                if (allBatchResults[batchResult.inputImage.filename]) {
+                    mergeResults(allBatchResults[batchResult.inputImage.filename], batchResult);
                 } else {
-                    allBatchResults[batchResult.maskId] = batchResult;
+                    // first results for the current input mask
+                    allBatchResults[batchResult.inputImage.filename] = batchResult;
                 }
             });
+            nMergedResults += batchResults.length;
         } catch (e) {
             // write down the error
             await updateSearchMetadata({
@@ -28,25 +48,32 @@ const mergeBatchResults = async (searchId, items, allBatchResults) => {
             throw e;
         }
     }
+    console.log(`Merged ${nMergedResults} color depth search results for ${searchId}`);
 };
 
 // Extract results from the database and map to the final result
 const extractResults = (item) => {
-    const resultsSValue = item.resultsMimeType === 'application/gzip'
-        ? zlib.gunzipSync(item.results)
-        : item.results;
-    const intermediateResult = JSON.parse(resultsSValue);
-    return convertItermediateResults(intermediateResult);
+    try {
+        const resultsSValue = item.resultsMimeType === 'application/gzip'
+            ? zlib.gunzipSync(item.results)
+            : item.results;
+        const intermediateResults = JSON.parse(resultsSValue);
+        // convert all intermediate results
+        return intermediateResults.map(r => convertItermediateResults(r));
+    } catch (e) {
+        console.log(`Error extracting results for ${item.jobId}:${item.batchId}`);
+        throw e;
+    }
 };
 
 // Convert intermediate results to final results
-const convertItermediateResults = (item) => {
+const convertItermediateResults = item => {
     const inputImage = {
         filename: item.maskId,
         libraryName: item.maskLibraryName,
         publishedName: item.maskPublishedName,
         files: {
-          CDM: item.maskImageURL,
+            CDM: item.maskImageURL,
         },
     };
     const results = item && item.results
@@ -72,8 +99,8 @@ const convertMatch = (cdm) => {
             objective: cdm.objective,
             channel: cdm.channel,
             files: {
-              CDM: cdm.imageURL,
-              CDMThumbnail: cdm.thumbnailURL,
+                CDM: cdm.imageURL,
+                CDMThumbnail: cdm.thumbnailURL,
             },
         },
         files: {
@@ -115,9 +142,9 @@ export const searchCombiner = async (event) => {
 
     // Parameters
     const { jobId, tasksTableName, timedOut, completed, withErrors, fatalErrors } = event;
-    const { searchBucket, searchId, maskKeys, maxResultsPerMask }  = event.jobParameters;
+    const { searchBucket, searchId, maskKeys, maxResultsPerMask } = event.jobParameters;
     const fullSearchInputName = maskKeys[0];
-    const searchInputName = fullSearchInputName.substring(fullSearchInputName.lastIndexOf("/")+1);
+    const searchInputName = fullSearchInputName.substring(fullSearchInputName.lastIndexOf("/") + 1);
 
     let allBatchResults = {};
 
@@ -161,7 +188,7 @@ export const searchCombiner = async (event) => {
             ':jobId': jobId,
             ':emptyList': '[]'
         },
-      };
+    };
 
     let queryResult;
     do {
@@ -172,34 +199,42 @@ export const searchCombiner = async (event) => {
         params.ExclusiveStartKey = queryResult.LastEvaluatedKey;
     } while (queryResult.LastEvaluatedKey);
 
-    const matchCounts = Object.values(allBatchResults).map(rsByMask => {
-        return rsByMask.results.length;
-    });
+    const nTotalMatches = Object.values(allBatchResults)
+        .map(rsByMask => {
+            return rsByMask.results.length;
+        })
+        .reduce((a, n) => a + n, 0);
 
-    const nTotalMatches = matchCounts.reduce((a, n) => a  + n, 0);
+    console.log(`Total number of matches for ${jobId} is ${nTotalMatches}`);
 
-    const allMatches = Object.values(allBatchResults).map(rsByMask => {
-        const results = rsByMask.results;
-        console.log(`Sort ${results.length} for ${rsByMask.maskId}`);
-        results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
-        if (maxResultsPerMask && maxResultsPerMask > 0 && results.length > maxResultsPerMask) {
-            rsByMask.results = results.slice(0, maxResultsPerMask);
-        }
-        return rsByMask;
-    });
+    const allMatches = Object.values(allBatchResults)
+        .map(rsByMask => {
+            const results = rsByMask.results;
+            console.log(`Sort ${results.length} for ${rsByMask.inputImage.filename}`);
+            results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
+            if (maxResultsPerMask && maxResultsPerMask > 0 && results.length > maxResultsPerMask) {
+                rsByMask.results = results.slice(0, maxResultsPerMask);
+            }
+            return rsByMask;
+        });
 
     // write down the results
+    console.log(`Save color depth search results for ${fullSearchInputName}`);
+    const searchResultsKey = getSearchResultsKey(fullSearchInputName);
+    console.log(`Write results for ${jobId} to ${searchResultsKey}`);
     const outputUri = await streamObject(
         searchBucket,
-        getSearchResultsKey(fullSearchInputName),
+        searchResultsKey,
         allMatches.length > 1
             ? allMatches
             : (allMatches[0]
                 ? allMatches[0]
                 : {
-                    maskId: getSearchMaskId(searchInputName),
+                    inputImage: {
+                        filename: getSearchMaskId(searchInputName)
+                    },
                     results: []
-                  })
+                })
     );
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
@@ -219,6 +254,6 @@ export const searchCombiner = async (event) => {
 
     return {
         ...event,
-        matchCounts
+        nTotalMatches
     };
 };
