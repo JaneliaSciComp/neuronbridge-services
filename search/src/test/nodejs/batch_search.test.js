@@ -14,7 +14,7 @@ describe('batchSearch', () => {
         minMatchingPixRatio: 2,
         searchBucket: "janelia-neuronbridge-search-dev",
         maskKeys: [
-            "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png"
+            "private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png"
         ],
         maskThresholds: [
             100
@@ -163,10 +163,10 @@ describe('batchSearch', () => {
                         maskId:"1002360103-RT-JRC2018_Unisex_20x_HR-CDM",
                         maskLibraryName:null,
                         maskPublishedName:null,
-                        maskImageURL: "https://s3.amazonaws.com/janelia-neuronbridge-search-dev/JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png",
+                        maskImageURL: "https://s3.amazonaws.com/janelia-neuronbridge-search-dev/private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png",
                         results: [
                             {
-                                maskImageName: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.1/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png",
+                                maskImageName: "private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png",
                                 imageURL: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.png",
                                 thumbnailURL: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.jpg",
                                 id: "1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM",

@@ -1,0 +1,40 @@
+{
+    "jobId": "23835450-4b11-11ed-bdaa-1bfbbfb87144",
+    "jobParameters": {
+        "searchId": "f5e83885-4bc7-4748-846c-43699c445558",
+        "dataThreshold": 100,
+        "pixColorFluctuation": 1,
+        "xyShift": 2,
+        "mirrorMask": true,
+        "minMatchingPixRatio": 2,
+        "maskThresholds": [
+            100
+        ],
+        "maxResultsPerMask": -1,
+        "searchBucket": "janelia-neuronbridge-search-devpre",
+        "maskKeys": [
+            "private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png"
+        ],
+        "libraries": [
+            {
+                "store": "fl:open_data:brain",
+                "libraryBucket": "janelia-flylight-color-depth",
+                "libraryThumbnailsBucket": "janelia-flylight-color-depth-thumbnails",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "searchedNeuronsFolder": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons",
+                "lsize": 45018
+            }
+        ]
+    },
+    "numBatches": 1126,
+    "searchTimeoutSecs": "400",
+    "startTime": "2022-10-13T16:07:30.069Z",
+    "monitorFunctionName": "burst-compute-devpre-monitor",
+    "combinerFunctionName": "janelia-neuronbridge-cds-devpre-combiner",
+    "tasksTableName": "burst-compute-devpre-tasks",
+    "elapsedSecs": 13,
+    "numRemaining": 0,
+    "completed": true,
+    "timedOut": false
+}

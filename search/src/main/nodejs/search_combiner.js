@@ -68,12 +68,14 @@ const extractResults = (item) => {
 
 // Convert intermediate results to final results
 const convertItermediateResults = item => {
+    const maskImagePath = getMaskImagePathFromURL(item.maskImageURL);
+    // for the inputImage the store is actually the search bucket itself
     const inputImage = {
         filename: item.maskId,
         libraryName: item.maskLibraryName,
         publishedName: item.maskPublishedName,
         files: {
-            CDM: item.maskImageURL,
+            CDM: maskImagePath,
         },
     };
     const results = item && item.results
@@ -85,11 +87,28 @@ const convertItermediateResults = item => {
     };
 };
 
+const getMaskImagePathFromURL = maskURLValue => {
+    const maskURL = new URL(maskURLValue);
+    // maskURL.pathname includes the bucket name and it looks like:
+    // '/bucket/private/userid/searchfolder/generatedMIPs/file.png'
+    // so the first components of the split invocation are:
+    // ['', 'bucket', 'private', 'userid', 'searchfolder', ...]
+    // we only want to keep components after the search folder (including the search folder)
+    return pathRelativeToNComp(maskURL.pathname, 4);
+};
+
+const pathRelativeToNComp = (p, n) => {
+    const pComps = p.split('/');
+    return pComps.slice(p).join('/');
+};
+
 const convertMatch = (cdm) => {
+    // the initial maskImageName: "private/userid/searchfolder/..."
+    // what I want is the name relative to "private/userid", i.e., "searchfolder/..."
+    const maskImageName = pathRelativeToNComp(cdm.maskImageName, 2);
     return {
         image: {
             id: cdm.id,
-            store: cdm.libraryStore,
             libraryName: cdm.libraryName,
             publishedName: cdm.publishedName,
             alignmentSpace: cdm.alignmentSpace,
@@ -99,12 +118,14 @@ const convertMatch = (cdm) => {
             objective: cdm.objective,
             channel: cdm.channel,
             files: {
+                store: cdm.libraryStore,
                 CDM: cdm.imageURL,
                 CDMThumbnail: cdm.thumbnailURL,
             },
         },
         files: {
-            CDMInput: cdm.maskImageName,
+            store: cdm.libraryStore,
+            CDMInput: maskImageName,
             CDMMatch: cdm.imageName,
         },
         mirrored: cdm.mirrored,
