@@ -20,9 +20,12 @@ describe('batchSearch', () => {
             100
         ],
         maxResultsPerMask: -1,
+        inputAnatomicalRegion: 'brain',
         libraries: [ 
             {
                 store: "fl:brain:1.0",
+                anatomicalArea: 'Brain',
+                targetType: 'EMImage',
                 libraryBucket: 'janelia-flylight-color-depth',
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
@@ -31,6 +34,8 @@ describe('batchSearch', () => {
                 lsize: 5
             }, {
                 store: "fl:brain:2.0",
+                anatomicalArea: 'Brain',
+                targetType: 'EMImage',
                 libraryBucket: 'janelia-flylight-color-depth-devpre',
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-devpre-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
@@ -39,6 +44,8 @@ describe('batchSearch', () => {
                 lsize: 5
             }, {
                 store: "fl:brain:3.0",
+                anatomicalArea: 'Brain',
+                targetType: 'EMImage',
                 libraryBucket: 'janelia-flylight-color-depth-devpre',
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-devpre-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
@@ -171,16 +178,18 @@ describe('batchSearch', () => {
                                 thumbnailURL: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.jpg",
                                 id: "1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM",
                                 libraryStore: "fl:brain:2.0",
+                                targetType: "EMImage",
                                 libraryName: "FlyEM_Hemibrain_v2.0",
                                 publishedName: "1002360103",
                                 imageName: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.png",
-                                gender:"f",
+                                gender: "f",
+                                anatomicalArea: "Brain",
                                 alignmentSpace: "JRC2018_Unisex_20x_HR",
                                 matchingPixels: 20000,
-                                matchingRatio:1,
-                                mirrored:false,
-                                gradientAreaGap:-1,
-                                normalizedScore:20000
+                                matchingRatio: 1,
+                                mirrored: false,
+                                gradientAreaGap: -1,
+                                normalizedScore: 20000
                             }
                         ]
                     }

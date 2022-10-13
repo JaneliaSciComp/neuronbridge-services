@@ -117,6 +117,7 @@ const convertMatch = (cdm) => {
             slideCode: cdm.slideCode,
             objective: cdm.objective,
             channel: cdm.channel,
+            type: cdm.targetType,
             files: {
                 store: cdm.libraryStore,
                 CDM: cdm.imageURL,

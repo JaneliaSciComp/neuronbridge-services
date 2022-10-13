@@ -183,6 +183,8 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
     const searchableTargetsPromise =  await selectedLibraries
         .map(async librarySelection => {
             const imageStore = librarySelection.library.store;
+            const anatomicalArea = librarySelection.library.anatomicalArea;
+            const targetType = librarySelection.library.targetType;
             const libraryBucket = librarySelection.library.libraryBucket;
             const libraryPrefix = librarySelection.library.searchedNeuronsFolder;
             const selectedMIPs = await getMIPs(
@@ -195,6 +197,8 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
             return selectedMIPs.map(m => ({
                 ...m,
                 store: imageStore,
+                anatomicalArea,
+                targetType,
                 alignmentSpace: librarySelection.library.alignmentSpace,
                 libraryName: librarySelection.library.libraryName,
                 thumbnailBucketName: librarySelection.library.libraryThumbnailsBucket,
@@ -240,6 +244,7 @@ const perMaskMetadata = (params) => {
 
         id: params.libraryMIP.id,
         libraryStore: params.libraryMIP.store,
+        targetType: params.libraryMIP.targetType,
         libraryName: params.libraryMIP.libraryName,
         publishedName: params.libraryMIP.publishedName,
         imageArchivePath: params.libraryMIP.imageArchivePath,
@@ -342,6 +347,8 @@ const getLibraryMIPMetadata = (libraryMip) => {
     let mip = {
         id: mipName,
         store: libraryMip.store,
+        anatomicalArea: libraryMip.anatomicalArea,
+        targetType: libraryMip.targetType,
         cdmPath: libraryMip.mipKey,
         imageName: libraryMip.mipKey,
         imageURL: `${mipImageKey}`, // use relative names

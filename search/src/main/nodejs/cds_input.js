@@ -85,17 +85,21 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
     }
     const searchType = searchData.searchType;
     let libraryNamesGetter;
+    let targetType;
     if (searchType === 'em2lm' || searchType === 'lmTarget') {
         // from all matching configurations collect 'lmLibraries' together with alignmentSpace and bucket
         libraryNamesGetter = cfg => cfg.customSearch.lmLibraries;
+        targetType = 'LMImage';
     } else if (searchType === 'lm2em' || searchType === 'emTarget') {
         // from all matching configurations collect 'emLibraries' together with alignmentSpace and bucket
         libraryNamesGetter = cfg => cfg.customSearch.emLibraries;
+        targetType = 'EMImage';
     } else {
         console.error(`Unsupported searchType: ${searchType}`, searchData);
+        targetType = 'Unknown';
         libraryNamesGetter = cfg => [];
     }
-    const searchedLibraries = await getAllSearchedLibrariesWithSizes(searchCfgs, libraryNamesGetter);
+    const searchedLibraries = await getAllSearchedLibrariesWithSizes(searchCfgs, libraryNamesGetter, targetType);
     const totalSearches = searchedLibraries
         .map(l => l.lsize)
         .reduce((acc, lsize) => acc + lsize, 0);
@@ -129,12 +133,13 @@ const getDataConfig = async (dataBucket) => {
     );
 };
 
-const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter) => {
+const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter, targetType) => {
     const searchedLibraries = getAllSearchedLibrariesFromConfiguredStores(cfgs, libraryNamesGetter);
     const getLibraryCountsPromises = await searchedLibraries.map(async libraryConfig => {
         const lsize = await getCount(libraryConfig.libraryBucket, libraryConfig.searchedNeuronsFolder);
         return await {
             ...libraryConfig,
+            targetType,
             lsize,
         };
     });
@@ -152,6 +157,7 @@ const getAllSearchedLibrariesFromConfiguredStores = (dataStores, libraryNamesGet
 
         return new Map({
             store: dataStore.store,
+            anatomicalArea: dataStore.anatomicalArea,
             libraryBucket: getBucketNameFromURL(dataStore.prefixes.ColorDepthMip),
             libraryThumbnailsBucket: getBucketNameFromURL(dataStore.prefixes.ColorDepthMipThumbnail),
             alignmentSpace: dataStore.alignmentSpace,

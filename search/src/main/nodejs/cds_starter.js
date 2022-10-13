@@ -68,7 +68,6 @@ export const cdsStarter = async (event) => {
         });
         throw new Error(errMsg);
     }
-
     const jobParams = {
         searchId,
         dataThreshold: parseInt(searchInputParams.dataThreshold),
@@ -80,6 +79,8 @@ export const cdsStarter = async (event) => {
         maxResultsPerMask: searchInputParams.maxResultsPerMask,
         searchBucket,
         maskKeys: [maskKey],
+        inputAnatomicalRegion: searchedData.anatomicalRegion,
+        targetType: searchedData.targetType,
         libraries: searchedData.searchedLibraries,
     };
     // Schedule the burst compute job
