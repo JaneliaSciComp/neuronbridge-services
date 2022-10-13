@@ -97,9 +97,9 @@ const getMaskImagePathFromURL = maskURLValue => {
     return pathRelativeToNComp(maskURL.pathname, 4);
 };
 
-const pathRelativeToNComp = (p, n) => {
-    const pComps = p.split('/');
-    return pComps.slice(p).join('/');
+const pathRelativeToNComp = (aPath, startSubpathComp) => {
+    const pComps = aPath.split('/');
+    return pComps.slice(startSubpathComp).join('/');
 };
 
 const convertMatch = (cdm) => {
