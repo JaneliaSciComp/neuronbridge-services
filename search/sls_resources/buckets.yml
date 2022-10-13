@@ -54,3 +54,6 @@ Resources:
             Prefix: ''
             Status: Enabled
             ExpirationInDays: '1'
+Outputs:
+  SearchBucketName:
+    Value: ${self:custom.searchBucket}
