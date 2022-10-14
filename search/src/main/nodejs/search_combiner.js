@@ -31,7 +31,8 @@ const mergeBatchResults = async (searchId, items, allBatchResults) => {
                 //     ]
                 // }
                 if (allBatchResults[batchResult.inputImage.filename]) {
-                    mergeResults(allBatchResults[batchResult.inputImage.filename], batchResult);
+                    // assign merged results to the current mask
+                    allBatchResults[batchResult.inputImage.filename] = mergeResults(allBatchResults[batchResult.inputImage.filename], batchResult);
                 } else {
                     // first results for the current input mask
                     allBatchResults[batchResult.inputImage.filename] = batchResult;
@@ -106,6 +107,7 @@ const convertMatch = (cdm) => {
     // the initial maskImageName: "private/userid/searchfolder/..."
     // what I want is the name relative to "private/userid", i.e., "searchfolder/..."
     const maskImageName = pathRelativeToNComp(cdm.maskImageName, 2);
+    const matchedImageName = getDisplayableImage(cdm.imageName);
     return {
         image: {
             id: cdm.id,
@@ -127,13 +129,32 @@ const convertMatch = (cdm) => {
         files: {
             store: cdm.libraryStore,
             CDMInput: maskImageName,
-            CDMMatch: cdm.imageName,
+            CDMMatch: matchedImageName,
         },
         mirrored: cdm.mirrored,
         normalizedScore: cdm.normalizedScore,
         matchingPixels: cdm.matchingPixels,
         matchingRatio: cdm.matchingRatio,
     };
+};
+
+const getDisplayableImage = (fullImageName) => {
+    if (fullImageName.endsWith('.tif') || fullImageName.endWith('.tiff')) {
+        // we assume this is a segmentation image located in a certain partition like:
+        // <as>/<library>/searchable_neurons/<partition>/<name>.tif
+        // to get the displayable image we replace <partition> with "pngs" and
+        // the ".tif" extension with ".png"
+        const imageNameComps = fullImageName.split('/');
+        const imageName = imageNameComps[imageNameComps.length - 1];
+        // replace partition folder with 'pngs' folder
+        imageNameComps[imageNameComps.length - 2] = 'pngs';
+        // replace .tif extension with .png
+        imageNameComps[imageNameComps.length - 1] = imageName.replace(/\.tif.*$/, '.png');
+        return imageNameComps.join('/');
+    } else {
+        // don't know how to handle this
+        return fullImageName;
+    }
 };
 
 // Merge results in the final form
@@ -144,7 +165,7 @@ const mergeResults = (rs1, rs2) => {
     if (!rs2.inputImage) {
         throw new Error('Results cannot be merged because rs2.inputImage is not set', rs1, rs2);
     }
-    if (rs1.inputImage.id === rs2.inputImage.id) {
+    if (rs1.inputImage.filename === rs2.inputImage.filename) {
         const allMergedResults = [...rs1.results, ...rs2.results];
         // sort the merged results
         allMergedResults.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
@@ -155,7 +176,7 @@ const mergeResults = (rs1, rs2) => {
             results: mergedResults,
         };
     } else {
-        throw new Error(`Results could not be merged because mask IDs: ${rs1.inputImage.id} and ${rs2.inputImage.id} are different`);
+        throw new Error(`Results could not be merged because mask IDs: ${rs1.inputImage.filename} and ${rs2.inputImage.filename} are different`);
     }
 };
 
@@ -227,7 +248,7 @@ export const searchCombiner = async (event) => {
         })
         .reduce((a, n) => a + n, 0);
 
-    console.log(`Total number of matches for ${jobId} is ${nTotalMatches}`);
+    console.log(`Total number of matches for ${jobId} is ${nTotalMatches}`, allBatchResults);
 
     const allMatches = Object.values(allBatchResults)
         .map(rsByMask => {
