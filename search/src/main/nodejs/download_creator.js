@@ -43,7 +43,7 @@ async function getPrecomputedSearchResults(searchId, ids, algo="cdm") {
   // get precomputedDataRootPath from s3://janelia-neuronbridge-data-dev/paths.json
   const version = await getS3ContentWithRetry(dataBucket, "current.txt");
   const trimmedVersion = version.toString().replace(/\r?\n|\r/,'');
-  const metadataDir = (algo === "ppp") ? 'pppresults' : 'cdsresults';
+  const metadataDir = (algo === "pppm") ? 'pppresults' : 'cdsresults';
 
   // get results from
   // s3://janelia-neuronbridge-data-dev/{precomputedDataRootPath}/metadata/cdsresults/{searchId}.json
@@ -58,7 +58,7 @@ const getReadStream = (key, algo) => {
   let streamCreated = false;
 
   const passThroughStream = new PassThrough();
-  const Bucket = algo === 'ppp' ? pppBucket : libraryBucket;
+  const Bucket = algo === 'pppm' ? pppBucket : libraryBucket;
 
   passThroughStream.on("newListener", event => {
     if (!streamCreated && event === "data") {
@@ -104,7 +104,7 @@ const streamTo = (key, callback) => {
 };
 
 function getFilePath(algo, result, library) {
-  if (algo === "ppp") {
+  if (algo === "pppm") {
     return `${result.alignmentSpace}/${library}/${result.files.ColorDepthMip}`;
   }
   return result.imageName ? result.imageName : result.imageURL;
