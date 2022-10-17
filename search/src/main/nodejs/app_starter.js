@@ -129,14 +129,15 @@ const getNewRecords = async (e) => {
 };
 
 const startColorDepthSearch = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams,
-                                            concurrentColorDepthSearchLimits,
-                                            perDayColorDepthSearchLimits,
-                                {
-                                                singular: 'search',
-                                                plural: 'searches'
-                                            },
-                                s => s.step === SEARCH_IN_PROGRESS);
+    const limitsMessage = await checkLimits(
+        searchParams,
+        concurrentColorDepthSearchLimits,
+        perDayColorDepthSearchLimits,
+        {
+            singular: 'search',
+            plural: 'searches'
+        },
+        s => s.step === SEARCH_IN_PROGRESS);
     if (limitsMessage) {
         console.log(`No color depth search started because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
@@ -192,14 +193,15 @@ const createDisplayableMask = async (bucket, prefix, key) => {
 };
 
 const startAlignment = async (searchParams) => {
-    const limitsMessage = await checkLimits(searchParams,
-                                            concurrentAlignmentLimits,
-                                            perDayAlignmentLimits,
-                                {
-                                                singular: 'alignment',
-                                                plural: 'alignments'
-                                            },
-                                s => s.step === ALIGNMENT_JOB_SUBMITTED);
+    const limitsMessage = await checkLimits(
+        searchParams,
+        concurrentAlignmentLimits,
+        perDayAlignmentLimits,
+        {
+            singular: 'alignment',
+            plural: 'alignments'
+        },
+        s => s.step === ALIGNMENT_JOB_SUBMITTED);
     if (limitsMessage) {
         console.log(`No job invoked because ${limitsMessage}`, searchParams);
         await updateSearchMetadata({
@@ -214,6 +216,7 @@ const startAlignment = async (searchParams) => {
         if (searchParams.simulateMIPGeneration) {
             return await generateMIPs(searchParams);
         } else {
+            console.log('Prepare to submit alignment for', searchParams);
             return await submitAlignmentJob(searchParams);
         }
     }
@@ -338,9 +341,10 @@ const selectComputeResources = estimatedMemory => {
 };
 
 const setAlignmentJobParams = (searchParams, computeResources) => {
-    if (!searchParams.area || searchParams.area.toLowerCase() === 'brain') {
+    console.log('Set alignment job parameters', searchParams);
+    if (!searchParams.anatomicalRegion || searchParams.anatomicalRegion.toLowerCase() === 'brain') {
         return setBrainAlignmentJobParams(searchParams, computeResources);
-    } else if (searchParams.area.toLowerCase() === 'vnc') {
+    } else if (searchParams.anatomicalRegion.toLowerCase() === 'vnc') {
         return setVNCAlignmentJobParams(searchParams, computeResources);
     } else {
         throw Error("Unsupported alignment JOB for ", searchParams);
