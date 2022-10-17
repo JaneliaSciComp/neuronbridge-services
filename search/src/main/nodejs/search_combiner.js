@@ -135,6 +135,7 @@ const convertMatch = (cdm) => {
         normalizedScore: cdm.normalizedScore,
         matchingPixels: cdm.matchingPixels,
         matchingRatio: cdm.matchingRatio,
+        type: "CDSMatch",
     };
 };
 
