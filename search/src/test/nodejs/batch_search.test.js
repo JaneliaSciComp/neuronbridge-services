@@ -2,7 +2,6 @@ import * as batch_search from '../../main/nodejs/batch_search';
 import * as load_mip from '../../main/nodejs/load_mip';
 import * as utils from '../../main/nodejs/utils';
 
-
 describe('batchSearch', () => {
     const jobParameters = {
         searchId: 'aSearch',
