@@ -146,8 +146,10 @@ const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter, target
     return await Promise.all(getLibraryCountsPromises);
 };
 
-const getAllSearchedLibrariesFromConfiguredStores = (dataStores, libraryNamesGetter) => {
-    const lcList = dataStores.flatMap(dataStore => libraryNamesGetter(dataStore).map(libraryName => {
+const getAllSearchedLibrariesFromConfiguredStores = (dataStores, librariesGetter) => {
+    const lcList = dataStores.flatMap(dataStore => librariesGetter(dataStore).map(library => {
+        const libraryName = library.name;
+        const publishedNamePrefix = library.publishedNamePrefix;
         const searchedNeuronsFolder = dataStore.customSearch.searchFolder;
         const alignmentSpace = dataStore.alignmentSpace;
         // if searchFolder is set append it to <alignmentSpace>/<libraryName>
@@ -163,6 +165,7 @@ const getAllSearchedLibrariesFromConfiguredStores = (dataStores, libraryNamesGet
             libraryThumbnailsBucket: getBucketNameFromURL(dataStore.prefixes.CDMThumbnail),
             alignmentSpace: dataStore.alignmentSpace,
             libraryName: libraryName,
+            publishedNamePrefix: publishedNamePrefix,
             searchedNeuronsFolder: searchedNeuronsPrefix,
         });
     }));

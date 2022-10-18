@@ -1,4 +1,3 @@
-import { isType } from 'graphql';
 import * as batch_search from '../../main/nodejs/batch_search';
 import * as load_mip from '../../main/nodejs/load_mip';
 import * as utils from '../../main/nodejs/utils';
@@ -14,10 +13,10 @@ describe('batchSearch', () => {
         minMatchingPixRatio: 2,
         searchBucket: "janelia-neuronbridge-search-dev",
         maskKeys: [
-            "private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png"
+            "private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1002360103-RT-JRC2018_Unisex_20x_HR-CDM.png",
         ],
         maskThresholds: [
-            100
+            100,
         ],
         maxResultsPerMask: -1,
         inputAnatomicalRegion: 'brain',
@@ -30,8 +29,9 @@ describe('batchSearch', () => {
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
                 libraryName: "FlyEM_Hemibrain_v1.0",
+                publishedNamePrefix: "hemibrain:1.0",
                 searchedNeuronsFolder: 'JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/searchable_neurons',
-                lsize: 5
+                lsize: 5,
             }, {
                 store: "fl:brain:2.0",
                 anatomicalArea: 'Brain',
@@ -40,8 +40,9 @@ describe('batchSearch', () => {
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-devpre-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
                 libraryName: "FlyEM_Hemibrain_v2.0",
+                publishedNamePrefix: "hemibrain:2.0",
                 searchedNeuronsFolder: 'JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v2.0/searchable_neurons',
-                lsize: 5
+                lsize: 5,
             }, {
                 store: "fl:brain:3.0",
                 anatomicalArea: 'Brain',
@@ -50,10 +51,10 @@ describe('batchSearch', () => {
                 libraryThumbnailsBucket: 'janelia-flylight-color-depth-devpre-thumbnails',
                 alignmentSpace: 'JRC2018_Unisex_20x_HR',
                 libraryName: "FlyEM_Hemibrain_v3.0",
+                publishedNamePrefix: "hemibrain:3.0",
                 searchedNeuronsFolder: 'JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v3.0/searchable_neurons',
-                lsize: 5
-
-            }
+                lsize: 5,
+            },
         ],
     };
 
@@ -181,6 +182,7 @@ describe('batchSearch', () => {
                                 targetType: "EMImage",
                                 libraryName: "FlyEM_Hemibrain_v2.0",
                                 publishedName: "1002360103",
+                                publishedNamePrefix: "hemibrain:2.0",
                                 imageName: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.0/1002360103-RT-JRC2018_Unisex_20x_HR-1.2-CDM.png",
                                 gender: "f",
                                 anatomicalArea: "Brain",

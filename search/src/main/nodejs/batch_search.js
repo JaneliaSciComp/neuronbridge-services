@@ -23,6 +23,7 @@ export const batchSearch = async (event) => {
     //     libraryThumbnailsBucket: <string>,
     //     alignmentSpace: <string>,
     //     libraryName: <string>,
+    //     publishedNamePrefix: <string>,
     //     searchedNeuronsFolder: <string>,
     //     lsize: <number>
     // }
@@ -201,6 +202,7 @@ const getSearchedMIPs = async (libraries, startIndex, endIndex) => {
                 targetType,
                 alignmentSpace: librarySelection.library.alignmentSpace,
                 libraryName: librarySelection.library.libraryName,
+                publishedNamePrefix: librarySelection.library.publishedNamePrefix,
                 thumbnailBucketName: librarySelection.library.libraryThumbnailsBucket,
             }));
         });
@@ -247,6 +249,7 @@ const perMaskMetadata = (params) => {
         targetType: params.libraryMIP.targetType,
         libraryName: params.libraryMIP.libraryName,
         publishedName: params.libraryMIP.publishedName,
+        publishedNamePrefix: params.libraryMIP.publishedNamePrefix,
         imageArchivePath: params.libraryMIP.imageArchivePath,
         imageName: params.libraryMIP.imageName,
         imageType: params.libraryMIP.imageType,
@@ -355,8 +358,9 @@ const getLibraryMIPMetadata = (libraryMip) => {
         thumbnailURL: `${mipThumbnailKey}`, // use relative names
         alignmentSpace: libraryMip.alignmentSpace,
         libraryName: libraryMip.libraryName,
+        publishedNamePrefix: libraryMip.publishedNamePrefix,
     };
-    if (isEmLibrary(mip.libraryName)) {
+    if (libraryMip.targetType === 'EMImage') {
         return populateEMMetadataFromName(mipName, mip);
     } else {
         return populateLMMetadataFromName(mipName, mip);
@@ -371,10 +375,6 @@ const getDisplayableMIPKey = (mipKey) => {
     return mipName
         .replace(/searchable_neurons\/\d+/, '')
         .replace('//', '/');
-};
-
-const isEmLibrary = (lname) => {
-    return lname != null && lname.match(/flyem/i) && (lname.match(/hemibrain/i) || lname.match(/vnc/i));
 };
 
 const populateLMMetadataFromName = (mipName, mipMetadata) => {

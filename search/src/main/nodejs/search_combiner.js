@@ -108,11 +108,14 @@ const convertMatch = (cdm) => {
     // what I want is the name relative to "private/userid", i.e., "searchfolder/..."
     const maskImageName = pathRelativeToNComp(cdm.maskImageName, 2);
     const matchedImageName = getDisplayableImage(cdm.imageName);
+    const publishedName = cdm.publishedNamePrefix
+                            ? `${cdm.publishedNamePrefix}:${cdm.publishedName}`
+                            : cdm.publishedName;
     return {
         image: {
             id: cdm.id,
             libraryName: cdm.libraryName,
-            publishedName: cdm.publishedName,
+            publishedName: publishedName,
             alignmentSpace: cdm.alignmentSpace,
             gender: cdm.gender,
             anatomicalArea: cdm.anatomicalArea,

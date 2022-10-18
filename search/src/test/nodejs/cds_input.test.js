@@ -49,6 +49,8 @@ describe('prepare custom cds input', () => {
             expect(lc.libraryBucket).toContain('janelia-flylight-color-depth');
             expect(lc.libraryThumbnailsBucket).toContain('janelia-flylight-color-depth');
             expect(lc.libraryThumbnailsBucket).toContain('thumbnails');
+            expect(lc.libraryName).toBeDefined();
+            expect(lc.publishedNamePrefix).toBeDefined();
             expect(lc.anatomicalArea).toBe('Brain');
             expect(lc.targetType).toBe('EMImage');
             expect(lc.alignmentSpace).toBe('JRC2018_Unisex_20x_HR');
@@ -81,6 +83,8 @@ describe('prepare custom cds input', () => {
             expect(lc.libraryBucket).toContain('janelia-flylight-color-depth');
             expect(lc.libraryThumbnailsBucket).toContain('janelia-flylight-color-depth');
             expect(lc.libraryThumbnailsBucket).toContain('thumbnails');
+            expect(lc.libraryName).toBeDefined();
+            expect(lc.publishedNamePrefix).toBeUndefined();
             expect(lc.anatomicalArea).toBe('VNC');
             expect(lc.targetType).toBe('LMImage');
             expect(lc.alignmentSpace).toBe('JRC2018_VNC_Unisex_40x_DS');
