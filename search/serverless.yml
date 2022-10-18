@@ -435,10 +435,9 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
       DATA_BUCKET: ${self:custom.dataBucket}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
-      PPP_BUCKET: ${self:custom.pppmBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
+      STAGE: ${self:provider.stage}
     events:
       - httpApi:
           method: POST

@@ -389,3 +389,10 @@ export const putDbItem = async (tableName, item) => {
         Item: item
     }).promise();
 };
+
+export function getBucketNameFromURL(bucketURL) {
+    const normalizedBucketURL = bucketURL.endsWith('/')
+        ? bucketURL.slice(0, -1)
+        : bucketURL;
+    return normalizedBucketURL.substring(normalizedBucketURL.lastIndexOf('/') + 1);
+}

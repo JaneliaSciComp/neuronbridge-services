@@ -2,6 +2,7 @@ import {
     DEBUG,
     getObjectWithRetry,
     getS3ContentWithRetry,
+    getBucketNameFromURL,
     verifyKey
 } from './utils';
 import {
@@ -170,13 +171,6 @@ const getAllSearchedLibrariesFromConfiguredStores = (dataStores, librariesGetter
         });
     }));
     return [...new Set(lcList)].map(lc => lc.toJS());
-};
-
-const getBucketNameFromURL = (bucketURL) => {
-    const normalizedBucketURL = bucketURL.endsWith('/')
-        ? bucketURL.slice(0, -1)
-        : bucketURL;
-    return normalizedBucketURL.substring(normalizedBucketURL.lastIndexOf('/') + 1);
 };
 
 const getCount = async (libraryBucket, libraryKey) => {
