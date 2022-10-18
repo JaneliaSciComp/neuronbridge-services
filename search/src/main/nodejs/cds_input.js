@@ -155,11 +155,12 @@ const getAllSearchedLibrariesFromConfiguredStores = (dataStores, libraryNamesGet
             ? `${alignmentSpace}/${libraryName}/${searchedNeuronsFolder}`
             : `${alignmentSpace}/${libraryName}`;
 
+        console.log("Get target library from", dataStore);
         return new Map({
             store: dataStore.store,
             anatomicalArea: dataStore.anatomicalArea,
-            libraryBucket: getBucketNameFromURL(dataStore.prefixes.ColorDepthMip),
-            libraryThumbnailsBucket: getBucketNameFromURL(dataStore.prefixes.ColorDepthMipThumbnail),
+            libraryBucket: getBucketNameFromURL(dataStore.prefixes.CDM),
+            libraryThumbnailsBucket: getBucketNameFromURL(dataStore.prefixes.CDMThumbnail),
             alignmentSpace: dataStore.alignmentSpace,
             libraryName: libraryName,
             searchedNeuronsFolder: searchedNeuronsPrefix,
