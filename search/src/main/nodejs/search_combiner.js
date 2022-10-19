@@ -56,7 +56,6 @@ const extractResults = (item) => {
         const resultsSValue = item.resultsMimeType === 'application/gzip'
             ? zlib.gunzipSync(item.results)
             : item.results;
-        console.log("!!!!!!", resultsSValue);
         const intermediateResults = JSON.parse(resultsSValue);
         // convert all intermediate results
         return intermediateResults.map(r => convertItermediateResults(r));
