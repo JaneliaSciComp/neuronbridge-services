@@ -236,9 +236,7 @@ const perMaskMetadata = (params) => {
         maskId: params.maskMIP.id,
         maskLibraryName: params.maskMIP.libraryName || null,
         maskPublishedName: params.maskMIP.publishedName || null,
-        maskImageArchivePath: params.maskMIP.imageArchivePath,
         maskImageName: params.maskMIP.imageName,
-        maskImageType: params.maskMIP.imageType,
         maskImageURL: params.maskMIP.imageURL,
 
         imageURL: params.libraryMIP.imageURL,
@@ -250,9 +248,7 @@ const perMaskMetadata = (params) => {
         libraryName: params.libraryMIP.libraryName,
         publishedName: params.libraryMIP.publishedName,
         publishedNamePrefix: params.libraryMIP.publishedNamePrefix,
-        imageArchivePath: params.libraryMIP.imageArchivePath,
         imageName: params.libraryMIP.imageName,
-        imageType: params.libraryMIP.imageType,
 
         slideCode: params.libraryMIP.slideCode,
         objective: params.libraryMIP.objective,

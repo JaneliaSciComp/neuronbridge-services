@@ -1,0 +1,1172 @@
+{
+    "inputImage": {
+        "filename": "1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1",
+        "libraryName": null,
+        "publishedName": null,
+        "files": {
+            "CDM": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png"
+        }
+    },
+    "results": [
+        {
+            "image": {
+                "id": "638377283-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:638377283",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/638377283-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/638377283-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/638377283-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 226,
+            "matchingPixels": 226,
+            "matchingRatio": 0.14947089947089948,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1230004532-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1230004532",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1230004532-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1230004532-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1230004532-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "5813061202-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:5813061202",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813061202-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813061202-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/5813061202-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "5812981199-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:5812981199",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981199-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981199-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/5812981199-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1469947718-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1469947718",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1469947718-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1469947718-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1469947718-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "2188927263-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:2188927263",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/2188927263-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/2188927263-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/2188927263-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1756796067-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1756796067",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1756796067-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1756796067-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1756796067-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "421521042-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:421521042",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/421521042-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/421521042-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/421521042-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "420235118-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:420235118",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/420235118-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/420235118-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/420235118-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1558226436-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1558226436",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1558226436-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1558226436-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1558226436-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "978720592-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:978720592",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/978720592-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/978720592-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/978720592-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1109957857-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1109957857",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1109957857-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1109957857-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1109957857-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1168120360-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1168120360",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1168120360-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1168120360-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1168120360-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "5813037955-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:5813037955",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813037955-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813037955-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/5813037955-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "5812981570-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:5812981570",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981570-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981570-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/5812981570-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "391958263-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:391958263",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/391958263-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/391958263-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/391958263-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "5813009521-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:5813009521",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813009521-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813009521-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/5813009521-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "581599794-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:581599794",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/581599794-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/581599794-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/581599794-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "699311994-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:699311994",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/699311994-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/699311994-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/699311994-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1191934487-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1191934487",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1191934487-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1191934487-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1191934487-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1688893211-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1688893211",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1688893211-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1688893211-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1688893211-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "483880436-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:483880436",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/483880436-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/483880436-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/483880436-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "702389193-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:702389193",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/702389193-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/702389193-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/702389193-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1918885778-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1918885778",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1918885778-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1918885778-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1918885778-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1748092323-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1748092323",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1748092323-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1748092323-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1748092323-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1508369047-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1508369047",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1508369047-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1508369047-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1508369047-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1167645442-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1167645442",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1167645442-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1167645442-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1167645442-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1629638513-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1629638513",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1629638513-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1629638513-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1629638513-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "939729237-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:939729237",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/939729237-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/939729237-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/939729237-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1261091124-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1261091124",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1261091124-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1261091124-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1261091124-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "606461310-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:606461310",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/606461310-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/606461310-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/606461310-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "789851418-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:789851418",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/789851418-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/789851418-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/789851418-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1970025313-JRC2018_Unisex_20x_HR-CDM-FL",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1970025313",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1970025313-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1970025313-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1970025313-JRC2018_Unisex_20x_HR-CDM-FL.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1504393350-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1504393350",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1504393350-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1504393350-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1504393350-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1750622215-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1750622215",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1750622215-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1750622215-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1750622215-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1934470099-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1934470099",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1934470099-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1934470099-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1934470099-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "754884149-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:754884149",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/754884149-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/754884149-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/754884149-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1933904658-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1933904658",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1933904658-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1933904658-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1933904658-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "5813057468-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:5813057468",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813057468-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813057468-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/5813057468-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "1654534761-JRC2018_Unisex_20x_HR-CDM",
+                "libraryName": "FlyEM_Hemibrain_v1.2.1",
+                "publishedName": "hemibrain:1.2.1:1654534761",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": null,
+                "slideCode": null,
+                "objective": null,
+                "channel": null,
+                "type": "EMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1654534761-JRC2018_Unisex_20x_HR-CDM.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1654534761-JRC2018_Unisex_20x_HR-CDM.jpg"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "1bb075f0-4b11-11ed-b0bb-41bf36e8d453/generatedMIPS/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1654534761-JRC2018_Unisex_20x_HR-CDM.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 224,
+            "matchingPixels": 224,
+            "matchingRatio": 0.14814814814814814,
+            "type": "CDSMatch"
+        }
+    ]
+}

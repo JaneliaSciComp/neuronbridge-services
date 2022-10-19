@@ -10,11 +10,13 @@ import * as utils from '../../main/nodejs/utils';
 import * as searchutils from '../../main/nodejs/searchutils';
 import zlib from 'zlib';
 
-import batchResults from '../resources/test_batchresult.json';
+import intermediateBatchResults from '../resources/test_intermediate_batchresult.json';
+import finalSearchResults from '../resources/test_final_searchresult.json';
 
 describe('combineSearchResults', () => {
     const searchBucket = 'janelia-neuronbridge-search-devpre';
     const maskFolder = 'private/us-region-1:a-e-0-1-1/1-0-b';
+    const maskName = '1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1_mask';
     const combineEvent = {
         jobId: "a44f76f0-4f07-11ed-87a8-d3d63f8b8c1a",
         jobParameters: {
@@ -30,7 +32,7 @@ describe('combineSearchResults', () => {
             maxResultsPerMask: -1,
             searchBucket: searchBucket,
             maskKeys: [
-                `${maskFolder}/1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1_mask.png`
+                `${maskFolder}/${maskName}.png`
             ],
             inputAnatomicalRegion: "brain",
             libraries: [
@@ -70,19 +72,25 @@ describe('combineSearchResults', () => {
                 Items: [
                     {
                         resultsMimeType: 'application/gzip',
-                        results: zlib.gzipSync(JSON.stringify(batchResults))
+                        results: zlib.gzipSync(JSON.stringify(intermediateBatchResults))
                     }   
                 ]
             });
     
-        jest.spyOn(utils, 'streamObject')
+        const saveFn = jest.spyOn(utils, 'streamObject')
             .mockResolvedValueOnce(`s3://${searchBucket}`);
         jest.spyOn(utils, 'removeKey');
         jest.spyOn(searchutils, 'getIntermediateSearchResultsPrefix');
 
         search_combiner.searchCombiner(combineEvent)
             .then(result => {
+                expect(saveFn).toHaveBeenCalledWith(
+                    searchBucket,
+                    `${maskFolder}/${maskName}.result`,
+                    finalSearchResults
+                );
             });
+
     });
 
 });
