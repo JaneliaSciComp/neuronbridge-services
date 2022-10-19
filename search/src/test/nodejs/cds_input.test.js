@@ -1,6 +1,5 @@
 jest.mock('aws-appsync');
 jest.mock('../../main/nodejs/awsappsyncutils');
-jest.mock('../../main/nodejs/utils');
 
 import * as utils from '../../main/nodejs/utils';
 
@@ -31,8 +30,7 @@ describe('prepare custom cds input', () => {
             .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
         jest.spyOn(utils, 'getObjectWithRetry')
             .mockResolvedValueOnce(testConfig)
-            .mockResolvedValue({ objectCount: 10 })
-            ;
+            .mockResolvedValue({ objectCount: 10 });
         const inputSearchedData = {
             searchId: '54e4-0-d-aba9-54afb4',
             searchType: 'lm2em',

@@ -136,7 +136,7 @@ const getDataConfig = async (dataBucket) => {
 
 const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter, targetType) => {
     const searchedLibraries = getAllSearchedLibrariesFromConfiguredStores(cfgs, libraryNamesGetter);
-    const getLibraryCountsPromises = await searchedLibraries.map(async libraryConfig => {
+    const getLibraryCountsPromises = searchedLibraries.map(async libraryConfig => {
         const lsize = await getCount(libraryConfig.libraryBucket, libraryConfig.searchedNeuronsFolder);
         return await {
             ...libraryConfig,
@@ -158,7 +158,7 @@ const getAllSearchedLibrariesFromConfiguredStores = (dataStores, librariesGetter
             ? `${alignmentSpace}/${libraryName}/${searchedNeuronsFolder}`
             : `${alignmentSpace}/${libraryName}`;
 
-        console.log("Get target library from", dataStore);
+        console.log('Get target library from', dataStore);
         return new Map({
             store: dataStore.store,
             anatomicalArea: dataStore.anatomicalArea,
