@@ -1,10 +1,8 @@
-import AWS from 'aws-sdk';
 import { getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey } from './searchutils';
 import { streamObject, removeKey, DEBUG } from './utils';
+import { queryDb } from './clientDbUtils';
 import { updateSearchMetadata, SEARCH_COMPLETED } from './awsappsyncutils';
 import zlib from 'zlib';
-
-var docClient = new AWS.DynamoDB.DocumentClient();
 
 const maxResultsLength = process.env.MAX_CUSTOM_RESULTS || -1;
 
@@ -58,6 +56,7 @@ const extractResults = (item) => {
         const resultsSValue = item.resultsMimeType === 'application/gzip'
             ? zlib.gunzipSync(item.results)
             : item.results;
+        console.log("!!!!!!", resultsSValue);
         const intermediateResults = JSON.parse(resultsSValue);
         // convert all intermediate results
         return intermediateResults.map(r => convertItermediateResults(r));
@@ -240,7 +239,7 @@ export const searchCombiner = async (event) => {
     let queryResult;
     do {
         // eslint-disable-next-line no-await-in-loop
-        queryResult = await docClient.query(params).promise();
+        queryResult = await queryDb(params);
         console.log(`Merging ${queryResult.Items.length} results`, '->', queryResult.LastEvaluatedKey ? queryResult.LastEvaluatedKey : 'end');
         mergeBatchResults(searchId, queryResult.Items, allBatchResults);
         params.ExclusiveStartKey = queryResult.LastEvaluatedKey;
