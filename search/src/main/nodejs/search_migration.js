@@ -83,24 +83,29 @@ async function updateRecord(record) {
       // the backup file path.
       console.log(`loading object from ${backedUp}`);
       const recordData = await getObjectWithRetry(bucket, backedUp);
-
-      // Modify the results to match the new data format
-      const converted = convertSearchResults(
-        recordData,
-        record.anatomicalRegion,
-        record.searchType
-      );
-      // Save it back to disk as the .result file.
-      const complete = await putObjectWithRetry(
-        bucket,
-        resultKeyPath,
-        converted,
-        ""
-      );
-      if (complete) {
-        console.info(`✅ converted ${record.id} to new data model`);
+      if (recordData.maskId) {
+        // this is an old format - the new format has an inputImage instead of a maskId
+        // Modify the results to match the new data format
+        console.log(`Convert ${resultKeyPath} v2.0 CDS result to v3.0`);
+        const converted = convertSearchResults(
+          recordData,
+          record.anatomicalRegion,
+          record.searchType
+        );
+        // Save it back to disk as the .result file.
+        const complete = await putObjectWithRetry(
+          bucket,
+          resultKeyPath,
+          converted,
+          ""
+        );
+        if (complete) {
+          console.info(`✅ converted ${record.id} to new data model`);
+        } else {
+          console.error(`failed to convert ${record.id} to new data model`);
+        }
       } else {
-        console.error(`failed to convert ${record.id} to new data model`);
+        console.log(`Skip ${resultKeyPath} because it does not look like a v2.0 CDS result - maskId is missing`);
       }
     } else {
       console.warn(`⚠️  skipping ${record.id}: couldn't set a backup.`);
