@@ -1,9 +1,34 @@
-function generateMipMatchPath(imageUrl) {
-  const parts = imageUrl.split("/");
-  const filename = parts.pop();
-  parts.push("searchable_neurons/pngs");
-  parts.push(filename);
-  return parts.join("/");
+function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
+  if (fullImageName && (fullImageName.endsWith('.tif') || fullImageName.endWith('.tiff'))) {
+    if (fullImageName.includes('searchable_neurons')) {
+      // this is a name of a segmented image from a searchable_neurons partition
+      // we assume this is a segmentation image located in a certain partition like:
+      // <as>/<library>/searchable_neurons/<partition>/<name>.tif
+      // to get the displayable image we replace <partition> with "pngs" and
+      // the ".tif" extension with ".png"
+      const imageNameComps = fullImageName.split('/');
+      const imageName = imageNameComps[imageNameComps.length - 1];
+      // replace partition folder with 'pngs' folder
+      imageNameComps[imageNameComps.length - 2] = 'pngs';
+      // replace .tif extension with .png
+      imageNameComps[imageNameComps.length - 1] = imageName.replace(/\.tif.*$/, '.png');
+      return imageNameComps.join('/');
+    } else {
+      const parts = fullImageName.split("/");
+      const filename = parts.pop();
+      const imageNameComps = [
+        alignmentSpace,
+        libraryName,
+        'searchable_neurons',
+        'pngs',
+        filename.replace(/\.tif.*$/, '.png')
+      ];
+      return imageNameComps.join("/");
+    }
+  } else {
+    // don't know how to handle this
+    return fullImageName;
+  }
 }
 
 function convertResult(result, anatomicalArea, searchType) {
@@ -11,25 +36,40 @@ function convertResult(result, anatomicalArea, searchType) {
   // based on searchType and set the appropriate attributes, eg:
   // neuronType for em results & objective for LM results.
 
+  const alignmentSpace = 'JRC2018_Unisex_20x_HR';
+  const libraryName = result.libraryName;
+  const publishedName = result.publishedName;
+  const publishedNamePrefix = searchType === 'lm2em'
+        ? (alignmentSpace === 'JRC2018_Unisex_20x_HR' ? 'hemibrain:v.1.2.1:' : 'vnc:v0.6:')
+        : '';
+  const store = alignmentSpace === 'JRC2018_Unisex_20x_HR'
+        ? 'fl:open_data:brain'
+        : 'fl:pre_release:vnc';
+  if (!result.imageName && !result.imageURL) {
+    console.error('Result found that has neither imageName nor imageURL:', result);
+  }
+  const matchedImageName = result.imageName
+    ? result.imageName
+    : generateMipMatchPath(result.imageURL);
   const converted = {
     image: {
       id: result.id,
-      alignmentSpace: "JRC2018_Unisex_20x_HR",
-      publishedName: result.publishedName,
-      anatomicalArea,
-      libraryName: result.libraryName,
+      alignmentSpace,
+      publishedName: `${publishedNamePrefix}${publishedName}`,
+      anatomicalArea: anatomicalArea.toLowerCase() === 'vnc' ? 'VNC' : 'Brain',
+      libraryName,
       gender: result.gender,
       files: {
-        store: "fl:pre_release:vnc",
+        store,
         AlignedBodySWC: result.AlignedBodySWC || "",
         CDM: result.imageURL,
         CDMThumbnail: result.thumbnailURL,
       },
     },
     files: {
-      store: "fl:pre_release:vnc",
+      store,
       CDMInput: result.CDMInput || "",
-      CDMMatch: generateMipMatchPath(result.imageURL),
+      CDMMatch: matchedImageName,
     },
     mirrored: result.mirrored || false,
     normalizedScore: result.normalizedScore,
@@ -57,7 +97,6 @@ export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
   const output = {
     inputImage: {
       files: {
-        store: "fl:pre_release:vnc",
         CDSResults: "",
         VisuallyLosslessStack: "",
         CDMThumbnail: "",
