@@ -8,7 +8,7 @@
       "CDMThumbnail": "",
       "CDSResults": "",
       "VisuallyLosslessStack": "",
-      "store": "fl:pre_release:vnc"
+      "store": "fl:open_data:brain"
     }
   },
   "results": [
@@ -16,16 +16,16 @@
       "files": {
         "CDMInput": "",
         "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
-        "store": "fl:pre_release:vnc"
+        "store": "fl:open_data:brain"
       },
       "image": {
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
-        "anatomicalArea": "brain",
+        "anatomicalArea": "Brain",
         "files": {
           "AlignedBodySWC": "",
           "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
-          "store": "fl:pre_release:vnc"
+          "store": "fl:open_data:brain"
         },
         "gender": "f",
         "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",
@@ -42,16 +42,16 @@
       "files": {
         "CDMInput": "",
         "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
-        "store": "fl:pre_release:vnc"
+        "store": "fl:open_data:brain"
       },
       "image": {
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
-        "anatomicalArea": "brain",
+        "anatomicalArea": "Brain",
         "files": {
           "AlignedBodySWC": "",
           "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
-          "store": "fl:pre_release:vnc"
+          "store": "fl:open_data:brain"
         },
         "gender": "f",
         "id": "MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",

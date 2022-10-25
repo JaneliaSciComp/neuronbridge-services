@@ -1,5 +1,5 @@
 function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
-  if (fullImageName && (fullImageName.endsWith('.tif') || fullImageName.endWith('.tiff'))) {
+  if (fullImageName && (fullImageName.endsWith('.tif') || fullImageName.endsWith('.tiff'))) {
     if (fullImageName.includes('searchable_neurons')) {
       // this is a name of a segmented image from a searchable_neurons partition
       // we assume this is a segmentation image located in a certain partition like:
@@ -11,7 +11,7 @@ function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
       // replace partition folder with 'pngs' folder
       imageNameComps[imageNameComps.length - 2] = 'pngs';
       // replace .tif extension with .png
-      imageNameComps[imageNameComps.length - 1] = imageName.replace(/\.tif.*$/, '.png');
+      imageNameComps[imageNameComps.length - 1] = imageName.replace(/\.tiff?$/, '.png');
       return imageNameComps.join('/');
     } else {
       const parts = fullImageName.split("/");
@@ -21,7 +21,7 @@ function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
         libraryName,
         'searchable_neurons',
         'pngs',
-        filename.replace(/\.tif.*$/, '.png')
+        filename.replace(/\.tiff?$/, '.png')
       ];
       return imageNameComps.join("/");
     }
@@ -32,9 +32,6 @@ function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
 }
 
 function convertResult(result, anatomicalArea, searchType) {
-  // TODO: need to figure out if this is an EM or LM result
-  // based on searchType and set the appropriate attributes, eg:
-  // neuronType for em results & objective for LM results.
 
   const alignmentSpace = 'JRC2018_Unisex_20x_HR';
   const libraryName = result.libraryName;
@@ -76,6 +73,9 @@ function convertResult(result, anatomicalArea, searchType) {
     matchingPixels: result.matchingPixels,
   };
 
+  // figure out if this is an EM or LM result
+  // based on searchType and set the appropriate attributes, eg:
+  // neuronType for em results & objective for LM results.
   if (searchType === "lm2em") {
     converted.image = {
       ...converted.image,
