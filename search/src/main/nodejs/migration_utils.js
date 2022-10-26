@@ -39,11 +39,11 @@ function convertResult(result, alignmentSpace, anatomicalArea, searchType) {
         : '';
   const targetType = searchType === 'lm2em'
         ? 'EMImage'
-        : 'LMImage'
+        : 'LMImage';
   const store = alignmentSpace === 'JRC2018_Unisex_20x_HR'
         ? 'fl:open_data:brain'
         : 'fl:pre_release:vnc';
-  // if gender is not set -- this should only happen fpr EM targets 
+  // if gender is not set -- this should only happen fpr EM targets
   // - set the gender to 'male' for VNC and 'female' for Brain
   const gender = result.gender
         ? result.gender
