@@ -3,34 +3,35 @@
     "filename": "1077847238_undefined (2)_1_mask",
     "alignmentSpace": "JRC2018_Unisex_20x_HR",
     "files": {
-      "store": "fl:pre_release:vnc",
+      "store": "",
       "CDM": "0751e020-9b09-11ec-98f4-5f9e052d4953/1077847238_undefined (2)_1_mask.png",
       "CDMThumbnail": "",
       "VisuallyLosslessStack": "",
       "CDSResults": ""
     },
-    "anatomicalArea": "brain"
+    "anatomicalArea": "Brain"
   },
   "results": [
     {
       "image": {
         "id": "1077847238-JRC2018_Unisex_20x_HR-CDM",
         "libraryName": "FlyEM_Hemibrain_v1.2.1",
-        "publishedName": "1077847238",
+        "publishedName": "hemibrain:v1.2.1:1077847238",
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
-        "anatomicalArea": "brain",
+        "anatomicalArea": "Brain",
         "gender": "f",
         "files": {
-          "store": "fl:pre_release:vnc",
+          "store": "fl:open_data:brain",
           "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.jpg",
           "AlignedBodySWC": ""
         },
+        "type": "EMImage",
         "neuronType": "",
         "neuronInstance": ""
       },
       "files": {
-        "store": "fl:pre_release:vnc",
+        "store": "fl:open_data:brain",
         "CDMInput": "",
         "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1077847238-JRC2018_Unisex_20x_HR-CDM.png"
       },
@@ -42,21 +43,22 @@
       "image": {
         "id": "1110972158-JRC2018_Unisex_20x_HR-CDM",
         "libraryName": "FlyEM_Hemibrain_v1.2.1",
-        "publishedName": "1110972158",
+        "publishedName": "hemibrain:v1.2.1:1110972158",
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
         "gender": "f",
         "files": {
-          "store": "fl:pre_release:vnc",
+          "store": "fl:open_data:brain",
           "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.jpg",
           "AlignedBodySWC": ""
         },
-        "anatomicalArea": "brain",
+        "anatomicalArea": "Brain",
+        "type": "EMImage",
         "neuronType": "",
         "neuronInstance": ""
       },
       "files": {
-        "store": "fl:pre_release:vnc",
+        "store": "fl:open_data:brain",
         "CDMInput": "",
         "CDMMatch": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons/pngs/1110972158-JRC2018_Unisex_20x_HR-CDM.png"
       },

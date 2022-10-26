@@ -74,6 +74,7 @@ const convertItermediateResults = item => {
         libraryName: item.maskLibraryName,
         publishedName: item.maskPublishedName,
         files: {
+            store: '',
             CDM: maskImagePath,
         },
     };
@@ -151,7 +152,7 @@ const getDisplayableImage = (fullImageName) => {
         // replace partition folder with 'pngs' folder
         imageNameComps[imageNameComps.length - 2] = 'pngs';
         // replace .tif extension with .png
-        imageNameComps[imageNameComps.length - 1] = imageName.replace(/\.tif.*$/, '.png');
+        imageNameComps[imageNameComps.length - 1] = imageName.replace(/\.tiff?$/, '.png');
         return imageNameComps.join('/');
     } else {
         // don't know how to handle this

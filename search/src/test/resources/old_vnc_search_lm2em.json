@@ -1,0 +1,83 @@
+{
+  "maskId": "red mulch_1_mask",
+  "maskPublishedName": null,
+  "maskLibraryName": null,
+  "maskImageURL": "https://s3.amazonaws.com/janelia-neuronbridge-search-prodpre/private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
+  "results": [
+    {
+      "maskImageName": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
+      "imageURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/13926-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+      "thumbnailURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/13926-JRC2018_VNC_Unisex_40x_DS-CDM.jpg",
+      "id": "13926-JRC2018_VNC_Unisex_40x_DS-CDM",
+      "libraryName": "FlyEM_VNC_v0.6",
+      "publishedName": "13926",
+      "imageName": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/45/13926-JRC2018_VNC_Unisex_40x_DS-CDM.tif",
+      "slideCode": "JRC2018_VNC_Unisex_40x_DS",
+      "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+      "matchingPixels": 4542,
+      "matchingRatio": 0.043728157583109495,
+      "gradientAreaGap": -1,
+      "normalizedScore": 4542
+    },
+    {
+      "maskImageName": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
+      "imageURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/12536-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+      "thumbnailURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/12536-JRC2018_VNC_Unisex_40x_DS-CDM.jpg",
+      "id": "12536-JRC2018_VNC_Unisex_40x_DS-CDM",
+      "libraryName": "FlyEM_VNC_v0.6",
+      "publishedName": "12536",
+      "imageName": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/32/12536-JRC2018_VNC_Unisex_40x_DS-CDM.tif",
+      "slideCode": "JRC2018_VNC_Unisex_40x_DS",
+      "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+      "matchingPixels": 4150,
+      "matchingRatio": 0.039954173044893085,
+      "gradientAreaGap": -1,
+      "normalizedScore": 4150
+    },
+    {
+      "maskImageName": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
+      "imageURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10589-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+      "thumbnailURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10589-JRC2018_VNC_Unisex_40x_DS-CDM.jpg",
+      "id": "10589-JRC2018_VNC_Unisex_40x_DS-CDM",
+      "libraryName": "FlyEM_VNC_v0.6",
+      "publishedName": "10589",
+      "imageName": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/13/10589-JRC2018_VNC_Unisex_40x_DS-CDM.tif",
+      "slideCode": "JRC2018_VNC_Unisex_40x_DS",
+      "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+      "matchingPixels": 3837,
+      "matchingRatio": 0.03694076192126621,
+      "gradientAreaGap": -1,
+      "normalizedScore": 3837
+    },
+    {
+      "maskImageName": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
+      "imageURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/11963-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+      "thumbnailURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/11963-JRC2018_VNC_Unisex_40x_DS-CDM.jpg",
+      "id": "11963-JRC2018_VNC_Unisex_40x_DS-CDM",
+      "libraryName": "FlyEM_VNC_v0.6",
+      "publishedName": "11963",
+      "imageName": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/26/11963-JRC2018_VNC_Unisex_40x_DS-CDM.tif",
+      "slideCode": "JRC2018_VNC_Unisex_40x_DS",
+      "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+      "matchingPixels": 3420,
+      "matchingRatio": 0.03292608959362273,
+      "gradientAreaGap": -1,
+      "normalizedScore": 3420
+    },
+    {
+      "maskImageName": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
+      "imageURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10178-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+      "thumbnailURL": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10178-JRC2018_VNC_Unisex_40x_DS-CDM.jpg",
+      "id": "10178-JRC2018_VNC_Unisex_40x_DS-CDM",
+      "libraryName": "FlyEM_VNC_v0.6",
+      "publishedName": "10178",
+      "imageName": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/6/10178-JRC2018_VNC_Unisex_40x_DS-CDM.tif",
+      "slideCode": "JRC2018_VNC_Unisex_40x_DS",
+      "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+      "matchingPixels": 3280,
+      "matchingRatio": 0.031578237972831165,
+      "gradientAreaGap": -1,
+      "normalizedScore": 3280
+    }
+ ]
+}

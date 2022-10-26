@@ -1,5 +1,5 @@
 function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
-  if (fullImageName && (fullImageName.endsWith('.tif') || fullImageName.endsWith('.tiff'))) {
+  if (fullImageName) {
     if (fullImageName.includes('searchable_neurons')) {
       // this is a name of a segmented image from a searchable_neurons partition
       // we assume this is a segmentation image located in a certain partition like:
@@ -31,23 +31,30 @@ function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
   }
 }
 
-function convertResult(result, anatomicalArea, searchType) {
-
-  const alignmentSpace = 'JRC2018_Unisex_20x_HR';
+function convertResult(result, alignmentSpace, anatomicalArea, searchType) {
   const libraryName = result.libraryName;
   const publishedName = result.publishedName;
   const publishedNamePrefix = searchType === 'lm2em'
-        ? (alignmentSpace === 'JRC2018_Unisex_20x_HR' ? 'hemibrain:v.1.2.1:' : 'vnc:v0.6:')
+        ? (alignmentSpace === 'JRC2018_Unisex_20x_HR' ? 'hemibrain:v1.2.1:' : 'vnc:v0.6:')
         : '';
+  const targetType = searchType === 'lm2em'
+        ? 'EMImage'
+        : 'LMImage'
   const store = alignmentSpace === 'JRC2018_Unisex_20x_HR'
         ? 'fl:open_data:brain'
         : 'fl:pre_release:vnc';
+  // if gender is not set -- this should only happen fpr EM targets 
+  // - set the gender to 'male' for VNC and 'female' for Brain
+  const gender = result.gender
+        ? result.gender
+        : (anatomicalArea.toLowerCase() === 'vnc' ? 'm' : 'f');
+
   if (!result.imageName && !result.imageURL) {
     console.error('Result found that has neither imageName nor imageURL:', result);
   }
   const matchedImageName = result.imageName
-    ? result.imageName
-    : generateMipMatchPath(result.imageURL);
+    ? generateMipMatchPath(alignmentSpace, libraryName, result.imageName)
+    : generateMipMatchPath(alignmentSpace, libraryName, result.imageURL);
   const converted = {
     image: {
       id: result.id,
@@ -55,7 +62,8 @@ function convertResult(result, anatomicalArea, searchType) {
       publishedName: `${publishedNamePrefix}${publishedName}`,
       anatomicalArea: anatomicalArea.toLowerCase() === 'vnc' ? 'VNC' : 'Brain',
       libraryName,
-      gender: result.gender,
+      gender,
+      type: targetType,
       files: {
         store,
         AlignedBodySWC: result.AlignedBodySWC || "",
@@ -94,23 +102,27 @@ function convertResult(result, anatomicalArea, searchType) {
 }
 
 export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
+  const alignmentSpace = anatomicalArea.toLowerCase() === 'vnc'
+    ? 'JRC2018_VNC_Unisex_40x_DS'
+    : 'JRC2018_Unisex_20x_HR';
   const output = {
     inputImage: {
       files: {
-        CDSResults: "",
-        VisuallyLosslessStack: "",
-        CDMThumbnail: "",
+        store: '',
+        CDSResults: '',
+        VisuallyLosslessStack: '',
+        CDMThumbnail: '',
         CDM: inputJSON.maskImageURL
-          ? inputJSON.maskImageURL.split("/").slice(-2).join("/")
-          : "",
+          ? inputJSON.maskImageURL.split('/').slice(-2).join('/')
+          : '',
       },
-      alignmentSpace: "JRC2018_Unisex_20x_HR",
+      alignmentSpace,
       filename: inputJSON.maskId,
-      anatomicalArea,
+      anatomicalArea: anatomicalArea.toLowerCase() === 'vnc' ? 'VNC' : 'Brain',
     },
     results: inputJSON.results
       ? inputJSON.results.map((result) =>
-          convertResult(result, anatomicalArea, searchType)
+          convertResult(result, alignmentSpace, anatomicalArea, searchType)
         )
       : [],
   };

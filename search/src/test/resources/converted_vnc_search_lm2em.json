@@ -1,0 +1,151 @@
+{
+  "inputImage": {
+    "files": {
+      "store": "",
+      "CDSResults": "",
+      "VisuallyLosslessStack": "",
+      "CDMThumbnail": "",
+      "CDM": "8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png"
+    },
+    "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+    "filename": "red mulch_1_mask",
+    "anatomicalArea": "VNC"
+  },
+  "results": [
+    {
+      "image": {
+        "id": "13926-JRC2018_VNC_Unisex_40x_DS-CDM",
+        "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+        "publishedName": "vnc:v0.6:13926",
+        "anatomicalArea": "VNC",
+        "libraryName": "FlyEM_VNC_v0.6",
+        "files": {
+          "store": "fl:pre_release:vnc",
+          "AlignedBodySWC": "",
+          "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/13926-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+          "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/13926-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
+        },
+        "type": "EMImage",
+        "gender": "m",
+        "neuronType": "",
+        "neuronInstance": ""
+      },
+      "files": {
+        "store": "fl:pre_release:vnc",
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/13926-JRC2018_VNC_Unisex_40x_DS-CDM.png"
+      },
+      "mirrored": false,
+      "normalizedScore": 4542,
+      "matchingPixels": 4542
+    },
+    {
+      "image": {
+        "id": "12536-JRC2018_VNC_Unisex_40x_DS-CDM",
+        "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+        "publishedName": "vnc:v0.6:12536",
+        "anatomicalArea": "VNC",
+        "libraryName": "FlyEM_VNC_v0.6",
+        "files": {
+          "store": "fl:pre_release:vnc",
+          "AlignedBodySWC": "",
+          "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/12536-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+          "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/12536-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
+        },
+        "type": "EMImage",
+        "gender": "m",
+        "neuronType": "",
+        "neuronInstance": ""
+      },
+      "files": {
+        "store": "fl:pre_release:vnc",
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/12536-JRC2018_VNC_Unisex_40x_DS-CDM.png"
+      },
+      "mirrored": false,
+      "normalizedScore": 4150,
+      "matchingPixels": 4150
+    },
+    {
+      "image": {
+        "id": "10589-JRC2018_VNC_Unisex_40x_DS-CDM",
+        "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+        "publishedName": "vnc:v0.6:10589",
+        "anatomicalArea": "VNC",
+        "libraryName": "FlyEM_VNC_v0.6",
+        "files": {
+          "store": "fl:pre_release:vnc",
+          "AlignedBodySWC": "",
+          "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10589-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+          "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10589-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
+        },
+        "type": "EMImage",
+        "gender": "m",
+        "neuronType": "",
+        "neuronInstance": ""
+      },
+      "files": {
+        "store": "fl:pre_release:vnc",
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/10589-JRC2018_VNC_Unisex_40x_DS-CDM.png"
+      },
+      "mirrored": false,
+      "normalizedScore": 3837,
+      "matchingPixels": 3837
+    },
+    {
+      "image": {
+        "id": "11963-JRC2018_VNC_Unisex_40x_DS-CDM",
+        "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+        "publishedName": "vnc:v0.6:11963",
+        "anatomicalArea": "VNC",
+        "libraryName": "FlyEM_VNC_v0.6",
+        "files": {
+          "store": "fl:pre_release:vnc",
+          "AlignedBodySWC": "",
+          "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/11963-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+          "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/11963-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
+        },
+        "type": "EMImage",
+        "gender": "m",
+        "neuronType": "",
+        "neuronInstance": ""
+      },
+      "files": {
+        "store": "fl:pre_release:vnc",
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/11963-JRC2018_VNC_Unisex_40x_DS-CDM.png"
+      },
+      "mirrored": false,
+      "normalizedScore": 3420,
+      "matchingPixels": 3420
+    },
+    {
+      "image": {
+        "id": "10178-JRC2018_VNC_Unisex_40x_DS-CDM",
+        "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
+        "publishedName": "vnc:v0.6:10178",
+        "anatomicalArea": "VNC",
+        "libraryName": "FlyEM_VNC_v0.6",
+        "files": {
+          "store": "fl:pre_release:vnc",
+          "AlignedBodySWC": "",
+          "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10178-JRC2018_VNC_Unisex_40x_DS-CDM.png",
+          "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10178-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
+        },
+        "type": "EMImage",
+        "gender": "m",
+        "neuronType": "",
+        "neuronInstance": ""
+      },
+      "files": {
+        "store": "fl:pre_release:vnc",
+        "CDMInput": "",
+        "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/10178-JRC2018_VNC_Unisex_40x_DS-CDM.png"
+      },
+      "mirrored": false,
+      "normalizedScore": 3280,
+      "matchingPixels": 3280
+    }
+  ]
+}
