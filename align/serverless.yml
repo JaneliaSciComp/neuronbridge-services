@@ -105,6 +105,7 @@ resources:
           comparison_alg: "Max"
           force_voxel_size: false
           nslots: ${self:custom.defaultAlignmentThreads}
+          remove_aligner_input: "true"
         ContainerProperties:
           Image: ${self:custom.alignmentBrainContainerImage}
           Vcpus: 16
@@ -142,6 +143,8 @@ resources:
             - "Ref::input_filename"
             - "-o"
             - "Ref::output_folder"
+            - "--rm"
+            - "Ref::remove_aligner_input"
           Volumes:
             - Name: scratch_data_volume
               Host:
@@ -195,6 +198,7 @@ resources:
           vnc_templates_dir: ${self:custom.vncAlignmentTemplatesFolder}
           nslots: ${self:custom.defaultAlignmentThreads}
           reference_channel: "Signal_amount"
+          remove_aligner_input: "true"
         ContainerProperties:
           Image: ${self:custom.alignmentVNCContainerImage}
           Vcpus: 16
@@ -226,6 +230,8 @@ resources:
             - "Ref::input_filename"
             - "-o"
             - "Ref::output_folder"
+            - "--rm"
+            - "Ref::remove_aligner_input"
           Volumes:
             - Name: scratch_data_volume
               Host:
