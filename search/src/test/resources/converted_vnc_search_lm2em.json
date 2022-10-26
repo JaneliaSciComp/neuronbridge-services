@@ -32,7 +32,7 @@
       },
       "files": {
         "store": "fl:pre_release:vnc",
-        "CDMInput": "",
+        "CDMInput": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
         "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/13926-JRC2018_VNC_Unisex_40x_DS-CDM.png"
       },
       "mirrored": false,
@@ -59,7 +59,7 @@
       },
       "files": {
         "store": "fl:pre_release:vnc",
-        "CDMInput": "",
+        "CDMInput": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
         "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/12536-JRC2018_VNC_Unisex_40x_DS-CDM.png"
       },
       "mirrored": false,
@@ -86,7 +86,7 @@
       },
       "files": {
         "store": "fl:pre_release:vnc",
-        "CDMInput": "",
+        "CDMInput": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
         "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/10589-JRC2018_VNC_Unisex_40x_DS-CDM.png"
       },
       "mirrored": false,
@@ -113,7 +113,7 @@
       },
       "files": {
         "store": "fl:pre_release:vnc",
-        "CDMInput": "",
+        "CDMInput": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
         "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/11963-JRC2018_VNC_Unisex_40x_DS-CDM.png"
       },
       "mirrored": false,
@@ -140,7 +140,7 @@
       },
       "files": {
         "store": "fl:pre_release:vnc",
-        "CDMInput": "",
+        "CDMInput": "private/us-east-1:8c3b2df5-a000-4bf8-9eca-2ed1f28109e8/8b6c6cb0-836f-11ec-bb97-edabcc24779e/red mulch_1_mask.png",
         "CDMMatch": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/searchable_neurons/pngs/10178-JRC2018_VNC_Unisex_40x_DS-CDM.png"
       },
       "mirrored": false,

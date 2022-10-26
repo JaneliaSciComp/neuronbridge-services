@@ -14,7 +14,7 @@
   "results": [
     {
       "files": {
-        "CDMInput": "",
+        "CDMInput": "private/us-east-1:6cbb8db0-b5b6-4856-ace4-0899c1b42871/c20637c0-9a3e-11ec-b6e7-f15422c60133/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask.png",
         "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01.png",
         "store": "fl:open_data:brain"
       },
@@ -41,7 +41,7 @@
     },
     {
       "files": {
-        "CDMInput": "",
+        "CDMInput": "private/us-east-1:6cbb8db0-b5b6-4856-ace4-0899c1b42871/c20637c0-9a3e-11ec-b6e7-f15422c60133/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1_1_mask.png",
         "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01.png",
         "store": "fl:open_data:brain"
       },

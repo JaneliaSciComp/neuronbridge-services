@@ -73,7 +73,7 @@ function convertResult(result, alignmentSpace, anatomicalArea, searchType) {
     },
     files: {
       store,
-      CDMInput: result.CDMInput || "",
+      CDMInput: result.maskImageName || "",
       CDMMatch: matchedImageName,
     },
     mirrored: result.mirrored || false,
