@@ -22,7 +22,7 @@
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
         "anatomicalArea": "Brain",
         "files": {
-          "AlignedBodySWC": "",
+          "VisuallyLosslessStack": "Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j",
           "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
           "store": "fl:open_data:brain"
@@ -49,7 +49,7 @@
         "alignmentSpace": "JRC2018_Unisex_20x_HR",
         "anatomicalArea": "Brain",
         "files": {
-          "AlignedBodySWC": "",
+          "VisuallyLosslessStack": "Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j",
           "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/MB543B-20140407_33_G4-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
           "store": "fl:open_data:brain"

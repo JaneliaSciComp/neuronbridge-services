@@ -1,3 +1,5 @@
+import { queryDb } from './clientDbUtils';
+
 function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
   if (fullImageName) {
     if (fullImageName.includes('searchable_neurons')) {
@@ -31,7 +33,7 @@ function generateMipMatchPath(alignmentSpace, libraryName, fullImageName) {
   }
 }
 
-function convertResult(result, alignmentSpace, anatomicalArea, searchType) {
+async function convertResult(result, alignmentSpace, anatomicalArea, searchType) {
   const libraryName = result.libraryName;
   const publishedName = result.publishedName;
   const publishedNamePrefix = searchType === 'lm2em'
@@ -66,7 +68,6 @@ function convertResult(result, alignmentSpace, anatomicalArea, searchType) {
       type: targetType,
       files: {
         store,
-        AlignedBodySWC: result.AlignedBodySWC || "",
         CDM: result.imageURL,
         CDMThumbnail: result.thumbnailURL,
       },
@@ -85,26 +86,89 @@ function convertResult(result, alignmentSpace, anatomicalArea, searchType) {
   // based on searchType and set the appropriate attributes, eg:
   // neuronType for em results & objective for LM results.
   if (searchType === "lm2em") {
+    converted.image.files.AlignedBodySWC = result.AlignedBodySWC || "";
     converted.image = {
       ...converted.image,
       neuronType: result.neuronType || "",
       neuronInstance: result.neuronInstance || "",
     };
   } else if (searchType === "em2lm") {
+    converted.image.files.VisuallyLosslessStack = await getLM3DStack(alignmentSpace, result.slideCode, result.objective);
     converted.image = {
       ...converted.image,
       objective: result.objective || "",
       slideCode: result.slideCode || "",
     };
   }
-
   return converted;
 }
 
-export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
+async function getLM3DStack(alignmentSpace, slideCode, objective) {
+  const lmPublishedStacksTable = process.env.LM_PUBLISHED_STACKS_TABLE;
+  if (!lmPublishedStacksTable) {
+    console.log('No table set for published LM stacks');
+    return '';
+  }
+  const key = `${slideCode}-${objective}-${alignmentSpace}`.toLowerCase();
+
+  const publishedImageQueryParams = {
+    TableName: lmPublishedStacksTable,
+    ConsistentRead: true,
+    KeyConditionExpression: 'itemType = :itemType',
+    ExpressionAttributeValues: {
+      ':itemType': key,
+    },
+  };
+
+  const publishedImageItems = await queryDb(publishedImageQueryParams);
+  if (publishedImageItems && publishedImageItems.Items && publishedImageItems.Items.length > 0) {
+      const publishedImage = publishedImageItems.Items[0];
+      if (publishedImage.files) {
+        return relativePathFromURL(publishedImage.files.VisuallyLosslessStack);
+      }
+  }
+  return '';
+}
+
+function relativePathFromURL(aURL) {
+  try {
+      let protocol;
+      let startPath;
+      if (aURL.startsWith('https://')) {
+          // the URL is: https://<awsdomain>/<bucket>/<prefix>/<fname>
+          protocol = 'https://';
+          startPath = 2;
+      } else if (aURL.startsWith('http://')) {
+          // the URL is: http://<awsdomain>/<bucket>/<prefix>/<fname>
+          protocol = 'http://';
+          startPath = 2;
+      } else if (aURL.startsWith('s3://')) {
+          // the URL is: s3://<bucket>/<prefix>/<fname>
+          protocol = 's3://';
+          startPath = 1;
+      } else {
+          // the protocol either is not set or unsupported:
+          console.log(`Protocol not set or unsupported in ${aURL} - returning the value as is`);
+          return aURL;
+      }
+      const pathComps = aURL.substring(protocol.length).split('/');
+      return pathComps.slice(startPath).join('/');
+  } catch (e) {
+      console.error(`Erroor getting relative path for ${aURL}`, e);
+      return aURL;
+  }
+}
+
+export async function convertSearchResults(inputJSON, anatomicalArea, searchType) {
   const alignmentSpace = anatomicalArea.toLowerCase() === 'vnc'
     ? 'JRC2018_VNC_Unisex_40x_DS'
     : 'JRC2018_Unisex_20x_HR';
+  const resultsPromises  = inputJSON.results
+                            ? inputJSON.results.map(async result =>
+                                await convertResult(result, alignmentSpace, anatomicalArea, searchType)
+                              )
+                            : [];
+  const results = await Promise.all(resultsPromises);
   const output = {
     inputImage: {
       files: {
@@ -120,11 +184,7 @@ export function convertSearchResults(inputJSON, anatomicalArea, searchType) {
       filename: inputJSON.maskId,
       anatomicalArea: anatomicalArea.toLowerCase() === 'vnc' ? 'VNC' : 'Brain',
     },
-    results: inputJSON.results
-      ? inputJSON.results.map((result) =>
-          convertResult(result, alignmentSpace, anatomicalArea, searchType)
-        )
-      : [],
+    results,
   };
   return output;
 }

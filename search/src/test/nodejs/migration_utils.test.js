@@ -1,6 +1,8 @@
 import { matchers } from "jest-json-schema";
 import { convertSearchResults } from "../../main/nodejs/migration_utils";
 
+import * as clientDbUtils from '../../main/nodejs/clientDbUtils';
+
 import lm2emBrainInputJSON from "../resources/old_brain_search_lm2em.json";
 import lm2emBrainOutputJSON from "../resources/converted_brain_search_lm2em.json";
 
@@ -18,20 +20,50 @@ import customMatchesSchema from "../resources/customMatches.schema.json";
 expect.extend(matchers);
 
 describe("migration utils tests", () => {
-  it("converts a Brain lm2em search result", () => {
-    const converted = convertSearchResults(lm2emBrainInputJSON, 'brain', 'lm2em');
+  const OLD_ENV = process.env;
+
+  beforeEach(() => {
+    jest.resetAllMocks();
+    process.env = {
+      ...OLD_ENV,
+      LM_PUBLISHED_STACKS_TABLE: 'lm-published-stacks',
+    };
+  });
+
+  it("converts a Brain lm2em search result", async () => {
+    const converted = await convertSearchResults(lm2emBrainInputJSON, 'brain', 'lm2em');
     expect(converted).toEqual(lm2emBrainOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);
   });
 
-  it("converts a Brain em2lm search result", () => {
-    const converted = convertSearchResults(em2lmBrainInputJSON, 'brain', 'em2lm');
+  it("converts a Brain em2lm search result", async () => {
+    jest.spyOn(clientDbUtils, 'queryDb')
+      .mockResolvedValueOnce({
+        Items: [
+          {
+              files: {
+                  VisuallyLosslessStack: 'https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
+              },
+          }   
+        ],
+      })
+      .mockResolvedValueOnce({
+        Items: [
+          {
+              files: {
+                  VisuallyLosslessStack: 'https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
+              },
+          }   
+        ],
+      });
+
+    const converted = await convertSearchResults(em2lmBrainInputJSON, 'brain', 'em2lm');
     expect(converted).toEqual(em2lmBrainOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);
   });
 
-  it("converts a VNC lm2em search result", () => {
-    const converted = convertSearchResults(lm2emVNCInputJSON, 'vnc', 'lm2em');
+  it("converts a VNC lm2em search result", async () => {
+    const converted = await convertSearchResults(lm2emVNCInputJSON, 'vnc', 'lm2em');
     expect(converted).toEqual(lm2emVNCOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);
   });

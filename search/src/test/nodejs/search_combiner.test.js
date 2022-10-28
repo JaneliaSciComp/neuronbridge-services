@@ -17,7 +17,7 @@ import intermediateLMBatchResults1 from '../resources/test_intermediate_lm_batch
 import intermediateLMBatchResults2 from '../resources/test_intermediate_lm_batchresult-2.json';
 import finalLMSearchResults from '../resources/test_final_lm_searchresult.json';
 
-describe.skip('combine EM SearchResults', () => {
+describe('combine EM SearchResults', () => {
     const searchBucket = 'janelia-neuronbridge-search-devpre';
     const maskFolder = 'private/us-region-1:a-e-0-1-1/1-0-b';
     const maskName = '1537331894-RT-JRC2018_Unisex_20x_HR-CDM_1_mask';

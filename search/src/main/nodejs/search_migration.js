@@ -87,7 +87,7 @@ async function updateRecord(record) {
         // this is an old format - the new format has an inputImage instead of a maskId
         // Modify the results to match the new data format
         console.log(`Convert ${resultKeyPath} v2.0 CDS result to v3.0`);
-        const converted = convertSearchResults(
+        const converted = await convertSearchResults(
           recordData,
           record.anatomicalRegion,
           record.searchType
