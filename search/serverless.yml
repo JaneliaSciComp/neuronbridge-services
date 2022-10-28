@@ -38,6 +38,7 @@ custom:
   announcementsTable: janelia-neuronbridge-${self:provider.stage}-announcments
   preferencesTable: janelia-neuronbridge-${self:provider.stage}-preferences
   publishingDOITable: janelia-neuronbridge-publishing-doi
+  publishedLMImagesTable: janelia-neuronbridge-published-stacks
 
   # Resources from burst-compute
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
@@ -201,6 +202,10 @@ provider:
             - dynamodb:PutItem
             - dynamodb:Query
           Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.tasksTable}"
+        - Effect: "Allow"
+          Action:
+            - dynamodb:Query
+          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedLMImagesTable}"
         - Effect: Allow
           Action:
             - lambda:InvokeFunction

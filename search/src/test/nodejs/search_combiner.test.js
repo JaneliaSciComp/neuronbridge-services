@@ -10,8 +10,8 @@ import * as utils from '../../main/nodejs/utils';
 import * as searchutils from '../../main/nodejs/searchutils';
 import zlib from 'zlib';
 
-import intermediateBatchResults from '../resources/test_intermediate_batchresult.json';
-import finalSearchResults from '../resources/test_final_searchresult.json';
+import intermediateEMBatchResults from '../resources/test_intermediate_em_batchresult.json';
+import finalEMSearchResults from '../resources/test_final_em_searchresult.json';
 
 describe('combineSearchResults', () => {
     const searchBucket = 'janelia-neuronbridge-search-devpre';
@@ -66,13 +66,13 @@ describe('combineSearchResults', () => {
         jest.resetAllMocks();
     });
 
-    it('combine successful search results', async () => {
+    it('combine successful EM search results', async () => {
         jest.spyOn(clientDbUtils, 'queryDb')
             .mockResolvedValueOnce({
                 Items: [
                     {
                         resultsMimeType: 'application/gzip',
-                        results: zlib.gzipSync(JSON.stringify(intermediateBatchResults))
+                        results: zlib.gzipSync(JSON.stringify(intermediateEMBatchResults))
                     }   
                 ]
             });
@@ -87,7 +87,7 @@ describe('combineSearchResults', () => {
                 expect(saveFn).toHaveBeenCalledWith(
                     searchBucket,
                     `${maskFolder}/${maskName}.result`,
-                    finalSearchResults
+                    finalEMSearchResults
                 );
             });
 

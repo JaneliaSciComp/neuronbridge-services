@@ -1,0 +1,32 @@
+[
+    {
+        "maskId": "20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask",
+        "maskLibraryName": null,
+        "maskPublishedName": null,
+        "maskImageURL": "https://s3.amazonaws.com/janelia-neuronbridge-search-devpre/private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/26f4a280-5573-11ed-8f0f-fff0aa88bdbd/20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask.png",
+        "results": [
+            {
+                "maskImageName": "private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/26f4a280-5573-11ed-8f0f-fff0aa88bdbd/20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask.png",
+                "imageURL": "JRC2018_Unisex_20x_HR/FlyLight_Annotator_Gen1_MCFO/R48F07-20140501_31_D2-GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "thumbnailURL": "JRC2018_Unisex_20x_HR/FlyLight_Annotator_Gen1_MCFO/R48F07-20140501_31_D2-GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
+                "id": "R48F07-20140501_31_D2-GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",
+                "libraryStore": "fl:open_data:brain",
+                "targetType": "LMImage",
+                "libraryName": "FlyLight_Annotator_Gen1_MCFO",
+                "publishedName": "R48F07",
+                "imageName": "JRC2018_Unisex_20x_HR/FlyLight_Annotator_Gen1_MCFO/searchable_neurons/1187/R48F07-20140501_31_D2-GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01.tif",
+                "slideCode": "20140501_31_D2",
+                "objective": "20x",
+                "gender": "f",
+                "anatomicalArea": "brain",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "channel": "1",
+                "matchingPixels": 587,
+                "matchingRatio": 0.024965974821367812,
+                "mirrored": false,
+                "gradientAreaGap": -1,
+                "normalizedScore": 587
+            }
+        ]
+    }
+]

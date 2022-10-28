@@ -183,6 +183,42 @@ const mergeResults = (rs1, rs2) => {
     }
 };
 
+const updateResults3DFiles = async (resultsList) => {
+    // !!!!! for now hardcoded published stacks table name
+    console.log(`Update 3D files for ${resultsList.length} search results`);
+    const publishedImageQueryParams = {
+        TableName: 'janelia-neuronbridge-published-stacks',
+        ConsistentRead: true,
+        KeyConditionExpression: 'itemType = :itemType',
+        FilterExpression: 'slideCode = :slideCode',
+    };
+    const updatedResultsPromises = resultsList.map(async r => {
+        const matchedImage = r.image;
+        if (matchedImage.type === 'LMImage') {
+            const alignmentSpace = matchedImage.alignmentSpace;
+            const slideCode = matchedImage.slideCode;
+            const objective = matchedImage.objective;
+            const key = `${slideCode}-${objective}-${alignmentSpace}`.toLowerCase();
+            const queryParams = {
+                ...publishedImageQueryParams,
+                ExpressionAttributeValues: {
+                    ':itemType': key,
+                    ':slideCode': slideCode,
+                },
+            };
+            const publishedImageItems = await queryDb(queryParams);
+            if (publishedImageItems && publishedImageItems.Items && publishedImageItems.Items.length > 0) {
+                const publishedImage = publishedImageItems.Items[0];
+                if (publishedImage.files) {
+                    r.image.files.VisuallyLosslessStack = publishedImage.files.VisuallyLosslessStack;
+                }
+            }
+        }
+        return await r;
+    });
+    return await Promise.all(updatedResultsPromises);
+};
+
 export const searchCombiner = async (event) => {
     if (DEBUG) console.log('Input event:', JSON.stringify(event));
 
@@ -253,16 +289,19 @@ export const searchCombiner = async (event) => {
 
     console.log(`Total number of matches for ${jobId} is ${nTotalMatches}`, allBatchResults);
 
-    const allMatches = Object.values(allBatchResults)
-        .map(rsByMask => {
+    const allMatchesPromises = Object.values(allBatchResults)
+        .map(async rsByMask => {
             const results = rsByMask.results;
             console.log(`Sort ${results.length} for ${rsByMask.inputImage.filename}`);
             results.sort((r1, r2) => r2.matchingPixels - r1.matchingPixels);
             if (maxResultsPerMask && maxResultsPerMask > 0 && results.length > maxResultsPerMask) {
                 rsByMask.results = results.slice(0, maxResultsPerMask);
             }
+            rsByMask.results = await updateResults3DFiles(rsByMask.results);
             return rsByMask;
         });
+
+    const allMatches = await Promise.all(allMatchesPromises);
 
     // write down the results
     console.log(`Save color depth search results for ${fullSearchInputName}`);
