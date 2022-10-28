@@ -98,7 +98,7 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
     } else {
         console.error(`Unsupported searchType: ${searchType}`, searchData);
         targetType = 'Unknown';
-        libraryNamesGetter = cfg => [];
+        libraryNamesGetter = () => [];
     }
     const searchedLibraries = await getAllSearchedLibrariesWithSizes(searchCfgs, libraryNamesGetter, targetType);
     const totalSearches = searchedLibraries

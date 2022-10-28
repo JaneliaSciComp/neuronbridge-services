@@ -5,6 +5,7 @@ import { updateSearchMetadata, SEARCH_COMPLETED } from './awsappsyncutils';
 import zlib from 'zlib';
 
 const maxResultsLength = process.env.MAX_CUSTOM_RESULTS || -1;
+const lmPublishedStacksTable = process.env.LM_PUBLISHED_STACKS_TABLE;
 
 const mergeBatchResults = async (searchId, items, allBatchResults) => {
     let nMergedResults = 0;
@@ -184,13 +185,16 @@ const mergeResults = (rs1, rs2) => {
 };
 
 const updateResults3DFiles = async (resultsList) => {
-    // !!!!! for now hardcoded published stacks table name
+    if (!lmPublishedStacksTable) {
+        // return the results list as is
+        console.log('No table set for published LM stacks');
+        return resultsList;
+    }
     console.log(`Update 3D files for ${resultsList.length} search results`);
     const publishedImageQueryParams = {
-        TableName: 'janelia-neuronbridge-published-stacks',
+        TableName: lmPublishedStacksTable,
         ConsistentRead: true,
         KeyConditionExpression: 'itemType = :itemType',
-        FilterExpression: 'slideCode = :slideCode',
     };
     const updatedResultsPromises = resultsList.map(async r => {
         const matchedImage = r.image;
@@ -203,20 +207,47 @@ const updateResults3DFiles = async (resultsList) => {
                 ...publishedImageQueryParams,
                 ExpressionAttributeValues: {
                     ':itemType': key,
-                    ':slideCode': slideCode,
                 },
             };
             const publishedImageItems = await queryDb(queryParams);
             if (publishedImageItems && publishedImageItems.Items && publishedImageItems.Items.length > 0) {
                 const publishedImage = publishedImageItems.Items[0];
                 if (publishedImage.files) {
-                    r.image.files.VisuallyLosslessStack = publishedImage.files.VisuallyLosslessStack;
+                    r.image.files.VisuallyLosslessStack = relativePathFromURL(publishedImage.files.VisuallyLosslessStack);
                 }
             }
         }
         return await r;
     });
     return await Promise.all(updatedResultsPromises);
+};
+
+const relativePathFromURL = (aURL) => {
+    try {
+        let protocol;
+        let startPath;
+        if (aURL.startsWith('https://')) {
+            // the URL is: https://<awsdomain>/<bucket>/<prefix>/<fname>
+            protocol = 'https://';
+            startPath = 2;
+        } else if (aURL.startsWith('http://')) {
+            // the URL is: http://<awsdomain>/<bucket>/<prefix>/<fname>
+            protocol = 'http://';
+            startPath = 2;
+        } else if (aURL.startsWith('s3://')) {
+            // the URL is: s3://<bucket>/<prefix>/<fname>
+            protocol = 's3://';
+            startPath = 1;
+        } else {
+            // the protocol either is not set or unsupported:
+            console.log(`Protocol not set or unsupported in ${aURL} - returning the value as is`);
+            return aURL;
+        }
+        return pathRelativeToNComp(aURL.substring(protocol.length), startPath);
+    } catch (e) {
+        console.error(`Erroor getting relative path for ${aURL}`, e);
+        return aURL;
+    }
 };
 
 export const searchCombiner = async (event) => {

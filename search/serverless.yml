@@ -38,7 +38,7 @@ custom:
   announcementsTable: janelia-neuronbridge-${self:provider.stage}-announcments
   preferencesTable: janelia-neuronbridge-${self:provider.stage}-preferences
   publishingDOITable: janelia-neuronbridge-publishing-doi
-  publishedLMImagesTable: janelia-neuronbridge-published-stacks
+  publishedLMStacksTable: janelia-neuronbridge-published-stacks
 
   # Resources from burst-compute
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
@@ -205,7 +205,7 @@ provider:
         - Effect: "Allow"
           Action:
             - dynamodb:Query
-          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedLMImagesTable}"
+          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedLMStacksTable}"
         - Effect: Allow
           Action:
             - lambda:InvokeFunction
@@ -343,6 +343,7 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       MAX_CUSTOM_RESULTS: ${self:custom.maxCustomColorDepthSearchResults}
+      LM_PUBLISHED_STACKS_TABLE: ${self:custom.publishedLMStacksTable}
 
   monitor:
     runtime: ${self:custom.nodeJSRuntime}
