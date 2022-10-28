@@ -1,0 +1,32 @@
+[
+    {
+        "maskId": "20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask",
+        "maskLibraryName": null,
+        "maskPublishedName": null,
+        "maskImageURL": "https://s3.amazonaws.com/janelia-neuronbridge-search-devpre/private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/829d7f20-56e6-11ed-a196-bd9a63a91fb9/20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask.png",
+        "results": [
+            {
+                "maskImageName": "private/us-east-1:429a5c9a-c76e-4309-8146-15d991d133f6/829d7f20-56e6-11ed-a196-bd9a63a91fb9/20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask.png",
+                "imageURL": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+                "thumbnailURL": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
+                "id": "LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",
+                "libraryStore": "fl:open_data:brain",
+                "targetType": "LMImage",
+                "libraryName": "FlyLight_Split-GAL4_Drivers",
+                "publishedName": "LH2033",
+                "imageName": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/70/LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01.tif",
+                "slideCode": "20160629_31_F6",
+                "objective": "20x",
+                "gender": "f",
+                "anatomicalArea": "brain",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "channel": "1",
+                "matchingPixels": 200,
+                "matchingRatio": 0.02251491613193741,
+                "mirrored": false,
+                "gradientAreaGap": -1,
+                "normalizedScore": 200
+            }
+        ]
+    }
+]

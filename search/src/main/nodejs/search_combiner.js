@@ -5,7 +5,6 @@ import { updateSearchMetadata, SEARCH_COMPLETED } from './awsappsyncutils';
 import zlib from 'zlib';
 
 const maxResultsLength = process.env.MAX_CUSTOM_RESULTS || -1;
-const lmPublishedStacksTable = process.env.LM_PUBLISHED_STACKS_TABLE;
 
 const mergeBatchResults = async (searchId, items, allBatchResults) => {
     let nMergedResults = 0;
@@ -185,6 +184,7 @@ const mergeResults = (rs1, rs2) => {
 };
 
 const updateResults3DFiles = async (resultsList) => {
+    const lmPublishedStacksTable = process.env.LM_PUBLISHED_STACKS_TABLE;
     if (!lmPublishedStacksTable) {
         // return the results list as is
         console.log('No table set for published LM stacks');

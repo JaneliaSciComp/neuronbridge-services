@@ -1,0 +1,73 @@
+{
+    "inputImage": {
+        "filename": "20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask",
+        "libraryName": null,
+        "publishedName": null,
+        "files": {
+            "store": "",
+            "CDM": "829d7f20-56e6-11ed-a196-bd9a63a91fb9/20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask.png"
+        }
+    },
+    "results": [
+        {
+            "image": {
+                "id": "VT007350-20180803_63_H2-GAL4-m-40x-brain-JRC2018_Unisex_20x_HR-CDM_2-03",
+                "libraryName": "FlyLight_Gen1_MCFO",
+                "publishedName": "VT007350",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "m",
+                "anatomicalArea": "brain",
+                "slideCode": "20180803_63_H2",
+                "objective": "40x",
+                "channel": "2",
+                "type": "LMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Gen1_MCFO/VT007350-20180803_63_H2-GAL4-m-40x-brain-JRC2018_Unisex_20x_HR-CDM_2.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Gen1_MCFO/VT007350-20180803_63_H2-GAL4-m-40x-brain-JRC2018_Unisex_20x_HR-CDM_2.jpg",
+                    "VisuallyLosslessStack": "Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "829d7f20-56e6-11ed-a196-bd9a63a91fb9/20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Gen1_MCFO/searchable_neurons/pngs/VT007350-20180803_63_H2-GAL4-m-40x-brain-JRC2018_Unisex_20x_HR-CDM_2-03.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 210,
+            "matchingPixels": 210,
+            "matchingRatio": 0.02364066193853428,
+            "type": "CDSMatch"
+        },
+        {
+            "image": {
+                "id": "LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01",
+                "libraryName": "FlyLight_Split-GAL4_Drivers",
+                "publishedName": "LH2033",
+                "alignmentSpace": "JRC2018_Unisex_20x_HR",
+                "gender": "f",
+                "anatomicalArea": "brain",
+                "slideCode": "20160629_31_F6",
+                "objective": "20x",
+                "channel": "1",
+                "type": "LMImage",
+                "files": {
+                    "store": "fl:open_data:brain",
+                    "CDM": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.png",
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1.jpg",
+                    "VisuallyLosslessStack": "Split+GAL4/LH2033/LH2033-20160629_31_F6-f-20x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j"
+                }
+            },
+            "files": {
+                "store": "fl:open_data:brain",
+                "CDMInput": "829d7f20-56e6-11ed-a196-bd9a63a91fb9/20x-64G05_AE_01-20150924_19_C1-Brain-JRC2018_Unisex_20x_HR_2_mask.png",
+                "CDMMatch": "JRC2018_Unisex_20x_HR/FlyLight_Split-GAL4_Drivers/searchable_neurons/pngs/LH2033-20160629_31_F6-Split_GAL4-f-20x-brain-JRC2018_Unisex_20x_HR-CDM_1-01.png"
+            },
+            "mirrored": false,
+            "normalizedScore": 200,
+            "matchingPixels": 200,
+            "matchingRatio": 0.02251491613193741,
+            "type": "CDSMatch"
+        }
+    ]
+}
