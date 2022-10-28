@@ -110,6 +110,9 @@ const convertMatch = (cdm) => {
     const publishedName = cdm.publishedNamePrefix
                             ? `${cdm.publishedNamePrefix}:${cdm.publishedName}`
                             : cdm.publishedName;
+    const anatomicalArea = cdm.anatomicalArea.toLowerCase() === 'vnc'
+        ? 'VNC'
+        : 'Brain';
     return {
         image: {
             id: cdm.id,
@@ -117,7 +120,7 @@ const convertMatch = (cdm) => {
             publishedName: publishedName,
             alignmentSpace: cdm.alignmentSpace,
             gender: cdm.gender,
-            anatomicalArea: cdm.anatomicalArea,
+            anatomicalArea,
             slideCode: cdm.slideCode,
             objective: cdm.objective,
             channel: cdm.channel,
