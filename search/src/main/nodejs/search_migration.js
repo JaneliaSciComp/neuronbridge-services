@@ -122,13 +122,20 @@ async function revertRecord(record) {
   if (record.searchMask && record.step > 3) {
     const resultPath = getResultKeyPath(record);
     const backupKey = resultPath.replace(/.result$/, ".result.2.0.back");
-    const backupSource = encodeURI(`/${bucket}/${backupKey}`);
-
-    const copied = await copyS3Content(bucket, backupSource, resultPath);
-    if (copied) {
-      console.log(`revert success: ${record.id}`);
+    const checkBackup = await verifyKey(bucket, backupKey);
+    if (!checkBackup) {
+      console.log(
+        `No backup found ${backupKey} for ${record.id}`
+      );
     } else {
-      console.error(`revert failure: ${record.id}`);
+      const backupSource = encodeURI(`/${bucket}/${backupKey}`);
+
+      const copied = await copyS3Content(bucket, backupSource, resultPath);
+      if (copied) {
+        console.log(`revert success: ${record.id}`);
+      } else {
+        console.error(`revert failure: ${record.id}`);
+      }
     }
   } else {
     console.warn(
