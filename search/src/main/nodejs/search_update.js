@@ -24,5 +24,8 @@ export const searchUpdate = async (event) => {
     if (event.alignFinished) {
         searchData.alignFinished = event.alignFinished;
     }
+    if (event.alignmentMovie) {
+        searchData.alignmentMovie = event.alignmentMovie;
+    }
     return await updateSearchMetadata(searchData);
 };
