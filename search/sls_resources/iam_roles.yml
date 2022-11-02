@@ -204,6 +204,12 @@ Resources:
                 Resource:
                   - "arn:aws:s3:::${self:custom.searchBucket}/"
                   - "arn:aws:s3:::${self:custom.searchBucket}/*"
+              - Effect: "Allow"
+                Action:
+                  - dynamodb:Query
+                Resource:
+                  - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedLMStacksTable}"
+                  - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedEMSkeletonsTable}"
 
   publishedNames:
     Type: AWS::IAM::Role

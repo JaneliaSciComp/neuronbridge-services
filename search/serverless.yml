@@ -636,7 +636,7 @@ functions:
 
   searchMigration:
     runtime: ${self:custom.nodeJSRuntime}
-    timeout: 10
+    timeout: 600
     role: searchMigration
     handler: src/main/nodejs/search_migration.searchMigration
     environment:
