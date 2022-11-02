@@ -27,10 +27,17 @@ describe("migration utils tests", () => {
     process.env = {
       ...OLD_ENV,
       LM_PUBLISHED_STACKS_TABLE: 'lm-published-stacks',
+      EM_PUBLISHED_SKELETONS_TABLE: 'em-published-skeletons',
     };
   });
 
   it("converts a Brain lm2em search result", async () => {
+    jest.spyOn(clientDbUtils, 'queryDb')
+      .mockResolvedValue({
+        Items: [
+        ],
+      })
+
     const converted = await convertSearchResults(lm2emBrainInputJSON, 'brain', 'lm2em');
     expect(converted).toEqual(lm2emBrainOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);
@@ -44,7 +51,7 @@ describe("migration utils tests", () => {
               files: {
                   VisuallyLosslessStack: 'https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
               },
-          }   
+          }
         ],
       })
       .mockResolvedValueOnce({
@@ -53,7 +60,7 @@ describe("migration utils tests", () => {
               files: {
                   VisuallyLosslessStack: 'https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
               },
-          }   
+          }
         ],
       });
 
@@ -63,6 +70,38 @@ describe("migration utils tests", () => {
   });
 
   it("converts a VNC lm2em search result", async () => {
+    jest.spyOn(clientDbUtils, 'queryDb')
+      .mockResolvedValueOnce({
+        Items: [
+          {
+            skeletonobj: 'https://aws/bucket/OBJ/an.obj',
+            skeletonswc: 'https://aws/bucket/SWC/an.swc',
+          }
+        ],
+      })
+      .mockResolvedValueOnce({
+        Items: [
+          {
+            skeletonswc: 'https://aws/bucket/SWC/an.swc',
+          }
+        ],
+      })
+      .mockResolvedValueOnce({
+        Items: [
+          {
+          }
+        ],
+      })
+      .mockResolvedValue({
+        Items: [
+          {
+            skeletonobj: 'https://aws/bucket/OBJ/an.obj',
+            skeletonswc: 'https://aws/bucket/SWC/an.swc',
+          }
+        ],
+      })
+      ;
+
     const converted = await convertSearchResults(lm2emVNCInputJSON, 'vnc', 'lm2em');
     expect(converted).toEqual(lm2emVNCOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);

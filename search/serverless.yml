@@ -39,6 +39,7 @@ custom:
   preferencesTable: janelia-neuronbridge-${self:provider.stage}-preferences
   publishingDOITable: janelia-neuronbridge-publishing-doi
   publishedLMStacksTable: janelia-neuronbridge-published-stacks
+  publishedEMSkeletonsTable: janelia-neuronbridge-published-skeletons
 
   # Resources from burst-compute
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
@@ -205,7 +206,9 @@ provider:
         - Effect: "Allow"
           Action:
             - dynamodb:Query
-          Resource: "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedLMStacksTable}"
+          Resource:
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedLMStacksTable}"
+            - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.publishedEMSkeletonsTable}"
         - Effect: Allow
           Action:
             - lambda:InvokeFunction
@@ -344,6 +347,7 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       MAX_CUSTOM_RESULTS: ${self:custom.maxCustomColorDepthSearchResults}
       LM_PUBLISHED_STACKS_TABLE: ${self:custom.publishedLMStacksTable}
+      EM_PUBLISHED_SKELETONS_TABLE: ${self:custom.publishedEMSkeletonsTable}
 
   monitor:
     runtime: ${self:custom.nodeJSRuntime}
@@ -639,6 +643,8 @@ functions:
       DEBUG: ${self:custom.debug}
       SEARCH_TABLE: ${self:custom.searchTable}
       SEARCH_BUCKET: ${self:custom.searchBucket}
+      LM_PUBLISHED_STACKS_TABLE: ${self:custom.publishedLMStacksTable}
+      EM_PUBLISHED_SKELETONS_TABLE: ${self:custom.publishedEMSkeletonsTable}
 
 stepFunctions:
   validate: true # enable pre-deployment definition validation

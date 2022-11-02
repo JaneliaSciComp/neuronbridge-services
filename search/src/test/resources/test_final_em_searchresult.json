@@ -24,7 +24,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/638377283-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/638377283-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/638377283-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -53,7 +55,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1230004532-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1230004532-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1230004532-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -82,7 +86,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813061202-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813061202-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813061202-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -111,7 +117,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981199-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981199-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981199-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -140,7 +148,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1469947718-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1469947718-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1469947718-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -169,7 +179,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/2188927263-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/2188927263-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/2188927263-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -198,7 +210,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1756796067-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1756796067-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1756796067-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -227,7 +241,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/421521042-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/421521042-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/421521042-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -256,7 +272,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/420235118-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/420235118-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/420235118-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -285,7 +303,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1558226436-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1558226436-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1558226436-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -314,7 +334,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/978720592-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/978720592-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/978720592-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -343,7 +365,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1109957857-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1109957857-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1109957857-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -372,7 +396,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1168120360-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1168120360-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1168120360-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -401,7 +427,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813037955-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813037955-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813037955-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -430,7 +458,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981570-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981570-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5812981570-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -459,7 +489,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/391958263-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/391958263-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/391958263-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -488,7 +520,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813009521-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813009521-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813009521-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -517,7 +551,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/581599794-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/581599794-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/581599794-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -546,7 +582,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/699311994-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/699311994-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/699311994-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -575,7 +613,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1191934487-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1191934487-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1191934487-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -604,7 +644,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1688893211-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1688893211-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1688893211-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -633,7 +675,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/483880436-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/483880436-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/483880436-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -662,7 +706,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/702389193-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/702389193-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/702389193-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -691,7 +737,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1918885778-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1918885778-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1918885778-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -720,7 +768,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1748092323-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1748092323-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1748092323-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -749,7 +799,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1508369047-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1508369047-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1508369047-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -778,7 +830,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1167645442-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1167645442-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1167645442-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -807,7 +861,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1629638513-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1629638513-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1629638513-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -836,7 +892,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/939729237-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/939729237-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/939729237-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -865,7 +923,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1261091124-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1261091124-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1261091124-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -894,7 +954,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/606461310-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/606461310-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/606461310-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -923,7 +985,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/789851418-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/789851418-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/789851418-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -952,7 +1016,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1970025313-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1970025313-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1970025313-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -981,7 +1047,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1504393350-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1504393350-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1504393350-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -1010,7 +1078,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1750622215-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1750622215-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1750622215-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -1039,7 +1109,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1934470099-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1934470099-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1934470099-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -1068,7 +1140,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/754884149-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/754884149-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/754884149-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -1097,7 +1171,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1933904658-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1933904658-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1933904658-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -1126,7 +1202,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813057468-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813057468-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/5813057468-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {
@@ -1155,7 +1233,9 @@
                 "files": {
                     "store": "fl:open_data:brain",
                     "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1654534761-JRC2018_Unisex_20x_HR-CDM.png",
-                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1654534761-JRC2018_Unisex_20x_HR-CDM.jpg"
+                    "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1654534761-JRC2018_Unisex_20x_HR-CDM.jpg",
+                    "AlignedBodySWC": "SWC/an.swc",
+                    "AlignedBodyOBJ": "OBJ/an.obj"
                 }
             },
             "files": {

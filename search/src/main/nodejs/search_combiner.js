@@ -187,27 +187,20 @@ const mergeResults = (rs1, rs2) => {
 };
 
 const updateResults3DFiles = async (resultsList) => {
-    const lmPublishedStacksTable = process.env.LM_PUBLISHED_STACKS_TABLE;
-    if (!lmPublishedStacksTable) {
-        // return the results list as is
-        console.log('No table set for published LM stacks');
-        return resultsList;
-    }
     console.log(`Update 3D files for ${resultsList.length} search results`);
-    const publishedImageQueryParams = {
-        TableName: lmPublishedStacksTable,
-        ConsistentRead: true,
-        KeyConditionExpression: 'itemType = :itemType',
-    };
+    const lmPublishedStacksTable = process.env.LM_PUBLISHED_STACKS_TABLE;
+    const emPublishedSkeletonsTable = process.env.EM_PUBLISHED_SKELETONS_TABLE;
     const updatedResultsPromises = resultsList.map(async r => {
         const matchedImage = r.image;
-        if (matchedImage.type === 'LMImage') {
+        if (matchedImage.type === 'LMImage' && lmPublishedStacksTable) {
             const alignmentSpace = matchedImage.alignmentSpace;
             const slideCode = matchedImage.slideCode;
             const objective = matchedImage.objective;
             const key = `${slideCode}-${objective}-${alignmentSpace}`.toLowerCase();
             const queryParams = {
-                ...publishedImageQueryParams,
+                TableName: lmPublishedStacksTable,
+                ConsistentRead: true,
+                KeyConditionExpression: 'itemType = :itemType',
                 ExpressionAttributeValues: {
                     ':itemType': key,
                 },
@@ -219,6 +212,22 @@ const updateResults3DFiles = async (resultsList) => {
                     r.image.files.VisuallyLosslessStack = relativePathFromURL(publishedImage.files.VisuallyLosslessStack);
                 }
             }
+        } else if (matchedImage.type == 'EMImage' && emPublishedSkeletonsTable) {
+            const publishedName = matchedImage.publishedName;
+            const queryParams = {
+                TableName: emPublishedSkeletonsTable,
+                ConsistentRead: true,
+                KeyConditionExpression: 'publishedName = :publishedName',
+                ExpressionAttributeValues: {
+                    ':publishedName': publishedName,
+                },
+            };
+            const publishedImageItems = await queryDb(queryParams);
+            if (publishedImageItems && publishedImageItems.Items && publishedImageItems.Items.length > 0) {
+                const publishedImage = publishedImageItems.Items[0];
+                r.image.files.AlignedBodyOBJ = relativePathFromURL(publishedImage.skeletonobj);
+                r.image.files.AlignedBodySWC = relativePathFromURL(publishedImage.skeletonswc);
+            }
         }
         return await r;
     });
@@ -226,6 +235,9 @@ const updateResults3DFiles = async (resultsList) => {
 };
 
 const relativePathFromURL = (aURL) => {
+    if (!aURL) {
+        return ''; // aURL is nullable
+    }
     try {
         let protocol;
         let startPath;

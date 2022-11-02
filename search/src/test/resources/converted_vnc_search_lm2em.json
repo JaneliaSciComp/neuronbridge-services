@@ -21,7 +21,8 @@
         "libraryName": "FlyEM_VNC_v0.6",
         "files": {
           "store": "fl:pre_release:vnc",
-          "AlignedBodySWC": "",
+          "AlignedBodySWC": "SWC/an.swc",
+          "AlignedBodyOBJ": "OBJ/an.obj",
           "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/13926-JRC2018_VNC_Unisex_40x_DS-CDM.png",
           "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/13926-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
         },
@@ -48,7 +49,8 @@
         "libraryName": "FlyEM_VNC_v0.6",
         "files": {
           "store": "fl:pre_release:vnc",
-          "AlignedBodySWC": "",
+          "AlignedBodySWC": "SWC/an.swc",
+          "AlignedBodyOBJ": "",
           "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/12536-JRC2018_VNC_Unisex_40x_DS-CDM.png",
           "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/12536-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
         },
@@ -76,6 +78,7 @@
         "files": {
           "store": "fl:pre_release:vnc",
           "AlignedBodySWC": "",
+          "AlignedBodyOBJ": "",
           "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10589-JRC2018_VNC_Unisex_40x_DS-CDM.png",
           "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10589-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
         },
@@ -102,7 +105,8 @@
         "libraryName": "FlyEM_VNC_v0.6",
         "files": {
           "store": "fl:pre_release:vnc",
-          "AlignedBodySWC": "",
+          "AlignedBodySWC": "SWC/an.swc",
+          "AlignedBodyOBJ": "OBJ/an.obj",
           "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/11963-JRC2018_VNC_Unisex_40x_DS-CDM.png",
           "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/11963-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
         },
@@ -129,7 +133,8 @@
         "libraryName": "FlyEM_VNC_v0.6",
         "files": {
           "store": "fl:pre_release:vnc",
-          "AlignedBodySWC": "",
+          "AlignedBodySWC": "SWC/an.swc",
+          "AlignedBodyOBJ": "OBJ/an.obj",
           "CDM": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10178-JRC2018_VNC_Unisex_40x_DS-CDM.png",
           "CDMThumbnail": "JRC2018_VNC_Unisex_40x_DS/FlyEM_VNC_v0.6/10178-JRC2018_VNC_Unisex_40x_DS-CDM.jpg"
         },

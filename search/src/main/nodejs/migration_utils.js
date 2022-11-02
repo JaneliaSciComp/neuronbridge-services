@@ -39,6 +39,7 @@ async function convertResult(result, alignmentSpace, anatomicalArea, searchType)
   const publishedNamePrefix = searchType === 'lm2em'
         ? (alignmentSpace === 'JRC2018_Unisex_20x_HR' ? 'hemibrain:v1.2.1:' : 'vnc:v0.6:')
         : '';
+  const finalPublishedName = `${publishedNamePrefix}${publishedName}`;
   const targetType = searchType === 'lm2em'
         ? 'EMImage'
         : 'LMImage';
@@ -61,7 +62,7 @@ async function convertResult(result, alignmentSpace, anatomicalArea, searchType)
     image: {
       id: result.id,
       alignmentSpace,
-      publishedName: `${publishedNamePrefix}${publishedName}`,
+      publishedName: finalPublishedName,
       anatomicalArea: anatomicalArea.toLowerCase() === 'vnc' ? 'VNC' : 'Brain',
       libraryName,
       gender,
@@ -86,7 +87,11 @@ async function convertResult(result, alignmentSpace, anatomicalArea, searchType)
   // based on searchType and set the appropriate attributes, eg:
   // neuronType for em results & objective for LM results.
   if (searchType === "lm2em") {
-    converted.image.files.AlignedBodySWC = result.AlignedBodySWC || "";
+    const emSkeletonFiles = await getEMSkeleons(finalPublishedName, result.AlignedBodyOBJ, result.AlignedBodySWC);
+    converted.image.files = {
+      ...converted.image.files,
+      ...emSkeletonFiles,
+    };
     converted.image = {
       ...converted.image,
       neuronType: result.neuronType || "",
@@ -103,6 +108,37 @@ async function convertResult(result, alignmentSpace, anatomicalArea, searchType)
   return converted;
 }
 
+async function getEMSkeleons(publishedName, defaultOBJ, defaultSWC) {
+  const emPublishedSkeletonsTable = process.env.EM_PUBLISHED_SKELETONS_TABLE;
+  if (!emPublishedSkeletonsTable) {
+    console.log('No table set for published EM skeletons');
+    return {
+      AlignedBodyOBJ: defaultOBJ || '',
+      AlignedBodySWC: defaultSWC || '',
+    };
+  }
+  const queryParams = {
+    TableName: emPublishedSkeletonsTable,
+    ConsistentRead: true,
+    KeyConditionExpression: 'publishedName = :publishedName',
+    ExpressionAttributeValues: {
+        ':publishedName': publishedName,
+    },
+  };
+  const publishedImageItems = await queryDb(queryParams);
+  if (publishedImageItems && publishedImageItems.Items && publishedImageItems.Items.length > 0) {
+    const publishedImage = publishedImageItems.Items[0];
+    return {
+      AlignedBodyOBJ: relativePathFromURL(publishedImage.skeletonobj, defaultOBJ || ''),
+      AlignedBodySWC: relativePathFromURL(publishedImage.skeletonswc, defaultSWC || ''),
+    };
+  }
+  return {
+    AlignedBodyOBJ: defaultOBJ || '',
+    AlignedBodySWC: defaultSWC || '',
+  };
+}
+
 async function getLM3DStack(alignmentSpace, slideCode, objective) {
   const lmPublishedStacksTable = process.env.LM_PUBLISHED_STACKS_TABLE;
   if (!lmPublishedStacksTable) {
@@ -111,7 +147,7 @@ async function getLM3DStack(alignmentSpace, slideCode, objective) {
   }
   const key = `${slideCode}-${objective}-${alignmentSpace}`.toLowerCase();
 
-  const publishedImageQueryParams = {
+  const queryParams = {
     TableName: lmPublishedStacksTable,
     ConsistentRead: true,
     KeyConditionExpression: 'itemType = :itemType',
@@ -120,17 +156,20 @@ async function getLM3DStack(alignmentSpace, slideCode, objective) {
     },
   };
 
-  const publishedImageItems = await queryDb(publishedImageQueryParams);
+  const publishedImageItems = await queryDb(queryParams);
   if (publishedImageItems && publishedImageItems.Items && publishedImageItems.Items.length > 0) {
       const publishedImage = publishedImageItems.Items[0];
       if (publishedImage.files) {
-        return relativePathFromURL(publishedImage.files.VisuallyLosslessStack);
+        return relativePathFromURL(publishedImage.files.VisuallyLosslessStack, '');
       }
   }
   return '';
 }
 
-function relativePathFromURL(aURL) {
+function relativePathFromURL(aURL, defaultValue) {
+  if (!aURL) {
+    return defaultValue; // aURL is nullable
+  }
   try {
       let protocol;
       let startPath;

@@ -17,6 +17,8 @@ import intermediateLMBatchResults1 from '../resources/test_intermediate_lm_batch
 import intermediateLMBatchResults2 from '../resources/test_intermediate_lm_batchresult-2.json';
 import finalLMSearchResults from '../resources/test_final_lm_searchresult.json';
 
+const OLD_ENV = process.env;
+
 describe('combine EM SearchResults', () => {
     const searchBucket = 'janelia-neuronbridge-search-devpre';
     const maskFolder = 'private/us-region-1:a-e-0-1-1/1-0-b';
@@ -47,7 +49,7 @@ describe('combine EM SearchResults', () => {
                     libraryThumbnailsBucket: "janelia-flylight-color-depth-thumbnails",
                     alignmentSpace: "JRC2018_Unisex_20x_HR",
                     libraryName: "FlyEM_Hemibrain_v1.2.1",
-                    publishedNamePrefix: "hemibrain:1.2.1",
+                    publishedNamePrefix: "hemibrain:v1.2.1",
                     searchedNeuronsFolder: "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/searchable_neurons",
                     targetType: "EMImage",
                     lsize: 45018
@@ -68,6 +70,13 @@ describe('combine EM SearchResults', () => {
 
     beforeEach(() => {
         jest.resetAllMocks();
+        process.env = {
+            ...OLD_ENV,
+            STAGE: 'devprod',
+            EM_PUBLISHED_SKELETONS_TABLE: 'em-published-skeletons',
+            DEBUG: 'true',
+            ...OLD_ENV,
+        }
     });
 
     it('combine successful EM search results', async () => {
@@ -77,9 +86,18 @@ describe('combine EM SearchResults', () => {
                     {
                         resultsMimeType: 'application/gzip',
                         results: zlib.gzipSync(JSON.stringify(intermediateEMBatchResults))
-                    }   
+                    }
                 ]
-            });
+            })
+            .mockResolvedValue({
+                Items: [
+                    {
+                        skeletonswc: 'https://aws/bucket/SWC/an.swc',
+                        skeletonobj: 'https://aws/bucket/OBJ/an.obj',
+                    }
+                ],
+            })
+            ;
     
         const saveFn = jest.spyOn(utils, 'streamObject')
             .mockResolvedValueOnce(`s3://${searchBucket}`);
@@ -168,8 +186,6 @@ describe('combine LM SearchResults', () => {
         completed: true,
         timedOut: false
     };
-        
-    const OLD_ENV = process.env;
 
     beforeEach(() => {
         jest.resetAllMocks();
@@ -189,7 +205,7 @@ describe('combine LM SearchResults', () => {
                     {
                         resultsMimeType: 'application/json',
                         results: JSON.stringify(intermediateLMBatchResults1)
-                    }   
+                    }
                 ],
                 LastEvaluatedKey: 'HasNext',
             })
@@ -198,7 +214,7 @@ describe('combine LM SearchResults', () => {
                     {
                         resultsMimeType: 'application/json',
                         results: JSON.stringify(intermediateLMBatchResults2)
-                    }   
+                    }
                 ],
             })
             .mockResolvedValueOnce({
@@ -207,7 +223,7 @@ describe('combine LM SearchResults', () => {
                         files: {
                             VisuallyLosslessStack: 'https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
                         },
-                    }   
+                    }
                 ],
             })
             .mockResolvedValueOnce({
@@ -216,7 +232,7 @@ describe('combine LM SearchResults', () => {
                         files: {
                             VisuallyLosslessStack: 'https://aws/bucket/Split+GAL4/LH2033/LH2033-20160629_31_F6-f-20x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
                         },
-                    }   
+                    }
                 ],
             })
             ;

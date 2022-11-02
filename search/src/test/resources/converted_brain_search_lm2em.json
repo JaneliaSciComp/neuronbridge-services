@@ -24,7 +24,8 @@
           "store": "fl:open_data:brain",
           "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1077847238-JRC2018_Unisex_20x_HR-CDM.jpg",
-          "AlignedBodySWC": ""
+          "AlignedBodySWC": "",
+          "AlignedBodyOBJ": ""
         },
         "type": "EMImage",
         "neuronType": "",
@@ -50,7 +51,8 @@
           "store": "fl:open_data:brain",
           "CDM": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.png",
           "CDMThumbnail": "JRC2018_Unisex_20x_HR/FlyEM_Hemibrain_v1.2.1/1110972158-JRC2018_Unisex_20x_HR-CDM.jpg",
-          "AlignedBodySWC": ""
+          "AlignedBodySWC": "",
+          "AlignedBodyOBJ": ""
         },
         "anatomicalArea": "Brain",
         "type": "EMImage",
