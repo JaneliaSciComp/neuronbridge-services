@@ -27,5 +27,8 @@ export const searchUpdate = async (event) => {
     if (event.alignmentMovie) {
         searchData.alignmentMovie = event.alignmentMovie;
     }
+    if (event.alignmentScore) {
+        searchData.alignmentScore = event.alignmentScore;
+    }
     return await updateSearchMetadata(searchData);
 };

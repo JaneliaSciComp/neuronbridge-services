@@ -65,6 +65,7 @@ type Search @aws_cognito_user_pools @aws_iam {
     simulateMIPGeneration: Boolean
     uploadThumbnail: String
     alignmentMovie: String
+    alignmentScore: String
 }
 
 type SearchConnection @aws_cognito_user_pools @aws_iam {
@@ -231,4 +232,5 @@ input UpdateSearchInput {
     alignmentErrorMessage: String
     uploadThumbnail: String
     alignmentMovie: String
+    alignmentScore: String
 }

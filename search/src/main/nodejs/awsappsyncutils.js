@@ -65,6 +65,7 @@ export const getSearchMetadata = async (searchId) => {
                 alignmentErrorMessage
                 simulateMIPGeneration
                 alignmentMovie
+                alignmentScore
             }
         }`),
         variables: { searchId: searchId},
@@ -135,6 +136,7 @@ export const lookupSearchMetadata = async (searchFilterParams) => {
                     alignmentErrorMessage
                     simulateMIPGeneration
                     alignmentMovie
+                    alignmentScore
                 }
             }
         }`),
@@ -234,6 +236,7 @@ export const updateSearchMetadata = async (searchData) => {
                 errorMessage
                 alignmentErrorMessage
                 alignmentMovie
+                alignmentScore
             }
         }`),
         variables: {
