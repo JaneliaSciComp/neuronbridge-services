@@ -362,7 +362,11 @@ export const searchCombiner = async (event) => {
                 ? allMatches[0]
                 : {
                     inputImage: {
-                        filename: getSearchMaskId(searchInputName)
+                        filename: getSearchMaskId(searchInputName),
+                        files: {
+                            store: '',
+                            CDM: pathRelativeToNComp(fullSearchInputName, 2),
+                        },
                     },
                     results: []
                 })

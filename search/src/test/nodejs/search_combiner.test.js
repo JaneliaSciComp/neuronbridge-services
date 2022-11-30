@@ -12,6 +12,7 @@ import zlib from 'zlib';
 
 import intermediateEMBatchResults from '../resources/test_intermediate_em_batchresult.json';
 import finalEMSearchResults from '../resources/test_final_em_searchresult.json';
+import emptyEMSearchResults from '../resources/test_empty_final_em_searchresult.json';
 
 import intermediateLMBatchResults1 from '../resources/test_intermediate_lm_batchresult-1.json';
 import intermediateLMBatchResults2 from '../resources/test_intermediate_lm_batchresult-2.json';
@@ -98,7 +99,7 @@ describe('combine EM SearchResults', () => {
                 ],
             })
             ;
-    
+
         const saveFn = jest.spyOn(utils, 'streamObject')
             .mockResolvedValueOnce(`s3://${searchBucket}`);
         jest.spyOn(utils, 'removeKey');
@@ -115,6 +116,26 @@ describe('combine EM SearchResults', () => {
 
     });
 
+    it('combine empty EM search results', async () => {
+        jest.spyOn(clientDbUtils, 'queryDb')
+            .mockResolvedValueOnce({
+                Items: []
+            });
+
+        const saveFn = jest.spyOn(utils, 'streamObject')
+            .mockResolvedValueOnce(`s3://${searchBucket}`);
+        jest.spyOn(utils, 'removeKey');
+        jest.spyOn(searchutils, 'getIntermediateSearchResultsPrefix');
+
+        search_combiner.searchCombiner(combineEMSearches)
+            .then(result => {
+                expect(saveFn).toHaveBeenCalledWith(
+                    searchBucket,
+                    `${maskFolder}/${maskName}.result`,
+                    emptyEMSearchResults
+                );
+            })
+    })
 });
 
 describe('combine LM SearchResults', () => {
