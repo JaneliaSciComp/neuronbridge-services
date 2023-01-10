@@ -54,6 +54,7 @@ jobs:
       - run: npx eslint src/main/nodejs
 
 workflows:
+  version: 2
   build:
     jobs:
       - build-search-java:
