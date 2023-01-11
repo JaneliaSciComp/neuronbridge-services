@@ -634,6 +634,7 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
+  # lambda function to migrate v2.x searches to v3.x
   searchMigration:
     runtime: ${self:custom.nodeJSRuntime}
     timeout: 600

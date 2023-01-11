@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "sls": "./node_modules/serverless/bin/serverless.js",
+    "sls": "sls",
     "test": "npx eslint src/main/nodejs && jest",
     "lint": "npx eslint src/main/nodejs",
     "search": "AWS_SDK_LOAD_CONFIG=true npx babel-node --presets @babel/env src/main/nodejs/search_client.js"
@@ -44,10 +44,10 @@
     "jest": "^29.1.1",
     "jest-json-schema": "^6.1.0",
     "prettier": "^2.7.1",
-    "serverless": "^3.23.0",
+    "serverless": "^3.26.0",
     "serverless-appsync-plugin": "^1.14.0",
-    "serverless-bundle": "^5.5.0",
+    "serverless-bundle": "^6.0.0",
     "serverless-deployment-bucket": "^1.6.0",
-    "serverless-step-functions": "^3.10.0"
+    "serverless-step-functions": "^3.11.1"
   }
 }
