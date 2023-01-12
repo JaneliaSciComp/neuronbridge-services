@@ -90,7 +90,9 @@ async function updateRecord(record) {
         const converted = await convertSearchResults(
           recordData,
           record.anatomicalRegion,
-          record.searchType
+          record.searchType,
+          // relative path to search mask for setting CDM value in converted results
+          `${record.searchDir}/${record.displayableMask || record.searchMask}`
         );
         // Save it back to disk as the .result file.
         const complete = await putObjectWithRetry(

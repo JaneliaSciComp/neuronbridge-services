@@ -193,12 +193,12 @@ function relativePathFromURL(aURL, defaultValue) {
       const pathComps = aURL.substring(protocol.length).split('/');
       return pathComps.slice(startPath).join('/');
   } catch (e) {
-      console.error(`Erroor getting relative path for ${aURL}`, e);
+      console.error(`Error getting relative path for ${aURL}`, e);
       return aURL;
   }
 }
 
-export async function convertSearchResults(inputJSON, anatomicalArea, searchType) {
+export async function convertSearchResults(inputJSON, anatomicalArea, searchType, searchMask) {
   const alignmentSpace = anatomicalArea.toLowerCase() === 'vnc'
     ? 'JRC2018_VNC_Unisex_40x_DS'
     : 'JRC2018_Unisex_20x_HR';
@@ -208,6 +208,15 @@ export async function convertSearchResults(inputJSON, anatomicalArea, searchType
                               )
                             : [];
   const results = await Promise.all(resultsPromises);
+
+  // use the search mask path from the dynamodb record to start with
+  // if it doesn't exist, then try to create one from the inputJSON
+  let CDM = searchMask;
+  if (!CDM) {
+    const matched = inputJSON.maskImageURL.match('.*?/us-east-1[^/]*/(.*)');
+    CDM = matched ? matched[1] : "";
+  }
+
   const output = {
     inputImage: {
       files: {
@@ -215,9 +224,7 @@ export async function convertSearchResults(inputJSON, anatomicalArea, searchType
         CDSResults: '',
         VisuallyLosslessStack: '',
         CDMThumbnail: '',
-        CDM: inputJSON.maskImageURL
-          ? inputJSON.maskImageURL.split('/').slice(-2).join('/')
-          : '',
+        CDM,
       },
       alignmentSpace,
       filename: inputJSON.maskId,
