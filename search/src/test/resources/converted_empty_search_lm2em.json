@@ -1,0 +1,15 @@
+{
+  "inputImage": {
+    "files": {
+      "store": "",
+      "CDSResults": "",
+      "VisuallyLosslessStack": "",
+      "CDMThumbnail": "",
+      "CDM": "89e7b4e0-a6c3-11ec-b661-1df8e49b89dc/GMR_9B06_AE_01_18-xX00b_C070224_20070414120013978_2_mask.png"
+    },
+    "alignmentSpace": "JRC2018_Unisex_20x_HR",
+    "filename": "GMR_9B06_AE_01_18-xX00b_C070224_20070414120013978_2_mask",
+    "anatomicalArea": "Brain"
+  },
+  "results": []
+}

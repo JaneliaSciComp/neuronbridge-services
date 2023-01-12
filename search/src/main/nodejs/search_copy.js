@@ -2,6 +2,7 @@ import { v1 as uuidv1 } from "uuid";
 import { copyS3Content, getAllKeys } from "./utils";
 import {
   createSearchMetadata,
+  updateSearchMetadata,
   getSearchMetadata,
   ALIGNMENT_JOB_COMPLETED
 } from "./awsappsyncutils";
@@ -65,11 +66,24 @@ async function copyAlignment(searchData) {
     upload: searchData.upload,
     anatomicalRegion: searchData.anatomicalRegion || 'brain',
     simulateMIPGeneration: false,
-    uploadThumbnail: searchData.uploadThumbnail
+    uploadThumbnail: searchData.uploadThumbnail,
   };
   // save new data object- in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
-  return { newSearchData, newSearchMeta };
+
+  //add alignment info if present
+  const newSearchMetaWithAlignment = await updateSearchMetadata({
+    id: newSearchMeta.searchId,
+    alignStarted: searchData.alignStarted,
+    alignFinished: searchData.alignFinished,
+    alignmentSize: searchData.alignmentSize,
+    alignmentErrorMessage: searchData.alignmentErrorMessage,
+    alignmentMovie: searchData.alignmentMovie,
+    alignmentScore: searchData.alignmentScore,
+    computedMIPs: searchData.computedMIPs,
+  });
+
+  return { newSearchData, newSearchMeta: newSearchMetaWithAlignment };
 }
 
 export const searchCopyAlignment = async event => {

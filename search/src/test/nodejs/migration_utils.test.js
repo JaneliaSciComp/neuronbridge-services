@@ -1,7 +1,7 @@
 import { matchers } from "jest-json-schema";
 import { convertSearchResults } from "../../main/nodejs/migration_utils";
 
-import * as clientDbUtils from '../../main/nodejs/clientDbUtils';
+import * as clientDbUtils from "../../main/nodejs/clientDbUtils";
 
 import lm2emBrainInputJSON from "../resources/old_brain_search_lm2em.json";
 import lm2emBrainOutputJSON from "../resources/converted_brain_search_lm2em.json";
@@ -11,6 +11,9 @@ import em2lmBrainOutputJSON from "../resources/converted_brain_search_em2lm.json
 
 import lm2emVNCInputJSON from "../resources/old_vnc_search_lm2em.json";
 import lm2emVNCOutputJSON from "../resources/converted_vnc_search_lm2em.json";
+
+import lm2emEmptyInputJSON from "../resources/old_empty_search_lm2em.json";
+import lm2emEmptyOutputJSON from "../resources/converted_empty_search_lm2em.json";
 
 import customMatchesSchema from "../resources/customMatches.schema.json";
 
@@ -26,84 +29,109 @@ describe("migration utils tests", () => {
     jest.resetAllMocks();
     process.env = {
       ...OLD_ENV,
-      LM_PUBLISHED_STACKS_TABLE: 'lm-published-stacks',
-      EM_PUBLISHED_SKELETONS_TABLE: 'em-published-skeletons',
+      LM_PUBLISHED_STACKS_TABLE: "lm-published-stacks",
+      EM_PUBLISHED_SKELETONS_TABLE: "em-published-skeletons",
     };
   });
 
   it("converts a Brain lm2em search result", async () => {
-    jest.spyOn(clientDbUtils, 'queryDb')
-      .mockResolvedValue({
-        Items: [
-        ],
-      })
+    jest.spyOn(clientDbUtils, "queryDb").mockResolvedValue({
+      Items: [],
+    });
 
-    const converted = await convertSearchResults(lm2emBrainInputJSON, 'brain', 'lm2em');
+    const converted = await convertSearchResults(
+      lm2emBrainInputJSON,
+      "brain",
+      "lm2em"
+    );
     expect(converted).toEqual(lm2emBrainOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);
   });
 
   it("converts a Brain em2lm search result", async () => {
-    jest.spyOn(clientDbUtils, 'queryDb')
+    jest
+      .spyOn(clientDbUtils, "queryDb")
       .mockResolvedValueOnce({
         Items: [
           {
-              files: {
-                  VisuallyLosslessStack: 'https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
-              },
-          }
+            files: {
+              VisuallyLosslessStack:
+                "https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j",
+            },
+          },
         ],
       })
       .mockResolvedValueOnce({
         Items: [
           {
-              files: {
-                  VisuallyLosslessStack: 'https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j',
-              },
-          }
+            files: {
+              VisuallyLosslessStack:
+                "https://aws/bucket/Gen1+MCFO/VT007350/VT007350-20180803_63_H2-f-40x-brain-GAL4-JRC2018_Unisex_20x_HR-aligned_stack.h5j",
+            },
+          },
         ],
       });
 
-    const converted = await convertSearchResults(em2lmBrainInputJSON, 'brain', 'em2lm');
+    const converted = await convertSearchResults(
+      em2lmBrainInputJSON,
+      "brain",
+      "em2lm"
+    );
     expect(converted).toEqual(em2lmBrainOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);
   });
 
   it("converts a VNC lm2em search result", async () => {
-    jest.spyOn(clientDbUtils, 'queryDb')
+    jest
+      .spyOn(clientDbUtils, "queryDb")
       .mockResolvedValueOnce({
         Items: [
           {
-            skeletonobj: 'https://aws/bucket/OBJ/an.obj',
-            skeletonswc: 'https://aws/bucket/SWC/an.swc',
-          }
+            skeletonobj: "https://aws/bucket/OBJ/an.obj",
+            skeletonswc: "https://aws/bucket/SWC/an.swc",
+          },
         ],
       })
       .mockResolvedValueOnce({
         Items: [
           {
-            skeletonswc: 'https://aws/bucket/SWC/an.swc',
-          }
+            skeletonswc: "https://aws/bucket/SWC/an.swc",
+          },
         ],
       })
       .mockResolvedValueOnce({
-        Items: [
-          {
-          }
-        ],
+        Items: [{}],
       })
       .mockResolvedValue({
         Items: [
           {
-            skeletonobj: 'https://aws/bucket/OBJ/an.obj',
-            skeletonswc: 'https://aws/bucket/SWC/an.swc',
-          }
+            skeletonobj: "https://aws/bucket/OBJ/an.obj",
+            skeletonswc: "https://aws/bucket/SWC/an.swc",
+          },
         ],
-      })
-      ;
+      });
 
-    const converted = await convertSearchResults(lm2emVNCInputJSON, 'vnc', 'lm2em');
+    const converted = await convertSearchResults(
+      lm2emVNCInputJSON,
+      "vnc",
+      "lm2em"
+    );
     expect(converted).toEqual(lm2emVNCOutputJSON);
+    expect(converted).toMatchSchema(customMatchesSchema);
+  });
+
+  it("converts an empty lm2em search result", async () => {
+    jest.spyOn(clientDbUtils, "queryDb").mockResolvedValue({
+      Items: [],
+    });
+
+    const converted = await convertSearchResults(
+      lm2emEmptyInputJSON,
+      "brain",
+      "lm2em",
+      "89e7b4e0-a6c3-11ec-b661-1df8e49b89dc/GMR_9B06_AE_01_18-xX00b_C070224_20070414120013978_2_mask.png"
+    );
+    expect(converted).toEqual(lm2emEmptyOutputJSON);
     expect(converted).toMatchSchema(customMatchesSchema);
   });
 });
