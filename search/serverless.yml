@@ -1,6 +1,7 @@
 service: janelia-neuronbridge-cds
 
 plugins:
+  - serverless-plugin-aws-alerts
   - serverless-appsync-plugin
   - serverless-bundle
   - serverless-deployment-bucket
@@ -111,6 +112,47 @@ custom:
         config:
           tableName: ${self:custom.searchTable}
 
+  alerts:
+    stages:
+      - dev
+
+    dashboards: true
+
+    topics:
+      nonCritical:
+        alarm:
+          topic:  ${self:service}-${opt:stage}-nonCritical-alerts-alarm
+          notifications:
+          - protocol: email
+            endpoint: goinac@janelia.hhmi.org
+
+    definitions:
+      cdsTimeoutErrors:
+        metric: cdsTimeoutErrors
+        namespace: 'AWS/Lambda'
+        threshold: 1
+        statistic: Sum
+        period: 60
+        evaluationPeriods: 1
+        comparisonOperator: GreaterThanOrEqualToThreshold
+        pattern: '"Job timed out"'
+        alarmActions:
+          - nonCritical
+      mipsAccessErrors:
+        metric: mipsAccessErrors
+        namespace: 'AWS/Lambda'
+        threshold: 10
+        statistic: Sum
+        period: 60
+        evaluationPeriods: 1
+        comparisonOperator: GreaterThanOrEqualToThreshold
+        pattern: '"SlowDown: Please reduce your request rate"'
+        alarmActions:
+          - nonCritical
+
+    alarms:
+      - cdsTimeoutErrors
+      - mipsAccessErrors
 
 provider:
   name: aws
