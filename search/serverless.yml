@@ -119,40 +119,12 @@ custom:
     dashboards: true
 
     topics:
-      nonCritical:
+      monitoredAlarms:
         alarm:
-          topic:  ${self:service}-${opt:stage}-nonCritical-alerts-alarm
+          topic:  ${self:service}-${opt:stage}-monitoredAlarms
           notifications:
           - protocol: email
             endpoint: goinac@janelia.hhmi.org
-
-    definitions:
-      cdsTimeoutErrors:
-        metric: cdsTimeoutErrors
-        namespace: 'AWS/Lambda'
-        threshold: 1
-        statistic: Sum
-        period: 60
-        evaluationPeriods: 1
-        comparisonOperator: GreaterThanOrEqualToThreshold
-        pattern: '"Job timed out"'
-        alarmActions:
-          - nonCritical
-      mipsAccessErrors:
-        metric: mipsAccessErrors
-        namespace: 'AWS/Lambda'
-        threshold: 10
-        statistic: Sum
-        period: 60
-        evaluationPeriods: 1
-        comparisonOperator: GreaterThanOrEqualToThreshold
-        pattern: '"SlowDown: Please reduce your request rate"'
-        alarmActions:
-          - nonCritical
-
-    alarms:
-      - cdsTimeoutErrors
-      - mipsAccessErrors
 
 provider:
   name: aws
@@ -377,6 +349,22 @@ functions:
           path: /searches
           authorizer:
             name: neuronBridgeJwtAuthorizer
+    alarms:
+      - name: searchInvocationsAlarm
+        type: anomalyDetection
+        namespace: 'AWS/Lambda'
+        metric: Invocations
+        # the threshold is completely empirical 
+        # when I had 8 simultaneous calls there was no timeout
+        # so I am trying to see if I can correlate this with access errors
+        threshold: 8
+        statistic: Sum
+        period: 60
+        evaluationPeriods: 1
+        datapointsToAlarm: 1
+        comparisonOperator: GreaterThanUpperThreshold
+        alarmActions:
+          - monitoredAlarms
 
   combiner:
     runtime: ${self:custom.nodeJSRuntime}
@@ -390,6 +378,20 @@ functions:
       MAX_CUSTOM_RESULTS: ${self:custom.maxCustomColorDepthSearchResults}
       LM_PUBLISHED_STACKS_TABLE: ${self:custom.publishedLMStacksTable}
       EM_PUBLISHED_SKELETONS_TABLE: ${self:custom.publishedEMSkeletonsTable}
+    alarms:
+      - name: fatalErrorsAlarm
+        namespace: 'AWS/Lambda'
+        actionsEnabled: true
+        metric: fatalErrors
+        threshold: 1
+        statistic: Sum
+        period: 60
+        evaluationPeriods: 1
+        datapointsToAlarm: 1
+        comparisonOperator: GreaterThanOrEqualToThreshold
+        pattern: 'fatal errors'
+        alarmActions:
+          - monitoredAlarms
 
   monitor:
     runtime: ${self:custom.nodeJSRuntime}
@@ -408,6 +410,19 @@ functions:
     environment:
       DEBUG: ${self:custom.debug}
       NODE_OPTIONS: '--max-old-space-size=480'
+    alarms:
+      - name: mipsAccessErrors
+        namespace: 'AWS/Lambda'
+        actionsEnabled: true
+        metric: mipsAccessErrors
+        threshold: 1
+        statistic: Sum
+        period: 60
+        evaluationPeriods: 1
+        comparisonOperator: GreaterThanOrEqualToThreshold
+        pattern: '{$.code = "SlowDown" && $.statusCode = 503}'
+        alarmActions:
+          - monitoredAlarms
 
   searchCopyAlignment:
     runtime: ${self:custom.nodeJSRuntime}

@@ -19,7 +19,7 @@ export const DEBUG = Boolean(process.env.DEBUG);
 const retryOptions = {
     jitter : "full",
     maxDelay: 10000,
-    startingDelay: 50,
+    startingDelay: 500,
     timeMultiple: 3,
     numOfAttempts: 3
 };
