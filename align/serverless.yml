@@ -15,8 +15,6 @@ custom:
   mipTemplatesFolder: alignment_templates
   alignInputBucket: ${file(../config.yml):config.searchBucket}
   alignOutputBucket: ${file(../config.yml):config.searchBucket}
-  securityGroupId: sg-963ee8df
-  subnetId: subnet-5e11c814
   ec2AlignmentImageId: ami-0d3f5e4624981ef1b
   alignmentBrainContainerImage: janeliascicomp/neuronbridge-brainaligner:1.0
   alignmentVNCContainerImage: janeliascicomp/neuronbridge-vncaligner:1.0
@@ -33,8 +31,6 @@ custom:
     createParameters: true
     zones:
       - us-east-1a
-      - us-east-1b
-      - us-east-1c
     exportOutputs: true
 
 provider:

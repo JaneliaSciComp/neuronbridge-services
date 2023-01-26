@@ -17,8 +17,6 @@ Resources:
         ImageId: ${self:custom.ec2AlignmentImageId}
         Subnets:
           - !Ref AppSubnet1
-          - !Ref AppSubnet2
-          - !Ref AppSubnet3
         SecurityGroupIds:
           - !Ref AppSecurityGroup
         InstanceRole: ecsInstanceRole
