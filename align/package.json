@@ -7,6 +7,7 @@
   },
   "devDependencies": {
     "serverless": "^2.56.0",
-    "serverless-deployment-bucket": "^1.5.1"
+    "serverless-deployment-bucket": "^1.5.1",
+    "serverless-vpc-plugin": "^1.0.5"
   }
 }
