@@ -9,14 +9,12 @@ plugins:
 
 custom:
   stackName: ${self:service}-${self:provider.stage}
+  version: ${file(../config.yml):config.version}
+  debug: ${file(../config.yml):config.debug}
   alignmentTemplatesBucket: ${file(../config.yml):config.alignmentTemplatesBucket}
   alignmentTemplatesFolder: alignment_templates
   alignInputBucket: ${file(../config.yml):config.searchBucket}
   alignOutputBucket: ${file(../config.yml):config.searchBucket}
-  version: ${file(../config.yml):config.version}
-  debug: ${file(../config.yml):config.debug}
-  securityGroupId: sg-963ee8df
-  subnetId: subnet-5e11c814
   ec2AlignmentImageId: ami-0d3f5e4624981ef1b
   alignmentContainerImage: janeliascicomp/neuronbridge-aligner:1.1
   defaultAlignmentThreads: 16
@@ -32,8 +30,6 @@ custom:
     createParameters: true
     zones:
       - us-east-1a
-      - us-east-1b
-      - us-east-1c
     exportOutputs: true
 
 
