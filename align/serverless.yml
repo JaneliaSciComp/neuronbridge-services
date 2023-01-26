@@ -22,7 +22,7 @@ custom:
   vpcConfig:
     enabled: true
     cidrBlock: '10.0.0.0/16'
-    createNatGateway: 1
+    createNatGateway: false
     createNetworkAcl: false
     createDbSubnet: false
     createFlowLogs: false
