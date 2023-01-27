@@ -1,0 +1,47 @@
+service: janelia-neuronbridge-vpc
+
+
+plugins:
+  - serverless-deployment-bucket
+  - serverless-vpc-plugin
+
+
+custom:
+  stackName: ${self:service}
+  version: ${file(../config.yml):config.version}
+  debug: ${file(../config.yml):config.debug}
+
+  vpcConfig:
+    enabled: true
+    cidrBlock: '10.0.0.0/16'
+    createNatGateway: true
+    createNetworkAcl: false
+    createDbSubnet: false
+    createFlowLogs: false
+    createNatInstance: false
+    createParameters: true
+    zones:
+      - us-east-1a
+    exportOutputs: true
+
+
+provider:
+  name: aws
+  stage: all
+  region: ${opt:region, "us-east-1"}
+  deploymentBucket:
+    name: janelia-serverless-deployments
+    blockPublicAccess: true
+  tags:
+    PROJECT: ${file(../config.yml):config.project}
+    VERSION: ${self:custom.version}
+    DEVELOPER: ${env:USER}
+  stackTags:
+    PROJECT: ${file(../config.yml):config.project}
+    VERSION: ${self:custom.version}
+    DEVELOPER: ${env:USER}
+
+
+package:
+  patterns:
+    - '!node_modules/**'
