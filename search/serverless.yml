@@ -528,7 +528,6 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
       DATA_BUCKET: ${self:custom.dataBucket}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
       SEARCH_TABLE: ${self:custom.searchTable}
@@ -559,7 +558,6 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
       DATA_BUCKET: ${self:custom.dataBucket}
-      LIBRARY_BUCKET: ${self:custom.libraryBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
       IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
       SEARCH_TABLE: ${self:custom.searchTable}
