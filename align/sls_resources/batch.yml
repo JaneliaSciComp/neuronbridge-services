@@ -18,10 +18,9 @@ Resources:
           - optimal
         ImageId: ${self:custom.ec2AlignmentImageId}
         Subnets:
-          - ${self:custom.subnetId}
+          - !Ref AppSubnet1
         SecurityGroupIds:
-          - ${self:custom.securityGroupId}
-        Ec2KeyPair: ${self:custom.sshKeyPairName}
+          - !Ref AppSecurityGroup
         SpotIamFleetRole: !Ref SpotFleetRole
         InstanceRole: ecsInstanceRole
         Tags: ${self:provider.stackTags}
@@ -42,10 +41,9 @@ Resources:
           - optimal
         ImageId: ${self:custom.ec2AlignmentImageId}
         Subnets:
-          - ${self:custom.subnetId}
+          - !Ref AppSubnet1
         SecurityGroupIds:
-          - ${self:custom.securityGroupId}
-        Ec2KeyPair: ${self:custom.sshKeyPairName}
+          - !Ref AppSecurityGroup
         InstanceRole: ecsInstanceRole
         Tags: ${self:provider.stackTags}
 
