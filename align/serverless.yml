@@ -1,6 +1,5 @@
 service: janelia-neuronbridge-align
 
-projectDir: ../
 
 plugins:
   - serverless-deployment-bucket
@@ -16,13 +15,13 @@ custom:
   alignInputBucket: ${file(../config.yml):config.searchBucket}
   alignOutputBucket: ${file(../config.yml):config.searchBucket}
   ec2AlignmentImageId: ami-0d3f5e4624981ef1b
-  alignmentContainerImage: janeliascicomp/neuronbridge-aligner:1.1
+  alignmentContainerImage: janeliascicomp/neuronbridge-brainaligner:1.0
   defaultAlignmentThreads: 16
 
   vpcConfig:
     enabled: true
     cidrBlock: '10.0.0.0/16'
-    createNatGateway: false
+    createNatGateway: true
     createNetworkAcl: false
     createDbSubnet: false
     createFlowLogs: false
