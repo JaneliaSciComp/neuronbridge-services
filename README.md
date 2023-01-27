@@ -7,6 +7,16 @@
 
 As a prerequisite, you need to have the [AWS CLI](https://aws.amazon.com/cli/) installed and configured with proper AWS credentials.
 
+### Deploy NeuronBridge shared VPC
+The VPC deployment is a one time deployment for ALL deploy environments, no matter whether they are DEV, PROD, TEST, VAL and so on. This will create a VPC that will be shared by all alignment jobs so be careful not to remove it because if you do you will have to redeploy all align environments.
+To deploy:
+```
+cd vpc
+npm install
+npm run sls -- deploy
+```
+Notice that stage is not needed because it will deploy to a 'shared' stage ('janelia-neuronbridge-vpc-shared')
+
 ### Deploy NeuronBridge compute alignment stack
 
 NeuronBridge compute alignment requires an AMI instance preconfigured with ECS and with all required volumes mounted as expected by the alignment batch job.
