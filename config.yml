@@ -17,11 +17,11 @@ config:
   cdsTimeoutInSeconds: 400
 
   publishedNamesDb:
-    dev: 'v2.4.0'
+    dev: 'v3.0.0'
     val: 'v2.4.0'
     prod: 'v2.4.0'
-    devpre: 'v2.3.0-devpre'
-    prodpre: 'v2.3.0-devpre'
+    devpre: 'v3.0.0'
+    prodpre: 'v3.0.0'
     other: 'v2.4.0'
   # determines if users can create their own account on a site
   disableAccountCreation:

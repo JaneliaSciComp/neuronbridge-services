@@ -29,7 +29,7 @@ To create the AMI use these steps:
 
 ```
 sudo yum -y update
-sudo yum install -y fuse-devel s3fs
+sudo yum install -y fuse-devel
 sudo mkfs -t ext4 /dev/xvdb
 sudo mkdir /scratch_volume
 sudo echo -e '/dev/xvdb\t/scratch_volume\text4\tdefaults\t0\t0' | sudo tee -a /etc/fstab
