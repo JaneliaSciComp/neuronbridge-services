@@ -64,9 +64,9 @@ resources:
             - optimal
           ImageId: ${self:custom.ec2AlignmentImageId}
           Subnets:
-            - !ImportValue 'janelia-neuronbridge-vpc-all-AppSubnet1'
+            - !ImportValue 'janelia-neuronbridge-vpc-shared-AppSubnet1'
           SecurityGroupIds:
-            - !ImportValue 'janelia-neuronbridge-vpc-all-AppSecurityGroupId'
+            - !ImportValue 'janelia-neuronbridge-vpc-shared-AppSecurityGroupId'
           InstanceRole: ecsInstanceRole
           Tags: ${self:provider.stackTags}
 
