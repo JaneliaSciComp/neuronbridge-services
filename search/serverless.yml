@@ -129,6 +129,8 @@ custom:
           - protocol: email
             endpoint: ${self:custom.alertEmail}
 
+useDotenv: true
+
 provider:
   name: aws
   region: ${opt:region, "us-east-1"}
