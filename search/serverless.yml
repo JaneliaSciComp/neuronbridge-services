@@ -6,6 +6,7 @@ plugins:
   - serverless-bundle
   - serverless-deployment-bucket
   - serverless-step-functions
+  - serverless-dotenv-plugin
 
 custom:
   version: 3.0.0

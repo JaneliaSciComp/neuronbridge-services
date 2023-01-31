@@ -49,6 +49,7 @@
     "serverless-bundle": "^6.0.0",
     "serverless-deployment-bucket": "^1.6.0",
     "serverless-plugin-aws-alerts": "^1.7.5",
+    "serverless-dotenv-plugin": "^4.0.2",
     "serverless-step-functions": "^3.11.1"
   }
 }

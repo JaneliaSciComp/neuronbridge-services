@@ -8,7 +8,7 @@ config:
   downloadBucket: janelia-neuronbridge-downloads-${opt:stage, 'dev'}
   dataBucket: janelia-neuronbridge-data-${env:SEARCH_DATA_LEVEL, opt:stage, 'dev'}
   perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
-  perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 5}
+  perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 10}
   concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 1}
   concurrentAlignmentLimits: ${env:CONCURRENT_ALIGNMENT_LIMITS, 1}
 
