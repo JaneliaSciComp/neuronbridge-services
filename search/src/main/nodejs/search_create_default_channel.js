@@ -43,8 +43,18 @@ async function createDefaultChannel(searchData) {
 
   const pngMime = "image/png";
 
+  // if this isn't a supported image type, based on extension, then
+  // fail the upload and bail out.
+  if (!/\.(tiff?|png|gif|jpe?g|bmp)$/.test(upload)) {
+    console.log('unsupported image');
+    searchMetaData.errorMessage = "The uploaded image does not appear to be in one of our supported 2D formats; tiff, png, gif, jpeg or bmp. If you meant to run an alignment, please select 'Unaligned confocal 3D stack' above and try again.";
+    await updateSearchMetadata(searchMetaData);
+    throw new Error('unsupported image');
+  }
+
   // if not a png, transform to png
   if (/\.(tiff?|gif|jpe?g|bmp)$/.test(upload)) {
+    console.log(`Converting uploaded image to png`);
     const pngExt = ".png";
     const image = await Jimp.read(imageContent);
     const imageBuffer = await image.getBufferAsync(pngMime);
@@ -53,6 +63,7 @@ async function createDefaultChannel(searchData) {
     channelName = upload.replace(/\.([^.]*)$/, "_1.png");
     await putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
     searchMetaData.displayableMask = getSearchMaskId(pngImageName, pngExt);
+    console.log(`Image conversion complete`);
   }
   // create new file in generatedMIPS directory as channel_1.png
   const channelPath = `private/${identityId}/${searchDir}/generatedMIPS/${channelName}`;
@@ -64,12 +75,14 @@ async function createDefaultChannel(searchData) {
 
   // create a thumbnail of the uploaded image
   const thumbnailName = "upload_thumbnail.png";
-  const original = await Jimp.read(imageContent);
+  console.log(`Generating thumbnail in private/${identityId}/${searchDir}/${thumbnailName}`);
+  const original = await Jimp.read(imageContent).catch(err => console.log(err));
   const thumbnail = anatomicalRegion === "vnc" ? original.scaleToFit(70, 150) : original.scaleToFit(150, 70);
   const thumbnailBuffer = await thumbnail.getBufferAsync(pngMime);
   const thumbnailPath = `private/${identityId}/${searchDir}/${thumbnailName}`;
   await putS3Content(searchBucket, thumbnailPath, pngMime, thumbnailBuffer);
   searchMetaData.uploadThumbnail = thumbnailName;
+  console.log("Thumbnail generation complete");
 
   await updateSearchMetadata(searchMetaData);
   return { id };
