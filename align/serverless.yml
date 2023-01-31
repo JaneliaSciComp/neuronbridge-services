@@ -19,6 +19,7 @@ custom:
   alignmentBrainContainerImage: janeliascicomp/neuronbridge-brainaligner:1.0
   alignmentVNCContainerImage: janeliascicomp/neuronbridge-vncaligner:1.0
   defaultAlignmentThreads: 16
+  sshKeyPairName: ec2_batch
 
 
 provider:
@@ -67,6 +68,7 @@ resources:
             - !ImportValue 'janelia-neuronbridge-vpc-shared-AppSubnet1'
           SecurityGroupIds:
             - !ImportValue 'janelia-neuronbridge-vpc-shared-AppSecurityGroupId'
+          Ec2KeyPair: ${self:custom.sshKeyPairName}
           InstanceRole: ecsInstanceRole
           Tags: ${self:provider.stackTags}
 
