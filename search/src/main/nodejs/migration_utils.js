@@ -58,6 +58,8 @@ async function convertResult(result, alignmentSpace, anatomicalArea, searchType)
   const matchedImageName = result.imageName
     ? generateMipMatchPath(alignmentSpace, libraryName, result.imageName)
     : generateMipMatchPath(alignmentSpace, libraryName, result.imageURL);
+
+  const updatedMaskImageName = result.maskImageName ?  result.maskImageName.replace(/private\/us-east-1:[^/]*\//,'') : "";
   const converted = {
     image: {
       id: result.id,
@@ -75,7 +77,7 @@ async function convertResult(result, alignmentSpace, anatomicalArea, searchType)
     },
     files: {
       store,
-      CDMInput: result.maskImageName || "",
+      CDMInput: updatedMaskImageName,
       CDMMatch: matchedImageName,
     },
     mirrored: result.mirrored || false,
