@@ -24,7 +24,7 @@ export const searchUpdate = async (event) => {
     if (event.alignFinished) {
         searchData.alignFinished = event.alignFinished;
     }
-    if (event.alignmentMovie) {
+    if (event.alignmentMovie && event.alignmentMovie !== 'None') {
         searchData.alignmentMovie = event.alignmentMovie;
     }
     if (event.alignmentScore) {

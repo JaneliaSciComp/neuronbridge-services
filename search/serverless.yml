@@ -62,6 +62,8 @@ custom:
 
   maxCustomColorDepthSearchResults: ${env:MAX_CUSTOM_RESULTS, 400}
 
+  alertEmail: ${env:ALERT_EMAIL, 'goinac@janelia.hhmi.org'}
+
   appSync:
     name: neuronbridge-appsync-${self:provider.stage}
     authenticationType: AMAZON_COGNITO_USER_POOLS
@@ -121,10 +123,10 @@ custom:
     topics:
       monitoredAlarms:
         alarm:
-          topic:  ${self:service}-${opt:stage}-monitoredAlarms
+          topic:  ${self:service}-${self:provider.stage}-monitoredAlarms
           notifications:
           - protocol: email
-            endpoint: goinac@janelia.hhmi.org
+            endpoint: ${self:custom.alertEmail}
 
 provider:
   name: aws
@@ -185,7 +187,6 @@ provider:
             - "arn:aws:s3:::${self:custom.oldSearchBucket}"
             - "arn:aws:s3:::${self:custom.dataBucket}"
             - "arn:aws:s3:::${self:custom.pppmBucket}"
-
         - Effect: Allow
           Action:
             - s3:PutObject

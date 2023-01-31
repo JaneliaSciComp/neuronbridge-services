@@ -17,7 +17,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${opt:stage}, self:custom.enableBackups.other}
+        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${self:provider.stage}, self:custom.enableBackups.other}
       KeySchema:
         - AttributeName: id
           KeyType: HASH
@@ -32,7 +32,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${opt:stage}, self:custom.enableBackups.other}
+        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${self:provider.stage}, self:custom.enableBackups.other}
       KeySchema:
         - AttributeName: active
           KeyType: HASH
@@ -51,7 +51,7 @@ Resources:
     DeletionPolicy: Retain
     Properties:
       PointInTimeRecoverySpecification:
-        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${opt:stage}, self:custom.enableBackups.other}
+        PointInTimeRecoveryEnabled: ${self:custom.enableBackups.${self:provider.stage}, self:custom.enableBackups.other}
       KeySchema:
         - AttributeName: username
           KeyType: HASH
