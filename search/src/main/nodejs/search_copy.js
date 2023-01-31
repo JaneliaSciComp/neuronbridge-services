@@ -19,7 +19,8 @@ async function copyAlignment(searchData) {
     identityId,
     searchDir,
     searchInputFolder,
-    uploadThumbnail
+    uploadThumbnail,
+    alignmentMovie,
   } = searchData;
   // generate a new id for the search directory
   const newSearchDir = uuidv1();
@@ -35,6 +36,14 @@ async function copyAlignment(searchData) {
       searchBucket,
       `/${searchBucket}/${searchInputFolder}/${uploadThumbnail}`,
       `${newSearchInputFolder}/${uploadThumbnail}`
+    );
+  }
+  if (alignmentMovie && alignmentMovie !== 'None') {
+    // copy alignment movie
+    await copyS3Content(
+      searchBucket,
+      `/${searchBucket}/${searchInputFolder}/${alignmentMovie}`,
+      `${newSearchInputFolder}/${alignmentMovie}`
     );
   }
   // copy MIP channels
