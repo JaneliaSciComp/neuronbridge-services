@@ -118,6 +118,7 @@ custom:
   alerts:
     stages:
       - dev
+      - prod
 
     dashboards: true
 
