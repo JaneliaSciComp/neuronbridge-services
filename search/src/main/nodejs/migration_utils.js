@@ -200,7 +200,7 @@ function relativePathFromURL(aURL, defaultValue) {
   }
 }
 
-export async function convertSearchResults(inputJSON, anatomicalArea, searchType, searchMask) {
+export async function convertSearchResults(inputJSON, anatomicalArea='Brain', searchType, searchMask) {
   const alignmentSpace = anatomicalArea.toLowerCase() === 'vnc'
     ? 'JRC2018_VNC_Unisex_40x_DS'
     : 'JRC2018_Unisex_20x_HR';
