@@ -65,56 +65,6 @@ custom:
 
   alertEmail: ${env:ALERT_EMAIL, 'goinac@janelia.hhmi.org'}
 
-  appSync:
-    name: neuronbridge-appsync-${self:provider.stage}
-    authenticationType: AMAZON_COGNITO_USER_POOLS
-    userPoolConfig:
-      awsRegion: ${self:provider.region}
-      defaultAction: ALLOW
-      userPoolId:
-       Ref: CognitoUserPool
-    additionalAuthenticationProviders:
-      - authenticationType: AWS_IAM
-    schema: graphql/schema.graphql
-    mappingTemplatesLocation: graphql/mapping-templates
-    mappingTemplates:
-      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
-        type: Query
-        field: getSearch
-        request: "dynamodb-getSearch-request-template.vtl"
-        response: "dynamodb-getSearch-response-template.vtl"
-      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
-        type: Query
-        field: listSearches
-        request: "dynamodb-listSearches-request-template.vtl"
-        response: "dynamodb-listSearches-response-template.vtl"
-      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
-        type: Query
-        field: listAllSearches
-        request: "dynamodb-listAllSearches-request-template.vtl"
-        response: "dynamodb-listAllSearches-response-template.vtl"
-      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
-        type: Mutation
-        field: createSearch
-        request: "dynamodb-createSearch-request-template.vtl"
-        response: "dynamodb-createSearch-response-template.vtl"
-      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
-        type: Mutation
-        field: deleteSearch
-        request: "dynamodb-deleteSearch-request-template.vtl"
-        response: "dynamodb-deleteSearch-response-template.vtl"
-      - dataSource: NeuronBridge_GraphQLDS_${self:provider.stage}
-        type: Mutation
-        field: updateSearch
-        request: "dynamodb-updateSearch-request-template.vtl"
-        response: "dynamodb-updateSearch-response-template.vtl"
-    dataSources:
-      - type: AMAZON_DYNAMODB
-        name: NeuronBridge_GraphQLDS_${self:provider.stage}
-        description: Table containing neuron searches
-        config:
-          tableName: ${self:custom.searchTable}
-
   alerts:
     stages:
       - dev
@@ -317,6 +267,69 @@ package:
   patterns:
     - 'src/main/nodejs/**'
     - 'cds_config.json'
+
+
+appSync:
+  name: neuronbridge-appsync-${self:provider.stage}
+  authentication:
+    type: AMAZON_COGNITO_USER_POOLS
+    config:
+      awsRegion: ${self:provider.region}
+      defaultAction: ALLOW
+      userPoolId:
+        Ref: CognitoUserPool
+  additionalAuthentications:
+    - type: AWS_IAM
+  schema: graphql/schema.graphql
+  resolvers:
+    getSearch:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Query
+      field: getSearch
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-getSearch-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-getSearch-response-template.vtl"
+    listSearches:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Query
+      field: listSearches
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-listSearches-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-listSearches-response-template.vtl"
+    listAllSearches:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Query
+      field: listAllSearches
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-listAllSearches-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-listAllSearches-response-template.vtl"
+    createSearch:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Mutation
+      field: createSearch
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-createSearch-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-createSearch-response-template.vtl"
+    deleteSearch:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Mutation
+      field: deleteSearch
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-deleteSearch-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-deleteSearch-response-template.vtl"
+    updateSearch:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Mutation
+      field: updateSearch
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-updateSearch-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-updateSearch-response-template.vtl"
+  dataSources:
+    NeuronBridge_GraphQLDS:
+      type: AMAZON_DYNAMODB
+      description: Table containing neuron searches
+      config:
+        tableName: ${self:custom.searchTable}
 
 
 functions:
