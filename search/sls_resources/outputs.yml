@@ -15,3 +15,9 @@ Outputs:
     Description: The ARN of the jobMonitorStateMachine 
     Value:
       Ref: JobMonitorStateMachine
+  GraphQlApiUrl:
+    Description: GraphQl URL
+    Value: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
+  GraphQlApiId:
+    Description: GraphQl API ID
+    Value: { Fn::GetAtt: [ GraphQlApi, ApiId ] }
