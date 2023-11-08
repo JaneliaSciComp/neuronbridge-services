@@ -1,4 +1,5 @@
 Resources:
+
   preferencesRole:
     Type: AWS::IAM::Role
     Properties:
@@ -95,9 +96,6 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: "*"
-
-
-
 
   announcementsRole:
     Type: AWS::IAM::Role
@@ -278,6 +276,7 @@ Resources:
                    - "dynamodb:Query"
                    - "cognito-idp:AdminGetUser"
                  Resource: !Sub arn:aws:cognito-idp:${self:provider.region}:${AWS::AccountId}:userpool/${self:custom.oldUserPoolId}
+
   dataMigrationRole:
     Type: AWS::IAM::Role
     Properties:

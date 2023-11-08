@@ -1,11 +1,12 @@
-import AWS from "aws-sdk";
+import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-const db = new AWS.DynamoDB.DocumentClient({
+const dbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient({
   maxRetries: 3,
   httpOptions: {
     timeout: 5000
   }
-});
+}));
 
 async function getDOIs(jwt, query) {
   const params = {
@@ -18,7 +19,7 @@ async function getDOIs(jwt, query) {
     ReturnConsumedCapacity: 'TOTAL'
   };
 
-  const data = await db.query(params).promise();
+  const data = await dbDocClient.send(new QueryCommand(params));
   return data.Items[0] || {};
 }
 

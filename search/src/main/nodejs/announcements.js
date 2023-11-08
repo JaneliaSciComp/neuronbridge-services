@@ -1,12 +1,12 @@
-import AWS from "aws-sdk";
+import { DynamoDBDocumentClient, DeleteCommand, QueryCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 
-const db = new AWS.DynamoDB.DocumentClient({
+const ddbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient({
   maxRetries: 3,
   httpOptions: {
     timeout: 5000
   }
-});
-
+}));
 
 export function isUserAdmin(token) {
   // get data from event.requestContext.authorizer.jwt
@@ -47,7 +47,7 @@ async function getAnnouncements(args) {
   const foundItems = [];
 
   do {
-    const data = await db.query(params).promise();
+    const data = await ddbDocClient.send(new QueryCommand(params));
     data.Items.forEach(item => foundItems.push(item));
     params.ExclusiveStartKey = data.LastEvaluatedKey;
     lastEvaluatedKey = data.LastEvaluatedKey;
@@ -65,7 +65,7 @@ async function deleteAnnouncement(jwt, args) {
         'createdTime': args.createdTime
       }
     };
-    const result = await db.delete(params).promise();
+    const result = await ddbDocClient.send(new DeleteCommand(params));
     return result;
   }
   return {};
@@ -96,7 +96,7 @@ async function createAnnouncement(jwt, itemAttributes) {
   console.log(params);
   if (isUserAdmin(jwt)) {
     // create entry in table
-    const result = await db.put(params).promise();
+    const result = await ddbDocClient.send(new PutCommand(params));
     return result;
   }
   return {};

@@ -2,8 +2,9 @@
  * current user pool, on either successful login or after
  * a request to reset their password. */
 
-import AWS from "aws-sdk";
-const isp = new AWS.CognitoIdentityServiceProvider();
+import { CognitoIdentityProviderClient, AdminInitiateAuthCommand,
+         AdminGetUserCommand } from "@aws-sdk/client-cognito-identity-provider";
+const identityProviderClient = new CognitoIdentityProviderClient();
 
 const OLD_CLIENT_ID = process.env.OLD_CLIENT_ID;
 const OLD_USER_POOL_ID = process.env.OLD_USER_POOL_ID;
@@ -11,8 +12,8 @@ const OLD_USER_POOL_ID = process.env.OLD_USER_POOL_ID;
 async function authenticateUser(username, password) {
 
   // validate supplied username & password
-  const resAuth = await isp
-    .adminInitiateAuth({
+  const resAuth = await identityProviderClient
+    .send(new AdminInitiateAuthCommand({
       AuthFlow: "ADMIN_USER_PASSWORD_AUTH",
       AuthParameters: {
         PASSWORD: password,
@@ -20,19 +21,17 @@ async function authenticateUser(username, password) {
       },
       ClientId: OLD_CLIENT_ID,
       UserPoolId: OLD_USER_POOL_ID
-    })
-    .promise();
+    }));
   if (resAuth.code && resAuth.message) {
     return undefined;
   }
 
   // Load user data
-  const resGet = await isp
-    .adminGetUser({
+  const resGet = await identityProviderClient
+    .send(new AdminGetUserCommand({
       UserPoolId: OLD_USER_POOL_ID,
       Username: username
-    })
-    .promise();
+    }));
   if (resGet.code && resGet.message) {
     return undefined;
   }
@@ -49,7 +48,7 @@ async function lookupUser(username) {
       UserPoolId: OLD_USER_POOL_ID,
       Username: username,
     };
-    const resGet = await isp.adminGetUser(params).promise();
+    const resGet = await identityProviderClient.send(new AdminGetUserCommand(params));
     if (resGet.code && resGet.message) {
       return undefined;
     }

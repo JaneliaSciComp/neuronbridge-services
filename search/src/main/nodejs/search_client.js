@@ -6,13 +6,15 @@
 //
 import util from 'util';
 import fs from 'fs';
-import AWS from 'aws-sdk';
+import { CloudWatchLogsClient, DescribeLogStreamsCommand,
+         GetLogEventsCommand } from '@aws-sdk/client-cloudwatch-logs';
+import { SFNClient, GetExecutionHistoryCommand,
+         ListStateMachinesCommand, ListExecutionsCommand } from '@aws-sdk/client-sfn';
 import { mean, median, min, max, std } from 'mathjs';
 import { invokeFunction, getObjectWithRetry } from './utils';
 
 const readFile = util.promisify(fs.readFile);
 const sleep = util.promisify(setTimeout);
-const cwLogs = new AWS.CloudWatchLogs();
 
 const TRACE = false;
 const DEBUG = false;
@@ -21,13 +23,15 @@ const DEBUG = false;
 // If this is not large enough, we may not find all the dispatchers.
 const STATE_MACHINE_START_TIME_ESTIMATE = 10000;
 
+const cwLogsClient = new CloudWatchLogsClient();
+const stepFunctionsClient = new SFNClient();
+
 // Wait until the given monitor is done, then return the final execution
 async function waitForMonitor(stateMachineName, monitorUniqueName) {
 
   // Find the state machine
   console.log('Finding ' + monitorUniqueName);
-  const stepFunctions = new AWS.StepFunctions();
-  const stateMachinesResponse = await stepFunctions.listStateMachines().promise();
+  const stateMachinesResponse = await stepFunctionsClient.send(new ListStateMachinesCommand());
   const stateMachine = stateMachinesResponse.stateMachines.find((machine) => machine.name === stateMachineName);
 
   if (!stateMachine) {
@@ -41,7 +45,7 @@ async function waitForMonitor(stateMachineName, monitorUniqueName) {
   let execution = null;
   let status = '';
   do {
-    const executionsResponse = await stepFunctions.listExecutions({ stateMachineArn: stateMachine.stateMachineArn }).promise();
+    const executionsResponse = await stepFunctionsClient.send(new ListExecutionsCommand({ stateMachineArn: stateMachine.stateMachineArn }));
     execution = executionsResponse.executions.find((execution) => execution.name === monitorUniqueName);
     if (!execution) {
       console.log(`No execution with name ${monitorUniqueName} found`);
@@ -58,10 +62,9 @@ async function waitForMonitor(stateMachineName, monitorUniqueName) {
 // Iterate over the  history for the given state machine execution, and run the provided function for each event.
 // If func returns false then the for loop exits with a break
 async function forExecutionHistory(executionArn, func) {
-  const stepFunctions = new AWS.StepFunctions();
   const historyParams = { executionArn: executionArn };
   do {
-    const historyResponse = await stepFunctions.getExecutionHistory(historyParams).promise();
+    const historyResponse = await stepFunctionsClient.send(new GetExecutionHistoryCommand(historyParams));
     historyParams.nextToken = historyResponse.nextToken;
     for (const event of historyResponse.events) {
       if (!func(event)) {
@@ -83,7 +86,7 @@ async function getStreams(functionName, startTime, endTime) {
   const logStreams = [];
   var streamsResponse;
   do {
-    streamsResponse = await cwLogs.describeLogStreams(streamsParams).promise();
+    streamsResponse = await cwLogsClient.send(new DescribeLogStreamsCommand(streamsParams));
     for (const logStream of streamsResponse.logStreams) {
       if (logStream.lastEventTimestamp < startTime) {
         // Nothing returned after this event is relevant, so let's stop before we get rate limited
@@ -165,7 +168,7 @@ async function getRequestLogs(logGroupName, logStreamName) {
     startFromHead: true
   };
   do {
-    const eventsResponse = await cwLogs.getLogEvents(logEventsParams).promise();
+    const eventsResponse = await cwLogsClient.send(new GetLogEventsCommand(logEventsParams));
     logEventsParams.nextToken = eventsResponse.nextToken;
     for(const logEvent of eventsResponse.events) {
       if (isStart(logEvent)) {

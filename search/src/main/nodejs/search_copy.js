@@ -31,6 +31,7 @@ async function copyAlignment(searchData) {
   // need to start a new search.
 
   if (uploadThumbnail) {
+    console.log(`Copy thumbnail ${uploadThumbnail} to ${searchBucket}`);
     // copy thumbnail image
     await copyS3Content(
       searchBucket,
@@ -39,6 +40,7 @@ async function copyAlignment(searchData) {
     );
   }
   if (alignmentMovie && alignmentMovie !== 'None') {
+    console.log(`Copy alignment movie ${alignmentMovie} to ${searchBucket}`);
     // copy alignment movie
     await copyS3Content(
       searchBucket,
@@ -96,6 +98,7 @@ async function copyAlignment(searchData) {
 }
 
 export const searchCopyAlignment = async event => {
+  console.log('Copy search metadata:', event);
   const returnObj = {
     isBase64Encoded: false,
     statusCode: 200,
@@ -106,9 +109,12 @@ export const searchCopyAlignment = async event => {
   try {
     // get the search id from the post body
     const { searchId } = JSON.parse(event.body);
+    console.log(`Get search record for ${searchId}`);
     const searchData = await getSearchRecord(searchId);
+    console.log('Copy search data:', searchData);
     returnBody = await copyAlignment(searchData);
   } catch (error) {
+    console.error('Search copy alignment error', error);
     returnObj.statusCode = 500;
     returnBody.message = error.message;
   }

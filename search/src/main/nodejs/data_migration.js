@@ -1,8 +1,10 @@
-import AWS from "aws-sdk";
+import { DynamoDBDocumentClient, DeleteCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { S3Client, CopyObjectCommand, ListObjectsCommand } from "@aws-sdk/client-s3";
 import { getOldSubs, searchesToMigrate } from "./utils";
 
-const db = new AWS.DynamoDB.DocumentClient();
-const s3 = new AWS.S3();
+const dbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient());
+const s3Client = new S3Client();
 
 // save data to new dynamodb table
 async function saveSearchToDynamoDB(item, TableName) {
@@ -12,7 +14,7 @@ async function saveSearchToDynamoDB(item, TableName) {
   };
 
   try {
-    await db.put(params).promise();
+    await dbDocClient.send(new PutCommand(params));
   } catch (err) {
     console.log(err);
     return err;
@@ -28,13 +30,12 @@ async function migrateS3(identityId, search) {
   const originalPrefix = `private/${search.identityId}/${search.searchDir}/`;
   const newPrefix = `private/${identityId}/${search.searchDir}`;
 
-  const searchFiles = await s3
-    .listObjects({
+  const searchFiles = await s3Client
+    .send(new ListObjectsCommand({
       Bucket: process.env.OLD_SEARCH_BUCKET,
       Prefix: originalPrefix
       // Delimiter: "/"
-    })
-    .promise();
+    }));
 
   // foreach search file create a new path in the new bucket and transfer the
   // file.
@@ -42,11 +43,11 @@ async function migrateS3(identityId, search) {
     searchFiles.Contents.map(async (fileInfo) => {
       const originalLocation = `${process.env.OLD_SEARCH_BUCKET}/${fileInfo.Key}`;
       const newKey = `${newPrefix}/${fileInfo.Key.replace(originalPrefix, '')}`;
-      await s3.copyObject({
+      await s3Client.send(new CopyObjectCommand({
         Bucket: process.env.SEARCH_BUCKET,
         CopySource: originalLocation,
         Key: newKey
-      }).promise();
+      }));
     })
   );
 }
@@ -60,7 +61,7 @@ async function removeDynamoDB(search) {
   };
 
   try {
-    await db.delete(params).promise();
+    await dbDocClient.send(new DeleteCommand(params));
   } catch (err) {
     console.log(`Error removing old dynamoDB entry: ${search.id}`);
     console.log(err);

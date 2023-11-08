@@ -1,19 +1,21 @@
 service: janelia-neuronbridge-cds
 
+
 plugins:
-  - serverless-plugin-aws-alerts
   - serverless-appsync-plugin
   - serverless-bundle
   - serverless-deployment-bucket
-  - serverless-step-functions
   - serverless-dotenv-plugin
+  - serverless-step-functions
+  - serverless-plugin-aws-alerts
+
 
 custom:
   version: 3.0.0
   tracing: false
   debug: true
 
-  nodeJSRuntime: nodejs14.x
+  nodeJSRuntime: nodejs18.x
 
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
@@ -80,7 +82,9 @@ custom:
           - protocol: email
             endpoint: ${self:custom.alertEmail}
 
+
 useDotenv: true
+
 
 provider:
   name: aws
@@ -238,7 +242,6 @@ provider:
           Resource:
             - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.oldSearchTable}"
             - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
-
 
   httpApi:
     payload: "2.0"
@@ -639,7 +642,6 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-
   preferences:
     runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
@@ -720,6 +722,7 @@ functions:
       LM_PUBLISHED_STACKS_TABLE: ${self:custom.publishedLMStacksTable}
       EM_PUBLISHED_SKELETONS_TABLE: ${self:custom.publishedEMSkeletonsTable}
 
+
 stepFunctions:
   validate: true # enable pre-deployment definition validation
   stateMachines:
@@ -763,6 +766,7 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
+
 
 resources:
   - ${file(sls_resources/cognito-pools.yml)}

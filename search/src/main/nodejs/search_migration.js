@@ -5,7 +5,8 @@
 // modify the results to match the new data format
 // save it back to disk as the .result file.
 
-import AWS from "aws-sdk";
+import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   verifyKey,
   copyS3Content,
@@ -14,7 +15,7 @@ import {
 } from "./utils";
 import { convertSearchResults } from "./migration_utils";
 
-const dbClient = new AWS.DynamoDB.DocumentClient();
+const dbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient());
 
 // make sure we have defined a search bucket to store files.
 const bucket = process.env.SEARCH_BUCKET;
@@ -36,7 +37,7 @@ async function getSearchRecords(TableName, startKey) {
   }
 
   try {
-    const data = await dbClient.scan(params).promise();
+    const data = await dbDocClient.send(new ScanCommand(params));
     return data;
   } catch (err) {
     console.error(err);

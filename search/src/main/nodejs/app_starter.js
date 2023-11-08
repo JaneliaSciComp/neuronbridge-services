@@ -1,6 +1,6 @@
-import AWS from 'aws-sdk';
+import { BatchClient, SubmitJobCommand } from "@aws-sdk/client-batch";
 import Jimp from 'jimp';
-import {getSearchKey, getSearchMaskId} from './searchutils';
+import { getSearchKey, getSearchMaskId}  from './searchutils';
 import {
     getS3ContentWithRetry,
     getS3ContentMetadata,
@@ -15,8 +15,8 @@ import {
     lookupSearchMetadata,
     updateSearchMetadata
 } from './awsappsyncutils';
-import {generateMIPs} from './mockMIPGeneration';
-import {cdsStarter} from './cds_starter';
+import { generateMIPs } from './mockMIPGeneration';
+import { cdsStarter } from './cds_starter';
 
 const brainAlignJobDefinition = process.env.BRAIN_ALIGN_JOB_DEFINITION;
 const vncAlignJobDefinition = process.env.VNC_ALIGN_JOB_DEFINITION;
@@ -28,7 +28,7 @@ const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS 
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 const searchBucket = process.env.SEARCH_BUCKET;
 
-const bc = new AWS.Batch();
+const batchClient = new BatchClient();
 
 export const appStarter = async (event) => {
     console.log(event);
@@ -272,7 +272,7 @@ const submitAlignmentJob = async (searchParams) => {
     console.log('Job parameters', params);
     try {
         // submit batch job
-        const job = await bc.submitJob(params).promise();
+        const job = await batchClient.send(new SubmitJobCommand(params));
         const now = new Date();
         console.log('Submitted', job);
         console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);

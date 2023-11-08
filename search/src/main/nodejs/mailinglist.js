@@ -1,11 +1,13 @@
-import AWS from "aws-sdk";
+import { CognitoIdentityProviderClient, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-const db = new AWS.DynamoDB.DocumentClient({
+const dbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient({
   maxRetries: 3,
   httpOptions: {
     timeout: 5000
   }
-});
+}));
 
 function isUserAdmin(token) {
   // get data from event.requestContext.authorizer.jwt
@@ -46,7 +48,7 @@ async function getAllEmailAddresses(jwt) {
     const optedInUserNames = [];
 
     do {
-      const data = await db.scan(params).promise();
+      const data = await dbDocClient.send(new ScanCommand(params));
       console.log(`Checked ${data.Items.length} preferences records`);
       data.Items.forEach(item => {
         if (item.mailingList) {
@@ -62,14 +64,14 @@ async function getAllEmailAddresses(jwt) {
     //
     const cognitoUsers = [];
 
-    const identityService = new AWS.CognitoIdentityServiceProvider({
+    const identityClient = new CognitoIdentityProviderClient({
       region: "us-east-1"
     });
     const cognitoParams = {
       UserPoolId: process.env.COGNITOPOOLID
     };
 
-    const result = await identityService.listUsers(cognitoParams).promise();
+    const result = await identityClient.send(new ListUsersCommand(cognitoParams));
     result.Users.filter(filterOptIn(optedInUserNames)).forEach(user => {
       const email = user.Attributes.filter(
         attribute => attribute.Name === "email"
@@ -82,9 +84,7 @@ async function getAllEmailAddresses(jwt) {
 
     while (nextPage) {
       params.PaginationToken = nextPage;
-      const nextResult = await identityService
-        .listUsers(cognitoParams)
-        .promise();
+      const nextResult = await identityClient.send(new ListUsersCommand(cognitoParams));
       console.log(`Checked ${nextResult.Users.length} cognito users`);
       nextResult.Users.filter(filterOptIn(optedInUserNames)).forEach(user => {
         const email = user.Attributes.filter(
