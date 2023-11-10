@@ -1,6 +1,6 @@
 import path from "path";
 import fs from "fs";
-import {getObjectDataArray} from "./utils";
+import { getObjectDataArray } from "./utils";
 import Jimp from "jimp";
 import {fromArrayBuffer} from "geotiff";
 
@@ -10,6 +10,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
 
     const isEFS = bucketName.startsWith("/mnt/");
 
+    console.log(`Load MIPs from :${bucketName}:${key}`);
     const imgfile = isEFS ?
         fs.readFileSync(bucketName + "/" + key) /* return Uint8Array */ :
         await getObjectDataArray(bucketName, key);

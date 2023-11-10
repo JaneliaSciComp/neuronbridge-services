@@ -1,7 +1,7 @@
 import {getSearchMetadataKey} from './searchutils';
 import {
     DEBUG,
-    invokeFunction,
+    invokeAsync,
     putObject,
 } from './utils';
 import {
@@ -95,10 +95,11 @@ export const cdsStarter = async (event) => {
         endIndex: searchedData.totalSearches,
     };
     console.log('Starting ColorDepthSearch with:', dispatchParams);
-    const cdsInvocationResult = await invokeFunction(parallelDispatchFunction, dispatchParams);
+    const cdsInvocationResult = await invokeAsync(parallelDispatchFunction, dispatchParams);
+    if (DEBUG) console.log(`Invoke ${parallelDispatchFunction} result:`, cdsInvocationResult);
     if (cdsInvocationResult.FunctionError) {
         const errMsg = "Error launching burst compute job";
-        console.log(`${errMsg}: ${cdsInvocationResult.FunctionError}`);
+        console.log(`${errMsg}: ${cdsInvocationResult.FunctionError}`, cdsInvocationResult);
         throw new Error(errMsg);
     }
     console.log("Started ColorDepthSearch", cdsInvocationResult.Payload);

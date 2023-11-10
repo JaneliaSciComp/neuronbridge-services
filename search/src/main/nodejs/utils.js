@@ -1,7 +1,7 @@
 import { CognitoIdentityProviderClient, AdminGetUserCommand, ListUsersCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
-import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
+import { LambdaClient, InvokeCommand, LogType } from "@aws-sdk/client-lambda";
 import { Upload } from "@aws-sdk/lib-storage";
 import { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand,
          HeadObjectCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
@@ -44,10 +44,10 @@ export const getAllKeys = async params => {
 
 const getS3Content = async (bucket, key) => {
     try {
-        if (DEBUG)
-            console.log(`Getting content from ${bucket}:${key}`);
+        if (DEBUG) console.log(`Getting content from ${bucket}:${key}`);
         const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key}));
-        return response.Body;
+        const bodyAsString = await response.Body.transformToString();
+        return bodyAsString;
     } catch (e) {
         if (DEBUG) console.error(`Error getting content ${bucket}:${key}`, e);
         throw e; // rethrow it
@@ -265,8 +265,9 @@ export const invokeFunction = async (functionName, parameters) => {
         console.log(`Invoke sync ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
+        InvocationType: 'RequestResponse',
         Payload: JSON.stringify(parameters),
-        LogType: 'Tail'
+        LogType: LogType.None,
     };
     try {
         return await lambdaClient.send(new InvokeCommand(params));
@@ -283,7 +284,7 @@ export const invokeAsync = async (functionName, parameters) => {
     const params = {
         FunctionName: functionName,
         InvocationType: 'Event',
-        Payload: JSON.stringify(parameters),
+        Payload: JSON.stringify(parameters, null, 2),
         LogType: 'Tail'
     };
     try {

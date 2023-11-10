@@ -180,38 +180,12 @@ const updateSearchMetadataGQL = `mutation updateSearch($updateInput: UpdateSearc
     }
 }`;
 
-// const assume = async (sourceCreds, params) => {
-//     console.log('!!!!!!!!!!! ASSUME IS CALLED', sourceCreds, params);
-// 	const stsClient = new STSClient({credentials: sourceCreds});
-// 	const result = await stsClient.send(new AssumeRoleCommand(params));
-// 	if (!result.Credentials) {
-// 		throw new Error("unable to assume credentials - empty credential object");
-// 	}
-//     console.log('!!!!! ',
-//                 result.Credentials.AccessKeyId + '!!!!',
-//                 result.Credentials.SecretAccessKey + '!!!!!',
-//                 result.Credentials.SessionToken + '!!!!!');
-// 	return {
-// 		accessKeyId: result.Credentials.AccessKeyId,
-// 		secretAccessKey: result.Credentials.SecretAccessKey,
-// 		sessionToken: result.Credentials.SessionToken,
-// 	};
-// };
-
-// export const fromTmpCredentials = fromTemporaryCredentials({
-//     params: {
-//         RoleArn: 'arn:aws:iam::777794738451:role/janelia-neuronbridge-cds-dev-searchDataAccessRole',
-//         AssumeRoleCommand: assume,
-//     },
-// });
-
 const credentialsProvider = fromNodeProviderChain({
 });
 
 const makeSignedAppSyncRequest = async (gqlString, variables) => {
     try {
         const credentials = await credentialsProvider();
-        console.log('!!!! GET credentials', credentials);
         const signer = new SignatureV4({
             region: process.env.AWS_REGION,
             service: 'appsync',
