@@ -65,20 +65,20 @@ export const getS3ContentAsStringWithRetry = async (bucket, key) => {
     });
 };
 
-const getS3ContentAsByteArray = async (bucket, key) => {
+const getS3ContentAsByteBuffer = async (bucket, key) => {
     try {
         if (DEBUG) console.log(`Getting content as bytes from ${bucket}:${key}`);
         const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key}));
         const bodyAsArray = await response.Body.transformToByteArray();
-        return bodyAsArray;
+        return Buffer.from(bodyAsArray);
     } catch (e) {
         if (DEBUG) console.error(`Error getting content ${bucket}:${key}`, e);
         throw e; // rethrow it
     }
 };
 
-export const getS3ContentAsByteArrayWithRetry = async (bucket, key) => {
-    return await backOff(() => getS3ContentAsByteArray(bucket, key), {
+export const getS3ContentAsByteBufferWithRetry = async (bucket, key) => {
+    return await backOff(() => getS3ContentAsByteBuffer(bucket, key), {
         ...retryOptions,
         retry: (e, attemptNumber) => {
             console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} getting object ${bucket}:${key}`, e);
