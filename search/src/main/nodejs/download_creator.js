@@ -2,8 +2,8 @@ import archiver from "archiver";
 import { v1 as uuidv1 } from "uuid";
 import {
   getObjectWithRetry,
-  getS3ContentWithRetry,
   getBucketNameFromURL,
+  getS3ContentAsStringWithRetry,
 } from "./utils";
 import { PassThrough } from "stream";
 import path from "path";
@@ -125,7 +125,7 @@ export const downloadCreator = async (event) => {
   const versionFile = process.env.STAGE.match(/^prod/)
     ? "current.txt"
     : "next.txt";
-  const version = await getS3ContentWithRetry(dataBucket, versionFile);
+  const version = await getS3ContentAsStringWithRetry(dataBucket, versionFile);
   const trimmedVersion = version.toString().replace(/\r?\n|\r/, "");
 
   const config = await getObjectWithRetry(

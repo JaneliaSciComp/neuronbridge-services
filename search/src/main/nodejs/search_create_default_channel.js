@@ -1,8 +1,8 @@
 import Jimp from "jimp";
 import {
-  getS3ContentWithRetry,
   copyS3Content,
   putS3Content,
+  getS3ContentAsByteArrayWithRetry,
 } from "./utils";
 import { getSearchKey, getSearchMaskId } from "./searchutils";
 import {
@@ -27,7 +27,7 @@ async function createDefaultChannel(searchData) {
 
   const fullSearchInputImage = `${searchInputFolder}/${upload}`;
   // grab the image data
-  const imageContent = await getS3ContentWithRetry(
+  const imageContent = await getS3ContentAsByteArrayWithRetry(
     searchBucket,
     fullSearchInputImage,
     s3Retries

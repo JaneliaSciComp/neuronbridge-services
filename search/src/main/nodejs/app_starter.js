@@ -2,7 +2,7 @@ import { BatchClient, SubmitJobCommand } from "@aws-sdk/client-batch";
 import Jimp from 'jimp';
 import { getSearchKey, getSearchMaskId}  from './searchutils';
 import {
-    getS3ContentWithRetry,
+    getS3ContentAsByteArrayWithRetry,
     getS3ContentMetadata,
     putS3Content,
     startStepFunction,
@@ -173,7 +173,7 @@ const createDisplayableMask = async (bucket, prefix, key) => {
         const fullKey = `${prefix}/${key}`;
         try {
             console.log(`Convert ${bucket}:${key} to PNG`);
-            const imageContent = await getS3ContentWithRetry(bucket, fullKey);
+            const imageContent = await getS3ContentAsByteArrayWithRetry(bucket, fullKey);
             const pngMime = "image/png";
             const pngExt = ".png";
             const image = await Jimp.read(imageContent);

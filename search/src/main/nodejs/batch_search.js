@@ -3,7 +3,7 @@ import zlib from 'zlib';
 
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
-import {DEBUG, getObjectWithRetry, putDbItemWithRetry} from './utils';
+import { DEBUG, getObjectWithRetry, putDbItemWithRetry } from './utils';
 
 const defaultBatchResultsMinToLive = process.env.BATCH_RESULTS_MIN_TO_LIVE || 15; // default ttl for batch results 15min if not set in the config
 
@@ -42,9 +42,9 @@ export const batchSearch = async (event) => {
         minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
     };
     validateBatchParams(batchParams);
-    const nresults = await executeColorDepthsSearches(batchParams, startIndex, endIndex);
+    const cdsResults = await executeColorDepthsSearches(batchParams, startIndex, endIndex);
     logWithMemoryUsage(`Completed Batch Id: ${batchId}`); // log final memory stats
-    return nresults;
+    return cdsResults;
 };
 
 const validateBatchParams = (batchParams) => {
@@ -86,8 +86,9 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
         minMatchingPixRatio: batchParams.minMatchingPixRatio
     }, startIndex, endIndex);
     logWithMemoryUsage(`Batch Id: ${batchParams.batchId} - found ${cdsResults.length} matches.`);
-    await writeCDSResults(cdsResults, batchParams.tasksTableName, batchParams.jobId, batchParams.batchId);
-    return cdsResults.length;
+    const finalCDSResults = createFinalCDSResults(cdsResults, batchParams.jobId, batchParams.batchId);
+    await putDbItemWithRetry(batchParams.tasksTableName, finalCDSResults);
+    return finalCDSResults;
 };
 
 const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
@@ -409,10 +410,7 @@ const populateEMMetadataFromName = (mipName, mipMetadata) => {
     return mipMetadata;
 };
 
-const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
-    const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
-    const ttl = (Math.floor(+new Date() / 1000) + ttlDelta).toString();
-
+const createFinalCDSResults = (cdsResults, jobId, batchId) => {
     const matchedMetadata = cdsResults
         .map(perMaskMetadata)
         .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
@@ -422,17 +420,25 @@ const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
     const resultsSValue = JSON.stringify(groupedResults);
 
     const resultsAttr = resultsSValue.length < 8192
-        ? { results: {S: resultsSValue} }
-        : { resultsMimeType: {S: 'application/gzip'}, results: {B: zlib.gzipSync(resultsSValue)} };
+        ? {
+            resultsMimeType: 'application/json',
+            results: resultsSValue
+        }
+        : {
+            resultsMimeType: 'application/gzip',
+            results: zlib.gzipSync(resultsSValue).toString('base64')
+        };
 
-    const item = {
-        jobId: {S: jobId},
-        batchId: {N: ""+batchId},
-        ttl: {N: ttl},
+    const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
+    const ttl = (Math.floor(+new Date() / 1000) + ttlDelta).toString();
+
+    return {
+        jobId: jobId,
+        batchId: batchId,
+        nmatches: cdsResults.length,
+        ttl: ttl,
         ...resultsAttr,
     };
-
-    return await putDbItemWithRetry(tableName, item);
 };
 
 const groupBy = (...keys) => xs =>

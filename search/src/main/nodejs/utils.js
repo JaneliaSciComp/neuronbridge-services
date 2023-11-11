@@ -42,9 +42,9 @@ export const getAllKeys = async params => {
     return allKeys;
 };
 
-const getS3Content = async (bucket, key) => {
+const getS3ContentAsString = async (bucket, key) => {
     try {
-        if (DEBUG) console.log(`Getting content from ${bucket}:${key}`);
+        if (DEBUG) console.log(`Getting content as string from ${bucket}:${key}`);
         const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key}));
         const bodyAsString = await response.Body.transformToString();
         return bodyAsString;
@@ -55,8 +55,8 @@ const getS3Content = async (bucket, key) => {
 };
 
 // Retrieve a file from S3
-export const getS3ContentWithRetry = async (bucket, key) => {
-    return await backOff(() => getS3Content(bucket, key), {
+export const getS3ContentAsStringWithRetry = async (bucket, key) => {
+    return await backOff(() => getS3ContentAsString(bucket, key), {
         ...retryOptions,
         retry: (e, attemptNumber) => {
             console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} getting object ${bucket}:${key}`, e);
@@ -65,20 +65,32 @@ export const getS3ContentWithRetry = async (bucket, key) => {
     });
 };
 
-export const getObjectDataArray = async (bucket, key) => {
+const getS3ContentAsByteArray = async (bucket, key) => {
     try {
-        const s3Content = await getS3ContentWithRetry(bucket, key);
-        return s3Content.buffer;
+        if (DEBUG) console.log(`Getting content as bytes from ${bucket}:${key}`);
+        const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key}));
+        const bodyAsArray = await response.Body.transformToByteArray();
+        return bodyAsArray;
     } catch (e) {
-        if (DEBUG) console.error(`Error getting object data array from ${bucket}:${key}`, e);
+        if (DEBUG) console.error(`Error getting content ${bucket}:${key}`, e);
         throw e; // rethrow it
     }
 };
 
+export const getS3ContentAsByteArrayWithRetry = async (bucket, key) => {
+    return await backOff(() => getS3ContentAsByteArray(bucket, key), {
+        ...retryOptions,
+        retry: (e, attemptNumber) => {
+            console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} getting object ${bucket}:${key}`, e);
+            return true;
+        }
+    });
+};
+
 // Retrieve a JSON file from S3
 export const getObjectWithRetry = async (bucket, key) => {
-    const body = await getS3ContentWithRetry(bucket, key);
-    return JSON.parse(body.toString());
+    const body = await getS3ContentAsStringWithRetry(bucket, key);
+    return JSON.parse(body);
 };
 
 export const getS3ContentMetadata = async (bucket, key) => {
@@ -273,24 +285,6 @@ export const invokeFunction = async (functionName, parameters) => {
         return await lambdaClient.send(new InvokeCommand(params));
     } catch (e) {
         console.error(`Error invoking ${functionName}`, params, e);
-        throw e; // rethrow it
-    }
-};
-
-// Invoke another Lambda function asynchronously
-export const invokeAsync = async (functionName, parameters) => {
-    if (DEBUG)
-        console.log(`Invoke async ${functionName} with`, parameters);
-    const params = {
-        FunctionName: functionName,
-        InvocationType: 'Event',
-        Payload: JSON.stringify(parameters, null, 2),
-        LogType: 'Tail'
-    };
-    try {
-        return await lambdaClient.send(new InvokeCommand(params));
-    } catch (e) {
-        console.error(`Error invoking async ${functionName}`, params, e);
         throw e; // rethrow it
     }
 };

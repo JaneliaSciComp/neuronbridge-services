@@ -185,7 +185,6 @@ provider:
         - Effect: Allow
           Action:
             - lambda:InvokeFunction
-            - lambda:InvokeAsync
           Resource: "*"
         - Effect: Allow
           Action:

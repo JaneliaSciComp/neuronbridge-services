@@ -1,9 +1,9 @@
 import {
     DEBUG,
     getObjectWithRetry,
-    getS3ContentWithRetry,
     getBucketNameFromURL,
-    verifyKey
+    verifyKey,
+    getS3ContentAsStringWithRetry
 } from './utils';
 import {
     SEARCH_IN_PROGRESS,
@@ -121,7 +121,7 @@ const getDataConfig = async (dataBucket) => {
         : 'next.txt';
 
     if (DEBUG) console.log(`Get libraries location based on :${dataBucket}:${dataRefFile}`);
-    const currentVersionBody = await getS3ContentWithRetry(
+    const currentVersionBody = await getS3ContentAsStringWithRetry(
         dataBucket,
         dataRefFile
     );
