@@ -3,7 +3,7 @@ import zlib from 'zlib';
 
 import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
 import {loadMIPRange} from "./load_mip";
-import { DEBUG, getObjectWithRetry, putDbItemWithRetry } from './utils';
+import { DEBUG, getObjectWithRetry } from './utils';
 
 const defaultBatchResultsMinToLive = process.env.BATCH_RESULTS_MIN_TO_LIVE || 15; // default ttl for batch results 15min if not set in the config
 
@@ -87,7 +87,7 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
     }, startIndex, endIndex);
     logWithMemoryUsage(`Batch Id: ${batchParams.batchId} - found ${cdsResults.length} matches.`);
     const finalCDSResults = createFinalCDSResults(cdsResults, batchParams.jobId, batchParams.batchId);
-    await putDbItemWithRetry(batchParams.tasksTableName, finalCDSResults);
+    // await putDbItemWithRetry(batchParams.tasksTableName, finalCDSResults);
     return finalCDSResults;
 };
 
@@ -430,13 +430,13 @@ const createFinalCDSResults = (cdsResults, jobId, batchId) => {
         };
 
     const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
-    const ttl = (Math.floor(+new Date() / 1000) + ttlDelta).toString();
+    const ttl = (Math.floor(+new Date() / 1000) + ttlDelta);
 
     return {
         jobId: jobId,
-        batchId: batchId,
-        nmatches: cdsResults.length,
-        ttl: ttl,
+        batchId: batchId.toString(),
+        nresults: cdsResults.length.toString(),
+        ttl: ttl.toString(),
         ...resultsAttr,
     };
 };
