@@ -379,7 +379,7 @@ async function report(dispatchFunction, searchFunction, stateMachineName, jobId)
       }
       else {
         input = JSON.parse(inputEvent);
-        dispatcherName = `Dispatcher ${input.startIndex}-${input.endIndex}`;
+        dispatcherName = `Dispatcher ${input.datasetStartIndex}-${input.datasetEndIndex}`;
       }
 
       const elapsedMs = r.lastEventTime - r.firstEventTime;
@@ -652,8 +652,8 @@ async function main () {
       workerFunctionName: workerFunction,
       combinerFunctionName: combinerFunction,
       jobParameters: searchParams,
-      startIndex: 0,
-      endIndex: totalSearches,
+      datasetStartIndex: 0,
+      datasetEndIndex: totalSearches,
       maxParallelism: 4000,
       batchSize: Number.parseInt(args[2]),
       numLevels: Number.parseInt(args[3]),

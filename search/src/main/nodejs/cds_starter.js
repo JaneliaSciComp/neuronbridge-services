@@ -91,8 +91,8 @@ export const cdsStarter = async (event) => {
         maxParallelism: maxParallelism,
         searchTimeoutSecs,
         jobParameters: jobParams,
-        startIndex: 0,
-        endIndex: searchedData.totalSearches,
+        datasetStartIndex: 0,
+        datasetEndIndex: searchedData.totalSearches,
     };
     console.log('Starting ColorDepthSearch with:', dispatchParams);
     const cdsInvocationResult = await invokeFunction(parallelDispatchFunction, dispatchParams);
