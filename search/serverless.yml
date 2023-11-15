@@ -13,7 +13,7 @@ custom:
   tracing: false
   debug: true
 
-  nodeJSRuntime: nodejs14.x
+  nodeJSRuntime: nodejs16.x
 
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
