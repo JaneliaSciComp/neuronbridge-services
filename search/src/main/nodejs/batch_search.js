@@ -1,8 +1,8 @@
 import path from 'path';
 import zlib from 'zlib';
 
-import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
-import {loadMIPRange} from "./load_mip";
+import { GenerateColorMIPMasks, ColorMIPSearch } from './mipsearch';
+import { loadMIPRange } from "./load_mip";
 import { DEBUG, getObjectWithRetry } from './utils';
 
 const defaultBatchResultsMinToLive = process.env.BATCH_RESULTS_MIN_TO_LIVE || 15; // default ttl for batch results 15min if not set in the config
@@ -86,9 +86,7 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
         minMatchingPixRatio: batchParams.minMatchingPixRatio
     }, startIndex, endIndex);
     logWithMemoryUsage(`Batch Id: ${batchParams.batchId} - found ${cdsResults.length} matches.`);
-    const finalCDSResults = createFinalCDSResults(cdsResults, batchParams.jobId, batchParams.batchId);
-    // await putDbItemWithRetry(batchParams.tasksTableName, finalCDSResults);
-    return finalCDSResults;
+    return createFinalCDSResults(cdsResults, batchParams.jobId, batchParams.batchId);
 };
 
 const findAllColorDepthMatches = async (params, startIndex, endIndex) => {

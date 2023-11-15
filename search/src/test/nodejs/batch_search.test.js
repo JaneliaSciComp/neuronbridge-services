@@ -111,7 +111,7 @@ describe('batchSearch', () => {
 
         batch_search.batchSearch(batchEvenParams)
             .then(result => {
-                expect(putDbItemSpy).toHaveBeenCalledTimes(1);
+                expect(putDbItemSpy).not.toHaveBeenCalled();
             });
     });
 
@@ -195,7 +195,7 @@ describe('batchSearch', () => {
                         ]
                     }
                 ];
-                expect(putDbItemSpy).toHaveBeenNthCalledWith(
+                expect(putDbItemSpy).not.toHaveBeenNthCalledWith(
                     1,
                     'burst-compute-cgdev-tasks',
                     expect.objectContaining({

@@ -63,5 +63,11 @@
     "serverless-dotenv-plugin": "^6.0.0",
     "serverless-plugin-aws-alerts": "^1.7.5",
     "serverless-step-functions": "^3.17.0"
+  },
+  "jest": {
+    "verbose": true,
+    "transformIgnorePatterns": [
+      "node_modules/(?!(react-native|geotiff|quick-lru)/)"
+    ]
   }
 }

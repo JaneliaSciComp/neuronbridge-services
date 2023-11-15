@@ -4,7 +4,7 @@ import { Sha256 } from '@aws-crypto/sha256-js';
 import { default as fetch, Request } from 'node-fetch';
 import { HttpRequest } from '@smithy/protocol-http';
 
-const APPSYNC_API_URL = new URL(process.env.APPSYNC_API_URL);
+const { APPSYNC_API_URL } = process.env;
 const DEBUG = !!process.env.DEBUG;
 
 export const ALIGNMENT_JOB_SUBMITTED = 1;
@@ -185,6 +185,7 @@ const credentialsProvider = fromNodeProviderChain({
 
 const makeSignedAppSyncRequest = async (gqlString, variables) => {
     try {
+        const appSyncURL = new URL(APPSYNC_API_URL);
         const credentials = await credentialsProvider();
         const signer = new SignatureV4({
             region: process.env.AWS_REGION,
@@ -197,17 +198,17 @@ const makeSignedAppSyncRequest = async (gqlString, variables) => {
             query: gqlString,
             variables,
         });
-        console.log(`GQL request - host:${APPSYNC_API_URL.hostname}, `,
-                    `path:${APPSYNC_API_URL.path}`,
+        console.log(`GQL request - host:${appSyncURL.hostname}, `,
+                    `path:${appSyncURL.pathname}`,
                     body);
         const request = new HttpRequest({
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'host': APPSYNC_API_URL.hostname,
+                'host': appSyncURL.hostname,
             },
-            hostname: APPSYNC_API_URL.hostname,
-            path: APPSYNC_API_URL.pathname,
+            hostname: appSyncURL.hostname,
+            path: appSyncURL.pathname,
             body: body,
             region: process.env.AWS_REGION,
         });
@@ -216,7 +217,7 @@ const makeSignedAppSyncRequest = async (gqlString, variables) => {
             signingDate: new Date(),
         });
         console.log('Signed GQL request:', signedRequest);
-        const httpRequest = new Request(APPSYNC_API_URL, signedRequest);
+        const httpRequest = new Request(appSyncURL, signedRequest);
         const response = await fetch(httpRequest);
 
         console.log('GQL response:', response);

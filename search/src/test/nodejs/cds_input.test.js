@@ -1,4 +1,11 @@
-jest.mock('aws-appsync');
+jest.mock('@aws-sdk/lib-dynamodb');
+jest.mock('@aws-sdk/client-dynamodb');
+jest.mock('@aws-sdk/credential-providers');
+jest.mock('@aws-sdk/signature-v4');
+jest.mock('@aws-crypto/sha256-js');
+jest.mock('node-fetch', () => jest.fn());
+jest.mock('@smithy/protocol-http');
+
 jest.mock('../../main/nodejs/awsappsyncutils');
 
 import * as utils from '../../main/nodejs/utils';
@@ -17,7 +24,6 @@ describe('prepare custom cds input', () => {
             ...OLD_ENV,
             STAGE: 'devprod',
             DEBUG: 'true',
-            ...OLD_ENV,
         };
     });
   
@@ -26,7 +32,7 @@ describe('prepare custom cds input', () => {
     });
   
     it('get searchable input libraries for EM search', async () => {
-        jest.spyOn(utils, 'getS3ContentWithRetry')
+        jest.spyOn(utils, 'getS3ContentAsStringWithRetry')
             .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
         jest.spyOn(utils, 'getObjectWithRetry')
             .mockResolvedValueOnce(testConfig)
@@ -59,7 +65,7 @@ describe('prepare custom cds input', () => {
     });
 
     it('get searchable input libraries for LM search', async () => {  
-        jest.spyOn(utils, 'getS3ContentWithRetry')
+        jest.spyOn(utils, 'getS3ContentAsStringWithRetry')
             .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
         jest.spyOn(utils, 'getObjectWithRetry')
             .mockResolvedValueOnce(testConfig)
@@ -93,7 +99,7 @@ describe('prepare custom cds input', () => {
     });
 
     it('get searchable input for invalid searchType', async () => {
-        jest.spyOn(utils, 'getS3ContentWithRetry')
+        jest.spyOn(utils, 'getS3ContentAsStringWithRetry')
             .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
         jest.spyOn(utils, 'getObjectWithRetry')
             .mockResolvedValueOnce(testConfig)

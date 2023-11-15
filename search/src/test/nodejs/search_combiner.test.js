@@ -1,5 +1,11 @@
-jest.mock('aws-sdk');
-jest.mock('aws-appsync');
+jest.mock('@aws-sdk/lib-dynamodb');
+jest.mock('@aws-sdk/client-dynamodb');
+jest.mock('@aws-sdk/credential-providers');
+jest.mock('@aws-sdk/signature-v4');
+jest.mock('@aws-crypto/sha256-js');
+jest.mock('node-fetch', () => jest.fn());
+jest.mock('@smithy/protocol-http');
+
 jest.mock('../../main/nodejs/awsappsyncutils');
 jest.mock('../../main/nodejs/utils');
 
@@ -70,14 +76,17 @@ describe('combine EM SearchResults', () => {
     };
 
     beforeEach(() => {
+        console.log('!!!!! 1');
         jest.resetAllMocks();
         process.env = {
             ...OLD_ENV,
+            APPSYNC_API_URL: 'https://myhost:8080/myapi',
             STAGE: 'devprod',
             EM_PUBLISHED_SKELETONS_TABLE: 'em-published-skeletons',
             DEBUG: 'true',
-            ...OLD_ENV,
-        }
+        };
+
+        console.log('!!!!! ENV: ', process.env)
     });
 
     it('combine successful EM search results', async () => {
@@ -213,10 +222,10 @@ describe('combine LM SearchResults', () => {
         process.env = {
             ...OLD_ENV,
             STAGE: 'devprod',
+            APPSYNC_API_URL: 'https://myhost:8080/myapi',
             LM_PUBLISHED_STACKS_TABLE: 'lm-published-stacks',
             DEBUG: 'true',
-            ...OLD_ENV,
-        }
+        };
     });
 
     it('combine successful LM search results', async () => {
