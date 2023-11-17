@@ -48,12 +48,7 @@ async function getInteractiveSearchResults(searchId, ids) {
   return chosenResults;
 }
 
-async function getPrecomputedSearchResults(
-  searchId,
-  ids,
-  algo = "cdm",
-  version
-) {
+async function getPrecomputedSearchResults(searchId, ids, algo = "cdm", version) {
   // get results from
   // s3://janelia-neuronbridge-data-dev/{precomputedDataRootPath}/metadata/cdsresults/{searchId.json}
   const metadataDir = algo === "pppm" ? "pppmresults" : "cdsresults";
@@ -65,38 +60,42 @@ async function getPrecomputedSearchResults(
     ids.includes(result.image.id)
   );
   console.log(
-    `found ${filteredResults.length} matching results out of ${resultsObj.results.length} results`
+    `found ${filteredResults.length} matching results `,
+    `out of ${resultsObj.results.length} results`,
   );
   return filteredResults;
 }
 
-const getReadStream = (key, sourceBucket) => {
+const getReadStream = (sourceBucket, key) => {
+
   let streamCreated = false;
 
   const passThroughStream = new PassThrough();
 
-  passThroughStream.on("newListener", (event) => {
+  passThroughStream.on("newListener", async (event) => {
     if (!streamCreated && event === "data") {
       console.log(`⭐  create read stream for ${sourceBucket}:${key}`);
 
-      const s3Stream = s3Client
-        .send(new GetObjectCommand({ Bucket: sourceBucket, Key: key }))
-        .createReadStream();
+      const s3Stream = await s3Client.send(new GetObjectCommand({
+        Bucket: sourceBucket,
+        Key: key,
+      })).Body;
 
       s3Stream
-        .on("error", (err) => passThroughStream.emit("error", err))
-        .on("finish", () =>
-          console.log(`✅  finish read stream for key ${key}`)
-        )
-        .on("close", () => console.log(`❌  read stream closed\n`))
+        .on("error", (err) => {
+          console.log(`Error reading stream for ${key}`);
+          passThroughStream.emit("error", err);
+        })
+        .on("finish", () => console.log(`✅  finish read stream for key ${key}`))
+        .on("close", () => console.log(`❌  read stream closed for ${key}`))
         .pipe(passThroughStream);
 
       streamCreated = true;
     }
   });
+
   return passThroughStream;
 };
-
 
 function getFilePath(algo, result) {
   if (algo === "pppm") {
@@ -118,8 +117,8 @@ export const downloadCreator = async (event) => {
   } = event.body ? JSON.parse(event.body) : {};
 
   console.log(
-    `looking for ids: ${ids.join(", ")} in ${precomputed ? "precomputed " : "custom "
-    }search ${searchId}`
+    `looking for ids: ${ids.join(", ")} in `,
+    `${precomputed ? "precomputed " : "custom "} search ${searchId}`,
   );
 
   const versionFile = process.env.STAGE.match(/^prod/)
@@ -128,84 +127,94 @@ export const downloadCreator = async (event) => {
   const version = await getS3ContentAsStringWithRetry(dataBucket, versionFile);
   const trimmedVersion = version.toString().replace(/\r?\n|\r/, "");
 
-  const config = await getObjectWithRetry(
-    dataBucket,
-    `${trimmedVersion}/config.json`
-  );
+  const config = await getObjectWithRetry(dataBucket, `${trimmedVersion}/config.json`);
 
   console.log(`ℹ️  getting data for version: ${trimmedVersion}`);
 
   console.log(Object.keys(config.stores).join(", "));
 
-  // Create an archive that streams directly to the download bucket.
-  const archive = archiver("zip");
-
-  // create the writer
-  const uploadStream = new PassThrough();
-
-  const writer = new Upload({
-    client: s3Client,
-
-    params: {
-      Bucket: downloadBucket,
-      Key: downloadTarget,
-      Body: uploadStream,
-      ContentType: "application/zip",
-    }
-  });
-
-  archive.pipe(uploadStream);
-
-  archive
-  .on("error", (error) => {
-    console.log("Archive Error");
-    throw new Error(
-      `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
-    );
-  })
-  .on("progress", (data) => {
-    console.log("archive event: progress", data);
-  });
-
-  writer.on("close", () => {
-    console.log(`✅  close write stream`);
-  });
-  writer.on("end", () => {
-    console.log(`🛑  end write stream`);
-  });
-  writer.on("error", () => {
-    console.log("write stream error");
-    throw new Error(`Error writing to ${downloadTarget}`);
-  });
-
   // if precomputed search, get results from different location to interactive search
   const chosenResults = precomputed
-  ? await getPrecomputedSearchResults(searchId, ids, algo, trimmedVersion)
-  : await getInteractiveSearchResults(searchId, ids);
+    ? await getPrecomputedSearchResults(searchId, ids, algo, trimmedVersion)
+    : await getInteractiveSearchResults(searchId, ids);
 
-  // Loop over the ids and generate streams for each one.
-  chosenResults.forEach((result) => {
-    console.log(`ℹ️  generating filepath from ${algo}-${result.image.id}`);
-    const filePath = getFilePath(algo, result);
-    console.log(filePath);
-    const fileName = path.basename(filePath);
-    console.log(fileName);
-    // Use the information in the resultSet object to find the image path
-    // and source bucket
-    const storeObj = config.stores[result.image.files.store];
-    const storePrefix = algo === "pppm" ? storeObj.prefixes.CDMBest : storeObj.prefixes.CDM;
-    const sourceBucket = getBucketNameFromURL(storePrefix);
-    // Pass the image from the source bucket into the download bucket via
-    // the archiver.
-    console.log(`ℹ️  appending ${sourceBucket}:${fileName} to archive`);
-    archive.append(getReadStream(filePath, sourceBucket), { name: fileName });
+  console.log(`Prepare to upload chosen results to ${downloadBucket}:${downloadTarget}`);
+
+  await new Promise((resolve, reject) => {
+
+    const writeStream = new PassThrough();
+
+    // create the writer
+    new Upload({
+      client: s3Client,
+
+      params: {
+        Bucket: downloadBucket,
+        Key: downloadTarget,
+        Body: writeStream,
+        ContentType: "application/zip",
+      },
+
+      queueSize: 20,
+    }).done().then(resolve);
+
+    writeStream
+      .on("close", () => {
+        console.log(`✅  close write stream`);
+      })
+      .on("end", () => {
+        console.log(`🛑  end write stream`);
+        // the resolve function is no longer called here as we need it to
+        // be called once the writeStream has finished, so the resolve
+        // function is passed to the streamTo function as a callback to be
+        // called once the stream has been closed.
+      })
+      .on("error", () => {
+        console.log("write stream error");
+        reject();
+      });
+
+    // Create an archive that streams directly to the download bucket.
+    const archive = archiver("zip");
+
+    archive
+      .on("error", (error) => {
+        console.log('Archive Error:', error);
+        throw new Error(
+          `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
+        );
+      })
+      .on("progress", (data) => {
+        console.log("archive event: progress", data);
+      });
+
+    // Loop over the ids and generate streams for each one.
+    chosenResults.forEach((result) => {
+      console.log(`ℹ️  generating filepath from ${algo}-${result.image.id}`);
+      const filePath = getFilePath(algo, result);
+      console.log(filePath);
+      const fileName = path.basename(filePath);
+      console.log(fileName);
+      // Use the information in the resultSet object to find the image path
+      // and source bucket
+      const storeObj = config.stores[result.image.files.store];
+      const storePrefix = algo === "pppm" ? storeObj.prefixes.CDMBest : storeObj.prefixes.CDM;
+      const sourceBucket = getBucketNameFromURL(storePrefix);
+      // Pass the image from the source bucket into the download bucket via the archiver.
+      console.log(`ℹ️  appending ${sourceBucket}:${fileName} to archive`);
+      const archiveEntry = getReadStream(sourceBucket, filePath);
+      archive.append(archiveEntry, { name: fileName });
+      console.log(`ℹ️  added ${sourceBucket}:${fileName} to archive`);
+    });
+
+    archive.pipe(writeStream);
+
+    archive.finalize();
+
+  }).catch((err) => {
+    console.error('Upload promise error', err);
+    throw new Error(`${err.code} ${err.message} ${err.data}`);
   });
-
-  // Once all image transfers are complete, close the archive
-  console.log(`⭐  all files added to write stream`);
-  archive.finalize();
-
-  await writer.done();
 
   // Create a link to the newly created archive file
   // and return it as the response.
