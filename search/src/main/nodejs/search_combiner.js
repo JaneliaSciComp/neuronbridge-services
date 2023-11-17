@@ -54,13 +54,13 @@ const mergeBatchResults = async (searchId, items, allBatchResults) => {
 const extractResults = (item) => {
     try {
         const resultsSValue = item.resultsMimeType === 'application/gzip'
-            ? zlib.gunzipSync(item.results)
+            ? zlib.gunzipSync(Buffer.from(item.results, 'base64'))
             : item.results;
         const intermediateResults = JSON.parse(resultsSValue);
         // convert all intermediate results
         return intermediateResults.map(r => convertItermediateResults(r));
     } catch (e) {
-        console.log(`Error extracting results for ${item.jobId}:${item.batchId}`);
+        console.log(`Error extracting results for ${item.jobId}:${item.batchId}`, e);
         throw e;
     }
 };
@@ -281,7 +281,7 @@ export const searchCombiner = async (event) => {
         // if there are fatalErrors do not try any reducing step because
         // the process had already been invoked and most likely failed
         // so simply report the error just in case it has not been reported yet
-        console.log(`Job ${jobId} - ${searchId} completed with fatal errors`);
+        console.log(`Job ${jobId} - ${searchId} completed with fatal errors`, fatalErrors);
         await updateSearchMetadata({
             id: searchId,
             step: SEARCH_COMPLETED,

@@ -145,7 +145,7 @@ export const putS3Content = async (Bucket, Key, contentType, content) => {
             Bucket,
             Key,
             Body: content,
-            ContentType: contentType
+            ContentType: contentType,
         }));
         if (DEBUG) {
             console.log(`Put content to ${Bucket}:${Key}`, res);
