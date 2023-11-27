@@ -75,12 +75,12 @@ const getReadStream = (bucket, key) => {
     if (!streamCreated && event === 'data') {
       console.log(`⭐  create read stream for ${bucket}:${key}`);
 
-      const s3Stream = await s3Client.send(new GetObjectCommand({
+      const s3GetResponse = await s3Client.send(new GetObjectCommand({
         Bucket: bucket,
         Key: key,
-      })).Body;
+      }));
 
-      s3Stream
+      s3GetResponse.Body
         .on('error', (err) => passThroughStream.emit(`${key} get error`, err))
         .on('finish', () => console.log(`✅  finish read stream for key ${key}`))
         .on('close', () => console.log(`❌  read stream closed for ${key}`))
@@ -137,23 +137,19 @@ export const downloadCreator = async (event) => {
   console.log(`Prepare to upload chosen results to ${downloadBucket}:${downloadTarget}`);
 
   await new Promise((resolve, reject) => {
-
     const writeStream = new PassThrough();
-
     // create the writer
-    new Upload({
+    const upload = new Upload({
       client: s3Client,
-
       params: {
         Bucket: downloadBucket,
         Key: downloadTarget,
         Body: writeStream,
         ContentType: 'application/zip',
       },
-
-      queueSize: 200,
-    }).done().then(resolve);
-
+      concurrentUploaders: 100,
+      queueSize: 100,
+    });
     writeStream
       .on('close', () => {
         console.log(`✅  close write stream`);
@@ -184,8 +180,10 @@ export const downloadCreator = async (event) => {
         console.log('archive event: progress', data);
       });
 
+    archive.pipe(writeStream);
+
     // Loop over the ids and generate streams for each one.
-    chosenResults.forEach(async (result) => {
+    chosenResults.forEach((result) => {
       console.log(`ℹ️  generating filepath from ${algo}-${result.image.id}`);
       const filePath = getFilePath(algo, result);
       console.log(filePath);
@@ -197,17 +195,20 @@ export const downloadCreator = async (event) => {
       const storePrefix = algo === 'pppm' ? storeObj.prefixes.CDMBest : storeObj.prefixes.CDM;
       const sourceBucket = getBucketNameFromURL(storePrefix);
       // Pass the image from the source bucket into the download bucket via the archiver.
-      console.log(`ℹ️  appending ${sourceBucket}:${fileName} to archive`);
-      const archiveEntry = await getReadStream(sourceBucket, filePath);
+      const archiveEntry = getReadStream(sourceBucket, filePath);
       archive.append(archiveEntry, { name: fileName });
       console.log(`ℹ️  added ${sourceBucket}:${fileName} to archive`);
     });
 
-    archive.pipe(writeStream);
-
+    console.log(`⭐  all files added to write stream`);
     archive.finalize();
 
-  }).catch((err) => {
+    return upload.done().then(resolve);
+  })
+  .then((res) => {
+
+  })
+  .catch((err) => {
     console.error('Upload promise error', err);
     throw new Error(`${err.code} ${err.message} ${err.data}`);
   });
