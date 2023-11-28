@@ -15,8 +15,6 @@ custom:
   tracing: false
   debug: true
 
-  nodeJSRuntime: nodejs18.x
-
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
 
@@ -88,6 +86,8 @@ useDotenv: true
 
 provider:
   name: aws
+  architecture: arm64
+  runtime: nodejs18.x
   region: ${opt:region, "us-east-1"}
   stage: ${opt:stage, "dev"}
   deploymentBucket:
@@ -337,7 +337,6 @@ appSync:
 functions:
 
   appStarter:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/app_starter.appStarter
     memorySize: 256
     timeout: 25
@@ -387,7 +386,6 @@ functions:
           - monitoredAlarms
 
   combiner:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_combiner.searchCombiner
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
@@ -414,7 +412,6 @@ functions:
           - monitoredAlarms
 
   monitor:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/monitor.isJobDone
     memorySize: 128
     timeout: 180
@@ -423,9 +420,8 @@ functions:
       DEBUG: ${self:custom.debug}
 
   search:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/batch_search.batchSearch
-    memorySize: 640
+    memorySize: 512
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       DEBUG: ${self:custom.debug}
@@ -445,7 +441,6 @@ functions:
           - monitoredAlarms
 
   searchCopyAlignment:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_copy.searchCopyAlignment
     memorySize: 128
     timeout: 10
@@ -463,7 +458,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchCreateDefaultChannel:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_create_default_channel.searchCreateDefaultChannel
     memorySize: 128
     timeout: 10
@@ -481,7 +475,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchNewFromImage:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_new_from_image.searchNewFromImage
     memorySize: 128
     timeout: 10
@@ -499,7 +492,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchUpdate:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_update.searchUpdate
     memorySize: 128
     timeout: 25
@@ -508,9 +500,8 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
   downloadCreator:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/download_creator.downloadCreator
-    memorySize: 256
+    memorySize: 384
     timeout: 29
     # maximum timeout for an http API gateway is 29 seconds, so this
     # could bite us. Might have to resort to triggering a lambda and
@@ -518,6 +509,7 @@ functions:
     maximumEventAge: 60
     maximumRetryAttempts: 1
     environment:
+      ARCHIVER_BUFFER_MB: 256
       DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
@@ -533,7 +525,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   dataMigration:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/data_migration.dataMigration
     role: dataMigrationRole
     memorySize: 128
@@ -564,7 +555,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   migrationCheck:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/migration_check.migrationCheck
     memorySize: 128
     timeout: 28
@@ -594,7 +584,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   userMigration:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/user_migration_lamda.userMigration
     role: userMigrationRole
     memorySize: 128
@@ -610,7 +599,6 @@ functions:
           existing: true
 
   publishedNames:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: publishedNames
     handler: src/main/nodejs/published_names.publishedNames
@@ -626,7 +614,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   publishingDOI:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: publishingDOI
     handler: src/main/nodejs/publishingDOI.publishingDOI
@@ -642,7 +629,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   preferences:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: preferencesRole
     handler: src/main/nodejs/preferences.handler
@@ -667,7 +653,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   announcements:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: announcementsRole
     handler: src/main/nodejs/announcements.announcements
@@ -692,7 +677,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   mailinglist:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: mailinglistRole
     handler: src/main/nodejs/mailinglist.handler
@@ -710,7 +694,6 @@ functions:
 
   # lambda function to migrate v2.x searches to v3.x
   searchMigration:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 600
     role: searchMigration
     handler: src/main/nodejs/search_migration.searchMigration

@@ -13,7 +13,7 @@ config:
   concurrentAlignmentLimits: ${env:CONCURRENT_ALIGNMENT_LIMITS, 1}
 
   searchBatchSize: 40
-  searchParallelization: 10000
+  searchParallelization: 5000
   cdsTimeoutInSeconds: 400
 
   publishedNamesDb:

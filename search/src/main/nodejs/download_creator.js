@@ -4,17 +4,19 @@ import {
   getObjectWithRetry,
   getBucketNameFromURL,
   getS3ContentAsStringWithRetry,
+  getS3ContentAsByteBufferWithRetry,
 } from './utils';
 import { PassThrough } from 'stream';
 import path from 'path';
 
 import { getSearchMetadata } from './awsappsyncutils';
-import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
 
 const searchBucket = process.env.SEARCH_BUCKET;
 const downloadBucket = process.env.DOWNLOAD_BUCKET;
 const dataBucket = process.env.DATA_BUCKET;
+const archiverBufferSizeInMB = process.env.ARCHIVER_BUFFER_MB || '128';
 
 const s3Client = new S3Client();
 
@@ -66,40 +68,6 @@ async function getPrecomputedSearchResults(searchId, ids, algo = 'cdm', version)
   return filteredResults;
 }
 
-const getReadStream = (bucket, key) => {
-  let streamCreated = false;
-
-  const passThroughStream = new PassThrough();
-
-  passThroughStream.on('newListener', async (event) => {
-    if (!streamCreated && event === 'data') {
-      console.log(`⭐  create read stream for ${bucket}:${key}`);
-
-      const s3GetResponse = await s3Client.send(new GetObjectCommand({
-        Bucket: bucket,
-        Key: key,
-      }));
-
-      s3GetResponse.Body
-        .on('error', (err) => passThroughStream.emit(`${key} get error`, err))
-        .on('finish', () => console.log(`✅  finish read stream for key ${key}`))
-        .on('close', () => console.log(`❌  read stream closed for ${key}`))
-        .pipe(passThroughStream);
-
-      streamCreated = true;
-    }
-  });
-
-  return passThroughStream;
-};
-
-function getFilePath(algo, result) {
-  if (algo === 'pppm') {
-    return result.files.CDMBest;
-  }
-  return result.image.files.CDM;
-}
-
 export const downloadCreator = async (event) => {
   const downloadId = uuidv1();
   const downloadTarget = `test/${downloadId}/data.zip`;
@@ -113,6 +81,7 @@ export const downloadCreator = async (event) => {
   } = event.body ? JSON.parse(event.body) : {};
 
   console.log(
+    `download: ${downloadId}`,
     `looking for ids: ${ids.join(', ')} in `,
     `${precomputed ? 'precomputed ' : 'custom '} search ${searchId}`,
   );
@@ -136,91 +105,64 @@ export const downloadCreator = async (event) => {
 
   console.log(`Prepare to upload chosen results to ${downloadBucket}:${downloadTarget}`);
 
-  await new Promise((resolve, reject) => {
-    const writeStream = new PassThrough();
-    // create the writer
-    const upload = new Upload({
-      client: s3Client,
-      params: {
-        Bucket: downloadBucket,
-        Key: downloadTarget,
-        Body: writeStream,
-        ContentType: 'application/zip',
-      },
-      concurrentUploaders: 100,
-      queueSize: 100,
-    });
-    writeStream
-      .on('close', () => {
-        console.log(`✅  close write stream`);
-      })
-      .on('end', () => {
-        console.log(`🛑  end write stream`);
-        // the resolve function is no longer called here as we need it to
-        // be called once the writeStream has finished, so the resolve
-        // function is passed to the streamTo function as a callback to be
-        // called once the stream has been closed.
-      })
-      .on('error', () => {
-        console.log('write stream error');
-        reject();
-      });
-
+  try {
     // Create an archive that streams directly to the download bucket.
-    const archive = archiver('zip');
-
-    archive
-      .on('error', (error) => {
-        console.log('Archive Error:', error);
-        throw new Error(
-          `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
-        );
-      })
-      .on('progress', (data) => {
-        console.log('archive event: progress', data);
-      });
-
-    archive.pipe(writeStream);
-
+    const archive = archiver('zip', {
+      zlib: { level: 0 },
+    });
+    const writer = writeContentTo('application/zip', archive, downloadBucket, downloadTarget);
     // Loop over the ids and generate streams for each one.
-    chosenResults.forEach((result) => {
-      console.log(`ℹ️  generating filepath from ${algo}-${result.image.id}`);
-      const filePath = getFilePath(algo, result);
-      console.log(filePath);
+    for (let i = 0; i < chosenResults.length; i++) {
+      const result = chosenResults[i];
+      console.log(`ℹ️ process entry ${i} from ${algo}-${result.image.id}`);
+      const filePath = algo === 'pppm' ? result.files.CDMBest : result.image.files.CDM;
       const fileName = path.basename(filePath);
-      console.log(fileName);
+      console.log(`${filePath} -> ${fileName}`);
       // Use the information in the resultSet object to find the image path
       // and source bucket
       const storeObj = config.stores[result.image.files.store];
       const storePrefix = algo === 'pppm' ? storeObj.prefixes.CDMBest : storeObj.prefixes.CDM;
       const sourceBucket = getBucketNameFromURL(storePrefix);
       // Pass the image from the source bucket into the download bucket via the archiver.
-      const archiveEntry = getReadStream(sourceBucket, filePath);
+      const archiveEntry = await getS3ContentAsByteBufferWithRetry(sourceBucket, filePath);
       archive.append(archiveEntry, { name: fileName });
-      console.log(`ℹ️  added ${sourceBucket}:${fileName} to archive`);
-    });
-
-    console.log(`⭐  all files added to write stream`);
+      console.log(`✅ entry ${i}: ${sourceBucket}:${fileName} - added to archive`);
+    }
     archive.finalize();
 
-    return upload.done().then(resolve);
-  })
-  .then((res) => {
+    await writer.done();
 
-  })
-  .catch((err) => {
-    console.error('Upload promise error', err);
-    throw new Error(`${err.code} ${err.message} ${err.data}`);
+    // Create a link to the newly created archive file
+    // and return it as the response.
+    console.log(`⭐  return download link`);
+    return {
+      isBase64Encoded: false,
+      statusCode: 200,
+      body: JSON.stringify({ download: downloadTarget, bucket: downloadBucket }),
+    };
+  } catch(err) {
+    console.error('❌ Upload error', err);
+    throw err;
+  }
+};
+
+const writeContentTo = (ContentType, ContentStream, Bucket, Key) => {
+  console.log(`⭐  write content to ${Bucket}:${Key} for content-type: ${ContentType}`);
+
+  const writeStream = new PassThrough({
+    highWaterMark: archiverBufferSizeInMB * 1024 * 1024,
+  });
+  ContentStream.pipe(writeStream);
+  // create the writer
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket,
+      Key,
+      Body: writeStream,
+      ContentType,
+    },
   });
 
-  // Create a link to the newly created archive file
-  // and return it as the response.
-  console.log(`⭐  should be called last`);
-  const returnObj = {
-    isBase64Encoded: false,
-    statusCode: 200,
-    body: JSON.stringify({ download: downloadTarget, bucket: downloadBucket }),
-  };
-
-  return returnObj;
+  return upload;
 };

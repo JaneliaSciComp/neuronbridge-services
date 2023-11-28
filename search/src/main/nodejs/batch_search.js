@@ -292,9 +292,9 @@ const runMaskSearches = async (params) => {
     const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
     let results = [];
     for (let i = 0; i < params.targetMIPs.length; i++) {
-        const tarImage = await loadMIPRange(params.targetMIPs[i].bucketName, params.targetMIPs[i].mipKey, cdMask.maskpos_st, cdMask.maskpos_ed);
+        let tarImage = await loadMIPRange(params.targetMIPs[i].bucketName, params.targetMIPs[i].mipKey, cdMask.maskpos_st, cdMask.maskpos_ed);
         if (tarImage.data != null) {
-            const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
+            let sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
             if (DEBUG) {
                 console.log(`Comparison result with ${params.targetMIPs[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
                 logWithMemoryUsage(`Compared ${params.maskKey} with ${params.targetMIPs[i]}`);
@@ -315,7 +315,9 @@ const runMaskSearches = async (params) => {
                 }
                 results.push(r);
             }
+            sr = null; // reset for gc
         }
+        tarImage = null;  // reset for gc
     }
     return results;
 };
@@ -452,7 +454,7 @@ const updateGB = (...keys) => (acc, e) => {
     return acc;
 };
 
-const divProps =(...keys) => e =>
+const divProps = (...keys) => e =>
     Object.entries(e).reduce(
         ( acc, [k, v] ) =>
             keys.includes(k)? {...acc, labels:{...acc.labels, [k]:v}}
