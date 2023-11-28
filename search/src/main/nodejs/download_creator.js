@@ -112,8 +112,7 @@ export const downloadCreator = async (event) => {
     });
     const writer = writeContentTo('application/zip', archive, downloadBucket, downloadTarget);
     // Loop over the ids and generate streams for each one.
-    for (let i = 0; i < chosenResults.length; i++) {
-      const result = chosenResults[i];
+    for (const [i, result] of chosenResults.entries()) {
       console.log(`ℹ️ process entry ${i} from ${algo}-${result.image.id}`);
       const filePath = algo === 'pppm' ? result.files.CDMBest : result.image.files.CDM;
       const fileName = path.basename(filePath);
