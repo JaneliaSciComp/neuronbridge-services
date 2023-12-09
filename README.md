@@ -17,6 +17,10 @@ npm run sls -- deploy
 ```
 Notice that stage is not needed because it will deploy to a 'shared' stage ('janelia-neuronbridge-vpc-shared')
 
+### Deploy Burst Compute framework
+
+First, follow the instructions at [JaneliaSciComp/burst-compute](https://github.com/JaneliaSciComp/burst-compute) to deploy the framework. 
+
 ### Deploy NeuronBridge compute alignment stack
 
 NeuronBridge compute alignment requires an AMI instance preconfigured with ECS and with all required volumes mounted as expected by the alignment batch job.
