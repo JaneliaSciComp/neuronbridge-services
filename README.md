@@ -21,9 +21,9 @@ Notice that stage is not needed because it will deploy to a 'shared' stage ('jan
 
 First, follow the instructions at [JaneliaSciComp/burst-compute](https://github.com/JaneliaSciComp/burst-compute) to deploy the framework. 
 
-### Deploy NeuronBridge compute alignment stack
+### Deploy Alignment Service
 
-NeuronBridge compute alignment requires an AMI instance preconfigured with ECS and with all required volumes mounted as expected by the alignment batch job.
+The NeuronBridge alignment service requires an AMI instance preconfigured with ECS and with all required volumes mounted as expected by the alignment batch job.
 
 To create the AMI use these steps:
 * start an [Amazon ECS-optimized Amazon Linux AMI](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Amazon+ECS-Optimized+Amazon+Linux+AMI&page=1&ref_=nav_search_box).
@@ -53,14 +53,7 @@ npm run sls -- deploy -s dev
 
 The command above will create the compute environment, the job definition and the job queue.
 
-### Deploy NeuronBridge¸ color depth search stack
-
-Make sure you have built all the java packages with jdk 1.8 and maven:
-
-```
-mvnw clean package
-```
-
+### Deploy Color Depth Search Service
 
 In order to create the color depth search lambdas run:
 
