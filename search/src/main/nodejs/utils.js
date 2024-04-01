@@ -10,7 +10,6 @@ AWS.config.apiVersions = {
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
 const stepFunction = new AWS.StepFunctions();
-const cognitoISP = new AWS.CognitoIdentityServiceProvider();
 const dbClient = new AWS.DynamoDB.DocumentClient();
 const db = new AWS.DynamoDB({apiVersion: '2012-08-10'});
 
@@ -295,39 +294,6 @@ export const startStepFunction = async (uniqueName, stateMachineParams, stateMac
     const result = await stepFunction.startExecution(params).promise();
     console.log("Step function started: ", result.executionArn);
     return result;
-};
-
-export const getOldSubs = async (username) => {
-    const params = {
-        UserPoolId: process.env.USERPOOL_ID,
-        Username: username
-    };
-    // look up email address in the current user pool
-    const user = await cognitoISP.adminGetUser(params).promise();
-    const emailAddress = user.UserAttributes.find(e => e.Name === "email").Value;
-
-    // find all users in the old user pool that have the matching
-    // email address
-    const old_pool_params = {
-        UserPoolId: process.env.OLD_USERPOOL_ID,
-        Filter: `email = "${emailAddress}"`
-    };
-
-    const usersRes = await cognitoISP.listUsers(old_pool_params).promise();
-
-    let filteredUsers = [];
-
-    if (/^Google_/.test(user.Username)) {
-        // logged in with google
-        filteredUsers = usersRes.Users.filter(userRes => /^Google_/.test(userRes.Username));
-    } else {
-        // logged in with cognito
-        filteredUsers = usersRes.Users.filter(userRes => !/^Google_/.test(userRes.Username));
-    }
-
-    return filteredUsers.map(user => {
-        return user.Username;
-    });
 };
 
 //fetch data from original dynamodb table

@@ -561,51 +561,6 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-  migrationCheck:
-    runtime: ${self:custom.nodeJSRuntime}
-    handler: src/main/nodejs/migration_check.migrationCheck
-    memorySize: 128
-    timeout: 28
-    # maximum timeout for an http API gateway is 29 seconds, so this
-    # could bite us. Might have to resort to triggering a lambda and
-    # then have the site poll for results against the dynamoDB.
-    maximumEventAge: 60
-    maximumRetryAttempts: 1
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
-      DATA_BUCKET: ${self:custom.dataBucket}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
-      SEARCH_TABLE: ${self:custom.searchTable}
-      USERPOOL_ID:
-        Ref: CognitoUserPool
-      OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
-      OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
-      OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
-    events:
-      - httpApi:
-          method: GET
-          path: /migration_check
-          authorizer:
-            name: neuronBridgeJwtAuthorizer
-
-  userMigration:
-    runtime: ${self:custom.nodeJSRuntime}
-    handler: src/main/nodejs/user_migration_lamda.userMigration
-    role: userMigrationRole
-    memorySize: 128
-    maximumEventAge: 60
-    maximumRetryAttempts: 1
-    environment:
-      OLD_USER_POOL_ID: ${self:custom.oldUserPoolId}
-      OLD_CLIENT_ID: ${self:custom.oldClientId}
-    events:
-      - cognitoUserPool:
-          pool: ${self:service}-user-pool-${self:provider.stage}
-          trigger: UserMigration
-          existing: true
 
   publishedNames:
     runtime: ${self:custom.nodeJSRuntime}
