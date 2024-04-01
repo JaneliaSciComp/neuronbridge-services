@@ -32,7 +32,6 @@ custom:
 
   oldSearchTable: janelia-neuronbridge-search-table-prod
   oldSearchBucket: janelia-neuronbridge-searches-prod
-  oldUserPoolId: us-east-1_owgI6RY6Y
   oldClientId: 4ham9v2s8c0d9v9mdm7vk3fggp
 
   searchBucket: ${file(../config.yml):config.searchBucket}
@@ -231,7 +230,6 @@ provider:
                 }
               ]
             ]}
-            - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:custom.oldUserPoolId}"
         - Effect: Allow
           Action:
             - dynamodb:Scan
@@ -527,37 +525,6 @@ functions:
       - httpApi:
           method: POST
           path: /create_download
-          authorizer:
-            name: neuronBridgeJwtAuthorizer
-
-  dataMigration:
-    runtime: ${self:custom.nodeJSRuntime}
-    handler: src/main/nodejs/data_migration.dataMigration
-    role: dataMigrationRole
-    memorySize: 128
-    timeout: 28
-    # maximum timeout for an http API gateway is 29 seconds, so this
-    # could bite us. Might have to resort to triggering a lambda and
-    # then have the site poll for results against the dynamoDB.
-    maximumEventAge: 60
-    maximumRetryAttempts: 1
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
-      DATA_BUCKET: ${self:custom.dataBucket}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
-      SEARCH_TABLE: ${self:custom.searchTable}
-      USERPOOL_ID:
-        Ref: CognitoUserPool
-      OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
-      OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
-      OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
-    events:
-      - httpApi:
-          method: POST
-          path: /migrate_data
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
