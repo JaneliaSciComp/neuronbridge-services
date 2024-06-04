@@ -301,6 +301,13 @@ appSync:
       kind: UNIT
       request: "graphql/mapping-templates/dynamodb-listAllSearches-request-template.vtl"
       response: "graphql/mapping-templates/dynamodb-listAllSearches-response-template.vtl"
+    listItemsByOwner:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Query
+      field: listItemsByOwner
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-listItemsByOwner-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-listItemsByOwner-response-template.vtl"
     createSearch:
       dataSource: NeuronBridge_GraphQLDS
       type: Mutation
