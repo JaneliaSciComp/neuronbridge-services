@@ -66,7 +66,7 @@ async function copyAlignment(searchData) {
     })
   );
 
-  // create new data object to store in dynamoDB
+  // create new search metadata object.
   const newSearchData = {
     step: ALIGNMENT_JOB_COMPLETED,
     owner: searchData.owner,
@@ -76,8 +76,14 @@ async function copyAlignment(searchData) {
     anatomicalRegion: searchData.anatomicalRegion || 'brain',
     simulateMIPGeneration: false,
     uploadThumbnail: searchData.uploadThumbnail,
+    dataThreshold: searchData.dataThreshold,
+    searchType: searchData.searchType,
+    maskThreshold: searchData.maskThreshold,
+    mirrorMask: searchData.mirrorMask,
+    xyShift: searchData.xyShift,
+    pixColorFluctuation: searchData.pixColorFluctuation,
   };
-  // save new data object- in dynamoDB
+  // save new data object in dynamoDB
   const newSearchMeta = await createSearchMetadata(newSearchData);
 
   //add alignment info if present
