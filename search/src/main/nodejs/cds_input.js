@@ -85,22 +85,57 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
         };
     }
     const searchType = searchData.searchType;
-    let libraryNamesGetter;
-    let targetType;
-    if (searchType === 'em2lm' || searchType === 'lmTarget') {
+    let librariesWithTypeGetter;
+    if (searchData.selectedLibraries) {
+        const userSelectedLibraries = new Set(searchData.selectedLibraries);
+        librariesWithTypeGetter = cfg => {
+            const selectedEMs = cfg.customSearch.emLibraries
+                .filter(library => userSelectedLibraries.has(library.name))
+                .map(library => {
+                    return {
+                        ...library,
+                        targetType: 'EMImage',
+                        searchFolder: cfg.customSearch.searchFolder,
+                    };
+                });
+            const selectedLMs = cfg.customSearch.lmLibraries
+                .filter(library => userSelectedLibraries.has(library.name))
+                .map(library => {
+                    return {
+                        ...library,
+                        targetType: 'LMImage',
+                        searchFolder: cfg.customSearch.searchFolder,
+                    };
+                });
+            console.log('Selected EMs', selectedEMs);
+            console.log('Selected LMs', selectedLMs);
+            const r = selectedEMs.concat(selectedLMs);
+            console.log('Selected LIBS', JSON.stringify(r, null, 4));
+            return r;
+        };
+    } else if (searchType === 'em2lm' || searchType === 'lmTarget') {
         // from all matching configurations collect 'lmLibraries' together with alignmentSpace and bucket
-        libraryNamesGetter = cfg => cfg.customSearch.lmLibraries;
-        targetType = 'LMImage';
+        librariesWithTypeGetter = cfg => cfg.customSearch.lmLibraries.map(library => {
+            return {
+                ...library,
+                targetType: 'LMImage',
+                searchFolder: cfg.customSearch.searchFolder,
+            };
+        });
     } else if (searchType === 'lm2em' || searchType === 'emTarget') {
         // from all matching configurations collect 'emLibraries' together with alignmentSpace and bucket
-        libraryNamesGetter = cfg => cfg.customSearch.emLibraries;
-        targetType = 'EMImage';
+        librariesWithTypeGetter = cfg => cfg.customSearch.emLibraries.map(library => {
+            return {
+                ...library,
+                targetType: 'EMImage',
+                searchFolder: cfg.customSearch.searchFolder,
+            };
+        });
     } else {
-        console.error(`Unsupported searchType: ${searchType}`, searchData);
-        targetType = 'Unknown';
-        libraryNamesGetter = () => [];
+        console.error(`Unsupported search: ${searchType}`, searchData);
+        librariesWithTypeGetter = () => [];
     }
-    const searchedLibraries = await getAllSearchedLibrariesWithSizes(searchCfgs, libraryNamesGetter, targetType);
+    const searchedLibraries = getAllSearchedLibrariesFromConfiguredStores(searchCfgs, librariesWithTypeGetter);
     const totalSearches = searchedLibraries
         .map(l => l.lsize)
         .reduce((acc, lsize) => acc + lsize, 0);
@@ -134,31 +169,18 @@ const getDataConfig = async (dataBucket) => {
     );
 };
 
-const getAllSearchedLibrariesWithSizes = async (cfgs, libraryNamesGetter, targetType) => {
-    const searchedLibraries = getAllSearchedLibrariesFromConfiguredStores(cfgs, libraryNamesGetter);
-    const getLibraryCountsPromises = searchedLibraries.map(async libraryConfig => {
-        const lsize = await getCount(libraryConfig.libraryBucket, libraryConfig.searchedNeuronsFolder);
-        return await {
-            ...libraryConfig,
-            targetType,
-            lsize,
-        };
-    });
-    return await Promise.all(getLibraryCountsPromises);
-};
-
-const getAllSearchedLibrariesFromConfiguredStores = (dataStores, librariesGetter) => {
-    const lcList = dataStores.flatMap(dataStore => librariesGetter(dataStore).map(library => {
+const getAllSearchedLibrariesFromConfiguredStores = (dataStores, librariesWithTypeGetter) => {
+    const lcList = dataStores.flatMap(dataStore => librariesWithTypeGetter(dataStore).map(library => {
         const libraryName = library.name;
         const publishedNamePrefix = library.publishedNamePrefix;
-        const searchedNeuronsFolder = dataStore.customSearch.searchFolder;
+        const searchedNeuronsFolder = library.searchFolder;
         const alignmentSpace = dataStore.alignmentSpace;
         // if searchFolder is set append it to <alignmentSpace>/<libraryName>
         const searchedNeuronsPrefix = searchedNeuronsFolder
             ? `${alignmentSpace}/${libraryName}/${searchedNeuronsFolder}`
             : `${alignmentSpace}/${libraryName}`;
 
-        console.log('Get target library from', dataStore);
+        console.log('Get target library from', JSON.stringify(dataStore, null, 4));
         return new Map({
             store: dataStore.store,
             anatomicalArea: dataStore.anatomicalArea,
@@ -168,16 +190,9 @@ const getAllSearchedLibrariesFromConfiguredStores = (dataStores, librariesGetter
             libraryName: libraryName,
             publishedNamePrefix: publishedNamePrefix,
             searchedNeuronsFolder: searchedNeuronsPrefix,
+            lsize: library.count,
+            targetType: library.targetType,
         });
     }));
     return [...new Set(lcList)].map(lc => lc.toJS());
-};
-
-const getCount = async (libraryBucket, libraryKey) => {
-    if (DEBUG) console.log("Get count from:", libraryKey);
-    const countMetadata = await getObjectWithRetry(
-        libraryBucket,
-        `${libraryKey}/counts_denormalized.json`
-    );
-    return countMetadata.objectCount;
 };
