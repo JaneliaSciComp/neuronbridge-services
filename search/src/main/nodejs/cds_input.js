@@ -56,6 +56,7 @@ export const checkSearchMask = async (searchId, bucket, maskKey) => {
  * Create search libraries based on anatomicalRegion and searchType from cdsConfig.
  *
  * @param searchData
+ * @param dataBucket
  */
 export const getSearchedLibraries = async (searchData, dataBucket) => {
     const anatomicalRegion = searchData.anatomicalRegion || 'Brain';
@@ -85,7 +86,6 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
         };
     }
     const searchType = searchData.searchType;
-    let librariesWithTypeGetter;
     if (searchData.selectedLibraries) {
         const userSelectedLibraries = new Set(searchData.selectedLibraries);
         librariesWithTypeGetter = cfg => {
