@@ -86,6 +86,7 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
         };
     }
     const searchType = searchData.searchType;
+    let librariesWithTypeGetter;
     if (searchData.selectedLibraries) {
         const userSelectedLibraries = new Set(searchData.selectedLibraries);
         librariesWithTypeGetter = cfg => {
