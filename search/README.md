@@ -8,6 +8,11 @@ Deploy to a given stage, e.g. dev or prod:
 ```
 npm run sls -- deploy -s <stage>
 ```
+## Deploying a single Lambda function
+```
+npm run sls -- deploy -s <stage> -f <functionName>
+``` 
+
 
 ## Linting
 
