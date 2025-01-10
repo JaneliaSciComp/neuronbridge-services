@@ -87,8 +87,8 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
     }
     const searchType = searchData.searchType;
     let librariesWithTypeGetter;
-    if (searchData.selectedLibraries) {
-        const userSelectedLibraries = new Set(searchData.selectedLibraries);
+    if (searchData.searchLibrary) {
+        const userSelectedLibraries = new Set(searchData.searchLibrary);
         librariesWithTypeGetter = cfg => {
             const selectedEMs = cfg.customSearch.emLibraries
                 .filter(library => userSelectedLibraries.has(library.name))
