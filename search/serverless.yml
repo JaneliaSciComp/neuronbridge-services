@@ -54,6 +54,7 @@ custom:
   # the data version to the stage in use, using the mapping below.
   publishedNamesTable: janelia-neuronbridge-published-${env:PUBLISHED_NAMES_TABLE_SUFFIX, file(../config.yml):config.publishedNamesDb.${self:provider.stage}, file(../config.yml):config.publishedNamesDb.other}
 
+  curatedMatchesTable: janelia-neuronbridge-custom-annotations
   # determines if users can create their own account on a site
   disableAccountCreation: ${file(../config.yml):config.disableAccountCreation}
 
@@ -534,6 +535,22 @@ functions:
           path: /create_download
           authorizer:
             name: neuronBridgeJwtAuthorizer
+
+  curatedMatches:
+    runtime: ${self:custom.nodeJSRuntime}
+    timeout: 10
+    role: curatedMatches
+    handler: src/main/nodejs/curated_matches.curatedMatches
+    environment:
+      DEBUG: ${self:custom.debug}
+      CURATED_TABLE: ${self:custom.curatedMatchesTable}
+    events:
+      - httpApi:
+          method: GET
+          path: /curated_matches
+          authorizer:
+            name: neuronBridgeJwtAuthorizer
+
 
 
   publishedNames:
