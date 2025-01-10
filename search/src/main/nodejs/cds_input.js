@@ -92,7 +92,7 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
         librariesWithTypeGetter = cfg => {
             // the backend allows the selected libraries
             // to be "heterogenous" in the sense that they can be
-            // either EM or LM libraries 
+            // either EM or LM libraries
             const selectedEMs = cfg.customSearch.emLibraries
                 .filter(library => userSelectedLibraries.has(library.name))
                 .map(library => {
