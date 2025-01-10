@@ -33,6 +33,7 @@ export const getSearchMetadata = async (searchId) => {
                 upload
                 uploadThumbnail
                 searchType
+                searchLirary
                 anatomicalRegion
                 algorithm
                 userDefinedImageParams
@@ -105,6 +106,7 @@ export const lookupSearchMetadata = async (searchFilterParams) => {
                     upload
                     uploadThumbnail
                     searchType
+                    searchLibrary
                     algorithm
                     userDefinedImageParams
                     channel
@@ -162,6 +164,7 @@ export const createSearchMetadata = async (searchData) => {
         upload
         uploadThumbnail
         searchType
+        searchLibrary
         algorithm
         maskThreshold
         dataThreshold
@@ -211,6 +214,7 @@ export const updateSearchMetadata = async (searchData) => {
                 upload
                 uploadThumbnail
                 searchType
+                searchLibrary
                 algorithm
                 anatomicalRegion
                 maskThreshold
