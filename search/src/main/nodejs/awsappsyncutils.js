@@ -33,7 +33,7 @@ export const getSearchMetadata = async (searchId) => {
                 upload
                 uploadThumbnail
                 searchType
-                searchLirary
+                searchLibrary
                 anatomicalRegion
                 algorithm
                 userDefinedImageParams
