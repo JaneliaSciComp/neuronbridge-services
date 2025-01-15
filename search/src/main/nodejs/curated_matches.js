@@ -112,11 +112,11 @@ export const curatedMatches = async event => {
     // grab the search string from the URL query string
     const { q: query, f: filter } = event.queryStringParameters;
     // check that the query string is >= 3 characters (and not using wildcards?)
-    if (query.length < 3) {
+    if (query.length < 2) {
       return {
         isBase64Encoded: false,
         statusCode: 400,
-        body: JSON.stringify({error: 'Query string must be longer than 3 characters.'})
+        body: JSON.stringify({error: 'Query string must be longer than 2 characters.'})
       };
     }
 
