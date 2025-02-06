@@ -22,6 +22,7 @@ const getSearchMetadataGQL = `query getSearch($searchId: ID!) {
         upload
         uploadThumbnail
         searchType
+        selectedLibraries
         anatomicalRegion
         algorithm
         userDefinedImageParams
@@ -69,6 +70,7 @@ const lookupSearchMetadataGQL = `query listSearches($searchFilter: TableSearchFi
             upload
             uploadThumbnail
             searchType
+            selectedLibraries
             algorithm
             userDefinedImageParams
             channel
@@ -115,6 +117,7 @@ const createSearchMetadataGQL = `mutation createSearch($createInput: CreateSearc
       upload
       uploadThumbnail
       searchType
+      selectedLibraries
       algorithm
       maskThreshold
       dataThreshold
@@ -151,6 +154,7 @@ const updateSearchMetadataGQL = `mutation updateSearch($updateInput: UpdateSearc
         upload
         uploadThumbnail
         searchType
+        selectedLibraries
         algorithm
         anatomicalRegion
         maskThreshold

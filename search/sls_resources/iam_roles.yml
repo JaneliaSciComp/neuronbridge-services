@@ -240,12 +240,12 @@ Resources:
                   - logs:PutLogEvents
                 Resource: "*"
 
-  userMigrationRole:
+  curatedMatches:
     Type: AWS::IAM::Role
     Properties:
       Path: /
-      RoleName: ${self:service}-${self:provider.stage}-userMigrationRole
-      Description: Allows migration lambda to access data user data in cognito
+      RoleName: ${self:service}-${self:provider.stage}-curatedMatches
+      Description: Allow curated matches lambda to read/write DynamoDB
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -255,27 +255,21 @@ Resources:
                 - lambda.amazonaws.com
             Action: sts:AssumeRole
       Policies:
-         - PolicyName: userMigrationLogging
-           PolicyDocument:
-             Version: '2012-10-17'
-             Statement:
-               - Effect: Allow
-                 Action:
-                   - logs:CreateLogGroup
-                   - logs:CreateLogStream
-                   - logs:PutLogEvents
-                 Resource: "*"
-         - PolicyName: userMigration
-           PolicyDocument:
-             Version: '2012-10-17'
-             Statement:
-               - Effect: Allow
-                 Action:
-                   - "cognito-idp:AdminInitiateAuth"
-                   - "dynamodb:Scan"
-                   - "dynamodb:Query"
-                   - "cognito-idp:AdminGetUser"
-                 Resource: !Sub arn:aws:cognito-idp:${self:provider.region}:${AWS::AccountId}:userpool/${self:custom.oldUserPoolId}
+        - PolicyName: ${self:service}-${self:provider.stage}-curatedMatches
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - "dynamodb:Scan"
+                  - "dynamodb:Query"
+                Resource: !Sub arn:aws:dynamodb:${self:provider.region}:${AWS::AccountId}:table/${self:custom.curatedMatchesTable}
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: "*"
 
   dataMigrationRole:
     Type: AWS::IAM::Role
@@ -337,7 +331,6 @@ Resources:
                       }
                     ]
                   ]}
-                  - !Sub arn:aws:cognito-idp:${self:provider.region}:${AWS::AccountId}:userpool/${self:custom.oldUserPoolId}
               - Effect: Allow
                 Action:
                   - s3:GetObject

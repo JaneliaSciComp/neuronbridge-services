@@ -32,7 +32,6 @@ custom:
 
   oldSearchTable: janelia-neuronbridge-search-table-prod
   oldSearchBucket: janelia-neuronbridge-searches-prod
-  oldUserPoolId: us-east-1_owgI6RY6Y
   oldClientId: 4ham9v2s8c0d9v9mdm7vk3fggp
 
   searchBucket: ${file(../config.yml):config.searchBucket}
@@ -55,6 +54,7 @@ custom:
   # the data version to the stage in use, using the mapping below.
   publishedNamesTable: janelia-neuronbridge-published-${env:PUBLISHED_NAMES_TABLE_SUFFIX, file(../config.yml):config.publishedNamesDb.${self:provider.stage}, file(../config.yml):config.publishedNamesDb.other}
 
+  curatedMatchesTable: janelia-neuronbridge-custom-annotations
   # determines if users can create their own account on a site
   disableAccountCreation: ${file(../config.yml):config.disableAccountCreation}
 
@@ -234,7 +234,6 @@ provider:
                 }
               ]
             ]}
-            - "arn:aws:cognito-idp:${self:provider.region}:*:userpool/${self:custom.oldUserPoolId}"
         - Effect: Allow
           Action:
             - dynamodb:Scan
@@ -305,6 +304,13 @@ appSync:
       kind: UNIT
       request: "graphql/mapping-templates/dynamodb-listAllSearches-request-template.vtl"
       response: "graphql/mapping-templates/dynamodb-listAllSearches-response-template.vtl"
+    listItemsByOwner:
+      dataSource: NeuronBridge_GraphQLDS
+      type: Query
+      field: listItemsByOwner
+      kind: UNIT
+      request: "graphql/mapping-templates/dynamodb-listItemsByOwner-request-template.vtl"
+      response: "graphql/mapping-templates/dynamodb-listItemsByOwner-response-template.vtl"
     createSearch:
       dataSource: NeuronBridge_GraphQLDS
       type: Mutation
@@ -576,27 +582,21 @@ functions:
       OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
       OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
       OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
+
+  curatedMatches:
+    runtime: ${self:custom.nodeJSRuntime}
+    timeout: 10
+    role: curatedMatches
+    handler: src/main/nodejs/curated_matches.curatedMatches
+    environment:
+      DEBUG: ${self:custom.debug}
+      CURATED_TABLE: ${self:custom.curatedMatchesTable}
     events:
       - httpApi:
           method: GET
-          path: /migration_check
+          path: /curated_matches
           authorizer:
             name: neuronBridgeJwtAuthorizer
-
-  userMigration:
-    handler: src/main/nodejs/user_migration_lamda.userMigration
-    role: userMigrationRole
-    memorySize: 128
-    maximumEventAge: 60
-    maximumRetryAttempts: 1
-    environment:
-      OLD_USER_POOL_ID: ${self:custom.oldUserPoolId}
-      OLD_CLIENT_ID: ${self:custom.oldClientId}
-    events:
-      - cognitoUserPool:
-          pool: ${self:service}-user-pool-${self:provider.stage}
-          trigger: UserMigration
-          existing: true
 
   publishedNames:
     timeout: 10

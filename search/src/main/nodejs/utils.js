@@ -301,39 +301,6 @@ export const startStepFunction = async (uniqueName, stateMachineParams, stateMac
     return result;
 };
 
-export const getOldSubs = async (username) => {
-    const params = {
-        UserPoolId: process.env.USERPOOL_ID,
-        Username: username
-    };
-    // look up email address in the current user pool
-    const user = await cognitoISPClient.send(new AdminGetUserCommand(params));
-    const emailAddress = user.UserAttributes.find(e => e.Name === "email").Value;
-
-    // find all users in the old user pool that have the matching
-    // email address
-    const old_pool_params = {
-        UserPoolId: process.env.OLD_USERPOOL_ID,
-        Filter: `email = "${emailAddress}"`
-    };
-
-    const usersRes = await cognitoISPClient.send(new ListUsersCommand(old_pool_params));
-
-    let filteredUsers = [];
-
-    if (/^Google_/.test(user.Username)) {
-        // logged in with google
-        filteredUsers = usersRes.Users.filter(userRes => /^Google_/.test(userRes.Username));
-    } else {
-        // logged in with cognito
-        filteredUsers = usersRes.Users.filter(userRes => !/^Google_/.test(userRes.Username));
-    }
-
-    return filteredUsers.map(user => {
-        return user.Username;
-    });
-};
-
 //fetch data from original dynamodb table
 async function getSearchRecords(ownerId, TableName) {
     const params = {

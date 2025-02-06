@@ -27,7 +27,7 @@ custom:
 
 provider:
   name: aws
-  stage: shared
+  stage: ${opt:stage, "shared"}
   region: ${opt:region, "us-east-1"}
   deploymentBucket:
     name: janelia-serverless-deployments

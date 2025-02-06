@@ -14,6 +14,9 @@ import { getSearchedLibraries } from '../../main/nodejs/cds_input';
 
 import testConfig from '../resources/test_config.json';
 
+import * as matchers from 'jest-extended';
+expect.extend(matchers);
+
 describe('prepare custom cds input', () => {
 
     const OLD_ENV = process.env;
@@ -36,7 +39,7 @@ describe('prepare custom cds input', () => {
             .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
         jest.spyOn(utils, 'getObjectWithRetry')
             .mockResolvedValueOnce(testConfig)
-            .mockResolvedValue({ objectCount: 10 });
+            ;
         const inputSearchedData = {
             searchId: '54e4-0-d-aba9-54afb4',
             searchType: 'lm2em',
@@ -69,7 +72,6 @@ describe('prepare custom cds input', () => {
             .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
         jest.spyOn(utils, 'getObjectWithRetry')
             .mockResolvedValueOnce(testConfig)
-            .mockResolvedValue({ objectCount: 10 })
             ;
         const inputSearchedData = {
             searchId: '54e4-0-d-aba9-54afb4',
@@ -91,6 +93,44 @@ describe('prepare custom cds input', () => {
             expect(lc.publishedNamePrefix).toBeUndefined();
             expect(lc.anatomicalArea).toBe('VNC');
             expect(lc.targetType).toBe('LMImage');
+            expect(lc.alignmentSpace).toBe('JRC2018_VNC_Unisex_40x_DS');
+            expect(lc.hasOwnProperty('libraryName')).toBe(true);
+            expect(lc.hasOwnProperty('searchedNeuronsFolder')).toBe(true);
+            expect(lc.searchedNeuronsFolder).toBe(`${lc.alignmentSpace}/${lc.libraryName}/searchable_neurons`);
+        })
+    });
+
+    it('get searchable input libraries from selected list', async () => {  
+        jest.spyOn(utils, 'getS3ContentWithRetry')
+            .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
+        jest.spyOn(utils, 'getObjectWithRetry')
+            .mockResolvedValueOnce(testConfig)
+            ;
+        const inputSearchedData = {
+            searchId: '54e4-0-d-aba9-54afb4',
+            selectedLibraries: ['FlyLight_Gen1_MCFO', 'FlyEM_VNC_v0.6'],
+            searchType: 'em2lm',
+            anatomicalRegion: 'vnc',
+        };
+        const testBucketName = 'testDataBucket';
+        const searchedData = await getSearchedLibraries(inputSearchedData, testBucketName);
+        console.log(searchedData);
+        expect(searchedData.anatomicalRegion).toBe('vnc');
+        expect(searchedData.searchedLibraries.length).toBe(3);
+        expect(searchedData.totalSearches).toBeGreaterThan(0);
+        searchedData.searchedLibraries.forEach(lc => {
+            expect(lc.libraryBucket).toContain('janelia-flylight-color-depth');
+            expect(lc.libraryThumbnailsBucket).toContain('janelia-flylight-color-depth');
+            expect(lc.libraryThumbnailsBucket).toContain('thumbnails');
+            expect(lc.libraryName).toBeDefined();
+            expect(lc.libraryName).toBeOneOf(inputSearchedData.selectedLibraries);
+            expect(lc.anatomicalArea).toBe('VNC');
+            expect(lc.targetType).toBeOneOf(['EMImage', 'LMImage']);
+            if (lc.targetType === 'EMImage') {
+                expect(lc.publishedNamePrefix).toBeDefined();
+            } else if (lc.targetType === 'LMImage') {
+                expect(lc.publishedNamePrefix).toBeUndefined();
+            }
             expect(lc.alignmentSpace).toBe('JRC2018_VNC_Unisex_40x_DS');
             expect(lc.hasOwnProperty('libraryName')).toBe(true);
             expect(lc.hasOwnProperty('searchedNeuronsFolder')).toBe(true);
