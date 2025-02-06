@@ -102,7 +102,7 @@ describe('prepare custom cds input', () => {
             ;
         const inputSearchedData = {
             searchId: '54e4-0-d-aba9-54afb4',
-            searchLibrary: ['FlyLight_Gen1_MCFO', 'FlyEM_VNC_v0.6'],
+            selectedLibraries: ['FlyLight_Gen1_MCFO', 'FlyEM_VNC_v0.6'],
             searchType: 'em2lm',
             anatomicalRegion: 'vnc',
         };
@@ -117,7 +117,7 @@ describe('prepare custom cds input', () => {
             expect(lc.libraryThumbnailsBucket).toContain('janelia-flylight-color-depth');
             expect(lc.libraryThumbnailsBucket).toContain('thumbnails');
             expect(lc.libraryName).toBeDefined();
-            expect(lc.libraryName).toBeOneOf(inputSearchedData.searchLibrary);
+            expect(lc.libraryName).toBeOneOf(inputSearchedData.selectedLibraries);
             expect(lc.anatomicalArea).toBe('VNC');
             expect(lc.targetType).toBeOneOf(['EMImage', 'LMImage']);
             if (lc.targetType === 'EMImage') {

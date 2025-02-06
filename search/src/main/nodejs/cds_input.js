@@ -87,8 +87,8 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
     }
     const searchType = searchData.searchType;
     let librariesWithTypeGetter;
-    if (searchData.searchLibrary) {
-        const userSelectedLibraries = new Set(searchData.searchLibrary);
+    if (searchData.selectedLibraries) {
+        const userSelectedLibraries = new Set(searchData.selectedLibraries);
         librariesWithTypeGetter = cfg => {
             // the backend allows the selected libraries
             // to be "heterogenous" in the sense that they can be
