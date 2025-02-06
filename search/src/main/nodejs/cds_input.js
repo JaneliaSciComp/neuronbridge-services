@@ -56,6 +56,7 @@ export const checkSearchMask = async (searchId, bucket, maskKey) => {
  * Create search libraries based on anatomicalRegion and searchType from cdsConfig.
  *
  * @param searchData
+ * @param dataBucket
  */
 export const getSearchedLibraries = async (searchData, dataBucket) => {
     const anatomicalRegion = searchData.anatomicalRegion || 'Brain';
@@ -89,6 +90,9 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
     if (searchData.selectedLibraries) {
         const userSelectedLibraries = new Set(searchData.selectedLibraries);
         librariesWithTypeGetter = cfg => {
+            // the backend allows the selected libraries
+            // to be "heterogenous" in the sense that they can be
+            // either EM or LM libraries
             const selectedEMs = cfg.customSearch.emLibraries
                 .filter(library => userSelectedLibraries.has(library.name))
                 .map(library => {
@@ -109,6 +113,7 @@ export const getSearchedLibraries = async (searchData, dataBucket) => {
                 });
             console.log('Selected EMs', selectedEMs);
             console.log('Selected LMs', selectedLMs);
+            // return EM and LM libraries that match the input from the user
             const r = selectedEMs.concat(selectedLMs);
             console.log('Selected LIBS', JSON.stringify(r, null, 4));
             return r;
