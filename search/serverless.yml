@@ -530,61 +530,7 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-  dataMigration:
-    handler: src/main/nodejs/data_migration.dataMigration
-    role: dataMigrationRole
-    memorySize: 128
-    timeout: 28
-    # maximum timeout for an http API gateway is 29 seconds, so this
-    # could bite us. Might have to resort to triggering a lambda and
-    # then have the site poll for results against the dynamoDB.
-    maximumEventAge: 60
-    maximumRetryAttempts: 1
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
-      DATA_BUCKET: ${self:custom.dataBucket}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
-      SEARCH_TABLE: ${self:custom.searchTable}
-      USERPOOL_ID:
-        Ref: CognitoUserPool
-      OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
-      OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
-      OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
-    events:
-      - httpApi:
-          method: POST
-          path: /migrate_data
-          authorizer:
-            name: neuronBridgeJwtAuthorizer
-
-  migrationCheck:
-    handler: src/main/nodejs/migration_check.migrationCheck
-    memorySize: 128
-    timeout: 28
-    # maximum timeout for an http API gateway is 29 seconds, so this
-    # could bite us. Might have to resort to triggering a lambda and
-    # then have the site poll for results against the dynamoDB.
-    maximumEventAge: 60
-    maximumRetryAttempts: 1
-    environment:
-      DEBUG: ${self:custom.debug}
-      SEARCH_BUCKET: ${self:custom.searchBucket}
-      DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
-      DATA_BUCKET: ${self:custom.dataBucket}
-      APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
-      SEARCH_TABLE: ${self:custom.searchTable}
-      USERPOOL_ID:
-        Ref: CognitoUserPool
-      OLD_SEARCH_TABLE: ${self:custom.oldSearchTable}
-      OLD_SEARCH_BUCKET: ${self:custom.oldSearchBucket}
-      OLD_USERPOOL_ID: ${self:custom.oldUserPoolId}
-
   curatedMatches:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: curatedMatches
     handler: src/main/nodejs/curated_matches.curatedMatches

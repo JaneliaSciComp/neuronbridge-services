@@ -12,7 +12,6 @@ import { backOff } from "exponential-backoff";
 const s3Client = new S3Client();
 const lambdaClient = new LambdaClient();
 const stepFunctionClient = new SFNClient();
-const cognitoISPClient = new CognitoIdentityProviderClient();
 const dbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient());
 
 export const DEBUG = Boolean(process.env.DEBUG);
