@@ -1,3 +1,4 @@
+org: janelia
 service: janelia-neuronbridge-cds
 
 
@@ -103,6 +104,7 @@ provider:
     DEVELOPER: ${env:USER}
     STAGE: ${self:provider.stage}
   tracing:
+    apiGateway: ${self:custom.tracing}
     lambda: ${self:custom.tracing}
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
