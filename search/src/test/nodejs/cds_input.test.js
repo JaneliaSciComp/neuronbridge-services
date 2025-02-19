@@ -101,7 +101,7 @@ describe('prepare custom cds input', () => {
     });
 
     it('get searchable input libraries from selected list', async () => {  
-        jest.spyOn(utils, 'getS3ContentWithRetry')
+        jest.spyOn(utils, 'getS3ContentAsStringWithRetry')
             .mockResolvedValueOnce(Buffer.from('version value', 'utf8'));
         jest.spyOn(utils, 'getObjectWithRetry')
             .mockResolvedValueOnce(testConfig)
