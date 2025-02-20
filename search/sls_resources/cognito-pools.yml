@@ -1,19 +1,7 @@
-Conditions:
-  CreateUserPoolIsTrue: !Equals
-    - ${self:custom.existingUserPoolId}
-    - ''
-  CreateUserPoolClientIsTrue: !Equals
-    - ${self:custom.existingUserPoolClientId}
-    - ''
-  CreateIdentityPoolIsTrue: !Equals
-    - ${self:custom.existingIdentityPoolId}
-    - ''
-
 Resources:
 
   CognitoUserPool:
     Type: 'AWS::Cognito::UserPool'
-    Condition: CreateUserPoolIsTrue
     Properties:
       UserPoolName: ${self:service}-user-pool-${self:provider.stage}
       UsernameAttributes:
@@ -37,14 +25,12 @@ Resources:
 
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
-    Condition: CreateUserPoolIsTrue
     Properties:
       Domain: neuronbridge-${self:provider.stage}
       UserPoolId: ${self:custom.userPoolId}
 
   CognitoUserPoolGroupAdmin:
     Type: AWS::Cognito::UserPoolGroup
-    Condition: CreateUserPoolIsTrue
     Properties:
       Description: Administrative users for Neuronbridge
       GroupName: neuronbridge-admins
@@ -55,7 +41,6 @@ Resources:
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
-    Condition: CreateUserPoolClientIsTrue
     Properties:
       # Generate an app client name based on the stage
       ClientName: ${self:service}-${self:provider.stage}-user-pool-client
@@ -94,7 +79,6 @@ Resources:
 
   OKTAUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
-    Condition: CreateIdentityPoolIsTrue
     Properties:
       UserPoolId: ${self:custom.userPoolId}
       ProviderName: OKTA
@@ -106,7 +90,6 @@ Resources:
 
   GoogleUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
-    Condition: CreateIdentityPoolIsTrue
     Properties:
       UserPoolId: ${self:custom.userPoolId}
       ProviderName: Google
@@ -122,7 +105,6 @@ Resources:
 
   CognitoIdentityPool:
     Type: AWS::Cognito::IdentityPool
-    Condition: CreateIdentityPoolIsTrue
     Properties:
       # Generate a name based on the stage
       IdentityPoolName: ${self:service}-${self:provider.stage}-id-pool
@@ -146,7 +128,6 @@ Resources:
 
   CognitoIdentityPoolRoles:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
-    Condition: CreateIdentityPoolIsTrue
     Properties:
       IdentityPoolId: ${self:custom.identityPoolId}
       RoleMappings:
