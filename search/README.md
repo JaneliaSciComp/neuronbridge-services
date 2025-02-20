@@ -77,3 +77,5 @@ as below:
 }
 ```
 
+## Warning
+If the stack is removed the IdentityPool will be removed and the users may not be able to access their previous searches.

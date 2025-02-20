@@ -85,9 +85,7 @@ Resources:
                         Ref: "AWS::AccountId"
                       },
                       ":userpool/",
-                      {
-                        Ref: CognitoUserPool
-                      }
+                      "${self:custom.userPoolId}"
                     ]
                   ]}
               - Effect: Allow
@@ -326,9 +324,7 @@ Resources:
                         Ref: "AWS::AccountId"
                       },
                       ":userpool/",
-                      {
-                        Ref: CognitoUserPool
-                      }
+                      "${self:custom.userPoolId}"
                     ]
                   ]}
               - Effect: Allow

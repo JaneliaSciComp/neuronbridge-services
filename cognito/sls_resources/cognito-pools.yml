@@ -124,7 +124,7 @@ Resources:
     Type: AWS::Cognito::IdentityPool
     Condition: CreateIdentityPool
     Properties:
-    # Generate a name based on the stage
+      # Generate a name based on the stage
       IdentityPoolName: ${self:custom.identityPoolName}
       # Don't allow unathenticated users
       AllowUnauthenticatedIdentities: false
