@@ -66,23 +66,9 @@ custom:
   # determines if users can create their own account on a site
   disableAccountCreation: ${file(../config.yml):config.disableAccountCreation}
 
-  # if an environment variable is set to an existing user pool ID
-  # the stack will not create a user pool and use the one provided
-  # similarly if an environment is set to a user pool client ID
-  # and/or an identity pool
-  # the stack will use the provided user pool client
-  # and/or the provided identity pool
-  existingUserPoolId: ${env:USER_POOL_ID, ''}
-  newUserPoolId: !Ref CognitoUserPool
-  userPoolId: ${env:USER_POOL_ID, self:custom.newUserPoolId}
-  # settigs for reusing a user pool client
-  existingUserPoolClientId: ${env:USER_POOL_CLIENT_ID, ''}
-  newUserPoolClientId: !Ref CognitoUserPoolClient
-  userPoolClientId: ${env:USER_POOL_CLIENT_ID, self:custom.newUserPoolClientId}
-  # settigs for reusing an identity pool
-  existingIdentityPoolId: ${env:IDENTITY_POOL_ID, ''}
-  newIdentityPoolId:  !Ref CognitoIdentityPool
-  identityPoolId: ${env:IDENTITY_POOL_ID, self:custom.newIdentityPoolId}
+  userPoolId: !Ref CognitoUserPool
+  userPoolClientId: !Ref CognitoUserPoolClient
+  identityPoolId: !Ref CognitoIdentityPool
 
   alertEmail: ${env:ALERT_EMAIL, 'goinac@janelia.hhmi.org'}
 
@@ -537,7 +523,7 @@ functions:
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
       DATA_BUCKET: ${self:custom.dataBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: ${self:custom.userPoolId}
+      IDENTITY_POOL_ID: ${self:custom.userPoolClientId}
       STAGE: ${self:provider.stage}
     events:
       - httpApi:
