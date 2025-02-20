@@ -19,7 +19,7 @@ custom:
   newUserPoolId: !Ref CognitoUserPool
   newUserPoolClientId: !Ref CognitoUserPoolClient
   newIdentityPoolId:  !Ref CognitoIdentityPool
-  userPoolId: ${self:custom.existingUserPoolId self:custom.newUserPoolId}
+  userPoolId: ${self:custom.existingUserPoolId, self:custom.newUserPoolId}
   userPoolClientId: ${self:custom.existingUserPoolClientId, self:custom.newUserPoolClientId}
   identityPoolId: ${self:custom.existingIdentityPoolId, self:custom.newIdentityPoolId}
   # settings needed for setting policies
