@@ -72,6 +72,7 @@ const validateBatchParams = (batchParams) => {
 
 const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => {
     if (DEBUG) {
+        console.log('Execute ColorDepthSearch batch:', batchParams);
         logWithMemoryUsage(`Compare ${batchParams.maskKeys.length} masks with mips between [${startIndex},${endIndex}] from ${batchParams.libraries.length} libraries`);
     }
     const cdsResults = await findAllColorDepthMatches({
@@ -266,11 +267,17 @@ const perMaskMetadata = (params) => {
 };
 
 const runMaskSearches = async (params) => {
+    if (DEBUG) {
+        console.log('Run mask searches', params);
+    }
     const maskMetadata = getMaskMIPMetdata(params.masksBucket, params.maskKey);
 
     const zTolerance = params.pixColorFluctuation == null ? 0.0 : params.pixColorFluctuation / 100.0;
     const maskThreshold = params.maskThreshold != null ? params.maskThreshold : 0;
 
+    if (DEBUG) {
+        console.log(`Load mask ${params.maskKey} from ${params.masksBucket}`);
+    }
     const maskImage = await loadMIPRange(params.masksBucket, params.maskKey, 0, 0);
 
     const cdMask = GenerateColorMIPMasks({

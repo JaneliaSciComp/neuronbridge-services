@@ -36,7 +36,7 @@ export const appStarter = async (event) => {
     let eventBody;
     if (event.body) {
         eventBody = JSON.parse(event.body);
-        console.log("Parsed body", eventBody);
+        console.log('Parsed body', eventBody);
         sourceIsHttpApiGateway = true;
     } else {
         eventBody = event;

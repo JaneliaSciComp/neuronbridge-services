@@ -65,9 +65,10 @@ export const getS3ContentAsStringWithRetry = async (bucket, key) => {
 
 const getS3ContentAsByteBuffer = async (bucket, key) => {
     try {
-        if (DEBUG) console.log(`Getting content as bytes from ${bucket}:${key}`);
+        if (DEBUG) console.log(`Getting content as bytes from s3://${bucket}/${key}`);
         const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key}));
         const bodyAsArray = await response.Body.transformToByteArray();
+        if (DEBUG) console.log(`Read ${bodyAsArray.length} bytes from s3://${bucket}/${key}`);
         return Buffer.from(bodyAsArray);
     } catch (e) {
         if (DEBUG) console.error(`Error getting content ${bucket}:${key}`, e);
