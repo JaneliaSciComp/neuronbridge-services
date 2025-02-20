@@ -7,6 +7,7 @@ plugins:
   - serverless-deployment-bucket
   - serverless-step-functions
   - serverless-dotenv-plugin
+  - ./hooks/custom-hooks-plugin.js # custom hooks plugin
 
 custom:
   version: 3.0.0
@@ -55,13 +56,32 @@ custom:
   publishedNamesTable: janelia-neuronbridge-published-${env:PUBLISHED_NAMES_TABLE_SUFFIX, file(../config.yml):config.publishedNamesDb.${self:provider.stage}, file(../config.yml):config.publishedNamesDb.other}
 
   curatedMatchesTable: janelia-neuronbridge-custom-annotations
-  # determines if users can create their own account on a site
-  disableAccountCreation: ${file(../config.yml):config.disableAccountCreation}
 
   # we shouldn't need backups on any stage apart from production.
   enableBackups: ${file(../config.yml):config.enableBackups}
 
   maxCustomColorDepthSearchResults: ${env:MAX_CUSTOM_RESULTS, 400}
+
+  # determines if users can create their own account on a site
+  disableAccountCreation: ${file(../config.yml):config.disableAccountCreation}
+
+  # if an environment variable is set to an existing user pool ID
+  # the stack will not create a user pool and use the one provided
+  # similarly if an environment is set to a user pool client ID
+  # and/or an identity pool
+  # the stack will use the provided user pool client
+  # and/or the provided identity pool
+  existingUserPoolId: ${env:USER_POOL_ID, ''}
+  newUserPoolId: !Ref CognitoUserPool
+  userPoolId: ${env:USER_POOL_ID, self:custom.newUserPoolId}
+  # settigs for reusing a user pool client
+  existingUserPoolClientId: ${env:USER_POOL_CLIENT_ID, ''}
+  newUserPoolClientId: !Ref CognitoUserPoolClient
+  userPoolClientId: ${env:USER_POOL_CLIENT_ID, self:custom.newUserPoolClientId}
+  # settigs for reusing an identity pool
+  existingIdentityPoolId: ${env:IDENTITY_POOL_ID, ''}
+  newIdentityPoolId:  !Ref CognitoIdentityPool
+  identityPoolId: ${env:IDENTITY_POOL_ID, self:custom.newIdentityPoolId}
 
   alertEmail: ${env:ALERT_EMAIL, 'goinac@janelia.hhmi.org'}
 
@@ -226,9 +246,7 @@ provider:
                   Ref: "AWS::Region"
                 },
                 ":*:userpool/",
-                {
-                  Ref: CognitoUserPool
-                }
+                "${self:custom.userPoolId}"
               ]
             ]}
         - Effect: Allow
@@ -253,12 +271,10 @@ provider:
               Ref: "AWS::Region"
             },
             ".amazonaws.com/",
-            {
-              Ref: CognitoUserPool
-            }
+            "${self:custom.userPoolId}"
           ]
         ]}
-        audience: !Ref CognitoUserPoolClient
+        audience: "${self:custom.userPoolClientId}"
 
 
 package:
@@ -275,8 +291,7 @@ appSync:
     config:
       awsRegion: ${self:provider.region}
       defaultAction: ALLOW
-      userPoolId:
-        Ref: CognitoUserPool
+      userPoolId: ${self:custom.userPoolId}
   additionalAuthentications:
     - type: AWS_IAM
   schema: graphql/schema.graphql
@@ -527,7 +542,7 @@ functions:
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
       DATA_BUCKET: ${self:custom.dataBucket}
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
-      IDENTITY_POOL_ID: !Ref CognitoUserPoolClient
+      IDENTITY_POOL_ID: ${self:custom.userPoolClientId}
       STAGE: ${self:provider.stage}
     events:
       - httpApi:
@@ -644,8 +659,7 @@ functions:
     environment:
       DEBUG: ${self:custom.debug}
       TABLE: ${self:custom.preferencesTable}
-      COGNITOPOOLID:
-        Ref: CognitoUserPool
+      COGNITOPOOLID: ${self:custom.userPoolId}
     events:
       - httpApi:
           method: GET

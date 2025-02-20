@@ -1,4 +1,5 @@
 Resources:
+
   preferencesRole:
     Type: AWS::IAM::Role
     Properties:
@@ -84,9 +85,7 @@ Resources:
                         Ref: "AWS::AccountId"
                       },
                       ":userpool/",
-                      {
-                        Ref: CognitoUserPool
-                      }
+                      "${self:custom.userPoolId}"
                     ]
                   ]}
               - Effect: Allow
@@ -95,9 +94,6 @@ Resources:
                   - logs:CreateLogStream
                   - logs:PutLogEvents
                 Resource: "*"
-
-
-
 
   announcementsRole:
     Type: AWS::IAM::Role
@@ -328,9 +324,7 @@ Resources:
                         Ref: "AWS::AccountId"
                       },
                       ":userpool/",
-                      {
-                        Ref: CognitoUserPool
-                      }
+                      "${self:custom.userPoolId}"
                     ]
                   ]}
               - Effect: Allow

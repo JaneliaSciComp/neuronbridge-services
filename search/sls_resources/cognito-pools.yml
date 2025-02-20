@@ -1,7 +1,19 @@
+Conditions:
+  CreateUserPoolIsTrue: !Equals
+    - ${self:custom.existingUserPoolId}
+    - ''
+  CreateUserPoolClientIsTrue: !Equals
+    - ${self:custom.existingUserPoolClientId}
+    - ''
+  CreateIdentityPoolIsTrue: !Equals
+    - ${self:custom.existingIdentityPoolId}
+    - ''
+
 Resources:
 
   CognitoUserPool:
     Type: 'AWS::Cognito::UserPool'
+    Condition: CreateUserPoolIsTrue
     Properties:
       UserPoolName: ${self:service}-user-pool-${self:provider.stage}
       UsernameAttributes:
@@ -25,29 +37,29 @@ Resources:
 
   CognitoUserPoolDomain:
     Type: AWS::Cognito::UserPoolDomain
+    Condition: CreateUserPoolIsTrue
     Properties:
       Domain: neuronbridge-${self:provider.stage}
-      UserPoolId:
-        Ref: CognitoUserPool
+      UserPoolId: ${self:custom.userPoolId}
 
   CognitoUserPoolGroupAdmin:
     Type: AWS::Cognito::UserPoolGroup
+    Condition: CreateUserPoolIsTrue
     Properties:
       Description: Administrative users for Neuronbridge
       GroupName: neuronbridge-admins
       Precedence: 0
       RoleArn:
         Fn::GetAtt: [ CognitoAdminRole, Arn ]
-      UserPoolId:
-        Ref: CognitoUserPool
+      UserPoolId: ${self:custom.userPoolId}
 
   CognitoUserPoolClient:
     Type: AWS::Cognito::UserPoolClient
+    Condition: CreateUserPoolClientIsTrue
     Properties:
       # Generate an app client name based on the stage
       ClientName: ${self:service}-${self:provider.stage}-user-pool-client
-      UserPoolId:
-        Ref: CognitoUserPool
+      UserPoolId: ${self:custom.userPoolId}
       ExplicitAuthFlows:
         - ALLOW_ADMIN_USER_PASSWORD_AUTH
         - ALLOW_USER_PASSWORD_AUTH
@@ -82,9 +94,9 @@ Resources:
 
   OKTAUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: CreateIdentityPoolIsTrue
     Properties:
-      UserPoolId:
-        Ref: CognitoUserPool
+      UserPoolId: ${self:custom.userPoolId}
       ProviderName: OKTA
       ProviderType: SAML
       ProviderDetails:
@@ -94,9 +106,9 @@ Resources:
 
   GoogleUserPoolIdentityProvider:
     Type: AWS::Cognito::UserPoolIdentityProvider
+    Condition: CreateIdentityPoolIsTrue
     Properties:
-      UserPoolId:
-        Ref: CognitoUserPool
+      UserPoolId: ${self:custom.userPoolId}
       ProviderName: Google
       ProviderDetails:
         client_id: "{{resolve:secretsmanager:neuronbridge_google_id_provider:SecretString:appID}}"
@@ -110,23 +122,33 @@ Resources:
 
   CognitoIdentityPool:
     Type: AWS::Cognito::IdentityPool
+    Condition: CreateIdentityPoolIsTrue
     Properties:
-    # Generate a name based on the stage
+      # Generate a name based on the stage
       IdentityPoolName: ${self:service}-${self:provider.stage}-id-pool
       # Don't allow unathenticated users
       AllowUnauthenticatedIdentities: false
       # Link to our User Pool
       CognitoIdentityProviders:
-        - ClientId:
-            Ref: CognitoUserPoolClient
+        - ClientId: "${self:custom.userPoolClientId}"
           ProviderName:
-            Fn::GetAtt: [ "CognitoUserPool", "ProviderName" ]
+            Fn::Join: [
+              "",
+              [
+                "cognito-idp.",
+                {
+                  Ref: "AWS::Region"
+                },
+                ".amazonaws.com/",
+                "${self:custom.userPoolId}"
+              ]
+            ]
 
   CognitoIdentityPoolRoles:
     Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Condition: CreateIdentityPoolIsTrue
     Properties:
-      IdentityPoolId:
-        Ref: CognitoIdentityPool
+      IdentityPoolId: ${self:custom.identityPoolId}
       RoleMappings:
         RoleMapping:
           AmbiguousRoleResolution: AuthenticatedRole
@@ -139,13 +161,9 @@ Resources:
                   Ref: "AWS::Region"
                 },
                 ".amazonaws.com/",
-                {
-                  Ref: "CognitoUserPool"
-                },
+                "${self:custom.userPoolId}",
                 ":",
-                {
-                  Ref: CognitoUserPoolClient
-                }
+                "${self:custom.userPoolClientId}"
               ]
             ]}
           Type: Token
@@ -169,8 +187,7 @@ Resources:
               - 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
-                'cognito-identity.amazonaws.com:aud':
-                  Ref: CognitoIdentityPool
+                'cognito-identity.amazonaws.com:aud': ${self:custom.identityPoolId}
               'ForAnyValue:StringLike':
                 'cognito-identity.amazonaws.com:amr': authenticated
       Policies:
@@ -320,8 +337,7 @@ Resources:
               - 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
-                'cognito-identity.amazonaws.com:aud':
-                  Ref: CognitoIdentityPool
+                'cognito-identity.amazonaws.com:aud': ${self:custom.identityPoolId}
               'ForAnyValue:StringLike':
                 'cognito-identity.amazonaws.com:amr': authenticated
       Policies:
@@ -408,20 +424,19 @@ Resources:
               - 'sts:AssumeRoleWithWebIdentity'
             Condition:
               StringEquals:
-                'cognito-identity.amazonaws.com:aud':
-                  Ref: CognitoIdentityPool
+                'cognito-identity.amazonaws.com:aud': ${self:custom.identityPoolId}
               'ForAnyValue:StringLike':
                 'cognito-identity.amazonaws.com:amr': unauthenticated
 
 Outputs:
   UserPoolId:
-    Value:
-      Ref: CognitoUserPool
+    Description: User pool ID
+    Value: ${self:custom.userPoolId}
   UserPoolClientId:
-    Value:
-      Ref: CognitoUserPoolClient
+    Description: Client pool
+    Value: ${self:custom.userPoolClientId}
   IdentityPoolId:
-    Value:
-      Ref: CognitoIdentityPool
+    Description: Identity pool
+    Value: ${self:custom.identityPoolId}
 
 
