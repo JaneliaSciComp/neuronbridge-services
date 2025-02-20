@@ -1,0 +1,433 @@
+Conditions:
+  CreateUserPool: !Equals
+    - !Sub "${self:custom.existingUserId}"
+    - ''
+  CreateUserPoolClient: !Equals
+    - !Sub "${self:custom.existingUserPoolClientId}"
+    - ''
+  CreateIdentityPool: !Equals
+    - !Sub "${self:custom.existingIdentityPoolId}"
+    - ''
+
+Resources:
+
+  CognitoUserPool:
+    Type: 'AWS::Cognito::UserPool'
+    Condition: CreateUserPool
+    Properties:
+      UserPoolName: ${self:custom.userPoolName}
+      UsernameAttributes:
+        - email
+      AutoVerifiedAttributes:
+        - email
+      AdminCreateUserConfig:
+        AllowAdminCreateUserOnly: ${self:custom.disableAccountCreation.${self:provider.stage}, self:custom.disableAccountCreation.other}
+      Schema:
+        - Name: migrated
+          Required: false
+          AttributeDataType: Boolean
+        - Name: survey
+          Required: false
+          AttributeDataType: Boolean
+          Mutable: true
+        - Name: newsletter
+          Required: false
+          AttributeDataType: Boolean
+          Mutable: true
+
+  CognitoUserPoolDomain:
+    Type: AWS::Cognito::UserPoolDomain
+    Properties:
+      Domain: neuronbridge-${self:provider.stage}
+      UserPoolId: ${self:custom.userPoolId}
+
+  CognitoUserPoolGroupAdmin:
+    Type: AWS::Cognito::UserPoolGroup
+    Properties:
+      Description: Administrative users for Neuronbridge
+      GroupName: neuronbridge-admins
+      Precedence: 0
+      RoleArn:
+        Fn::GetAtt: [ CognitoAdminRole, Arn ]
+      UserPoolId: ${self:custom.userPoolId}
+
+  CognitoUserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Condition: CreateUserPoolClient
+    Properties:
+      # Generate an app client name based on the stage
+      ClientName: ${self:custom.userPoolClientName}
+      UserPoolId: ${self:custom.userPoolId}
+      ExplicitAuthFlows:
+        - ALLOW_ADMIN_USER_PASSWORD_AUTH
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+      AllowedOAuthFlows:
+        - code
+        - implicit
+      AllowedOAuthScopes:
+        - email
+        - openid
+        - profile
+      AllowedOAuthFlowsUserPoolClient: true
+      CallbackURLs:
+        - https://neuronbridge-${self:provider.stage}.janelia.org:3000
+        - https://neuronbridge.janelia.org
+        - https://neuronbridge-pre.janelia.org
+        - https://neuronbridge-${self:provider.stage}.auth.${self:provider.region}.amazoncognito.com/
+      LogoutURLs:
+        - https://neuronbridge-${self:provider.stage}.janelia.org:3000
+        - https://neuronbridge.janelia.org
+        - https://neuronbridge-pre.janelia.org
+        - https://neuronbridge-${self:provider.stage}.auth.${self:provider.region}.amazoncognito.com/
+      GenerateSecret: false
+      SupportedIdentityProviders:
+        - COGNITO
+        - Google
+        - OKTA
+    DependsOn:
+      - GoogleUserPoolIdentityProvider
+      - OKTAUserPoolIdentityProvider
+
+  OKTAUserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: ${self:custom.userPoolId}
+      ProviderName: OKTA
+      ProviderType: SAML
+      ProviderDetails:
+        MetadataURL: https://hhmi.okta.com/app/exkrwgxs32bHbQvVr0x7/sso/saml/metadata
+      AttributeMapping:
+        email: http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress
+
+  GoogleUserPoolIdentityProvider:
+    Type: AWS::Cognito::UserPoolIdentityProvider
+    Properties:
+      UserPoolId: ${self:custom.userPoolId}
+      ProviderName: Google
+      ProviderDetails:
+        client_id: "{{resolve:secretsmanager:neuronbridge_google_id_provider:SecretString:appID}}"
+        client_secret: "{{resolve:secretsmanager:neuronbridge_google_id_provider:SecretString:appSecret}}"
+        authorize_scopes: profile email openid
+      ProviderType: Google
+      AttributeMapping:
+        email: email
+        email_verified: email_verified
+        username: sub
+
+  CognitoIdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Condition: CreateIdentityPool
+    Properties:
+    # Generate a name based on the stage
+      IdentityPoolName: ${self:custom.identityPoolName}
+      # Don't allow unathenticated users
+      AllowUnauthenticatedIdentities: false
+      # Link to our User Pool
+      CognitoIdentityProviders:
+        - ClientId:
+            Ref: CognitoUserPoolClient
+          ProviderName: !Sub "cognito-idp.${self:provider.region}.amazonaws.com/${self:custom.userPoolId}"
+
+  CognitoIdentityPoolRoles:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId:
+        Ref: CognitoIdentityPool
+      RoleMappings:
+        RoleMapping:
+          AmbiguousRoleResolution: AuthenticatedRole
+          IdentityProvider:
+            { Fn::Join: [
+              "",
+              [
+                "cognito-idp.",
+                {
+                  Ref: "AWS::Region"
+                },
+                ".amazonaws.com/",
+                "${self:custom.userPoolId}",
+                ":",
+                {
+                  Ref: CognitoUserPoolClient
+                }
+              ]
+            ]}
+          Type: Token
+      Roles:
+        authenticated:
+          Fn::GetAtt: [CognitoAuthRole, Arn]
+        unauthenticated:
+          Fn::GetAtt: [CognitoUnAuthRole, Arn]
+
+  CognitoAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud':
+                  Ref: CognitoIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: 'NeuronBridge_Download'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.downloadBucket}/*
+        - PolicyName: 'NeuronBridge_Private'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:PutObject"
+                  - "s3:PutObjectTagging"
+                  - "s3:DeleteObject"
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - Fn::Join:
+                    - ''
+                    -
+                      - arn:aws:s3:::${self:custom.searchBucket}
+                      - '/private/'
+                      - '$'
+                      - '{cognito-identity.amazonaws.com:sub}/*'
+        - PolicyName: 'NeuronBridge_Protected'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:PutObject"
+                  - "s3:PutObjectTagging"
+                  - "s3:DeleteObject"
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - Fn::Join:
+                    - ''
+                    -
+                      - arn:aws:s3:::${self:custom.searchBucket}
+                      - '/protected/'
+                      - '$'
+                      - '{cognito-identity.amazonaws.com:sub}/*'
+        - PolicyName: 'NeuronBridge_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                Resource:
+                  - Fn::Join:
+                    - ''
+                    -
+                      - arn:aws:s3:::${self:custom.searchBucket}
+                      - '/protected/*'
+              - Effect: 'Allow'
+                Condition:
+                  StringLike:
+                    s3:prefix:
+                      - "public/"
+                      - "public/*"
+                      - "protected/"
+                      - "protected/*"
+                      - Fn::Join:
+                        - ''
+                        -
+                          - "private/$"
+                          - "{cognito-identity.amazonaws.com:sub}/"
+                      - Fn::Join:
+                        - ''
+                        -
+                          - "private/$"
+                          - "{cognito-identity.amazonaws.com:sub}/*"
+
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.searchBucket}
+        - PolicyName: 'NeuronBridge_DataBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.dataBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.dataBucket}
+        - PolicyName: 'NeuronBridge_PPPMBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.pppmBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.pppmBucket}
+        - PolicyName: 'NeuronBridge_LibraryBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.libraryBucket}/*
+                  - arn:aws:s3:::${self:custom.libraryThumbnailsBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.libraryBucket}
+                  - arn:aws:s3:::${self:custom.libraryThumbnailsBucket}
+
+  CognitoAdminRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud':
+                  Ref: CognitoIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': authenticated
+      Policies:
+        - PolicyName: 'NeuronBridgeAdminAllAccess'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:PutObject"
+                  - "s3:PutObjectTagging"
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                  - "s3:DeleteObject"
+                Resource:
+                  - arn:aws:s3:::${self:custom.searchBucket}/*
+                  - arn:aws:s3:::${self:custom.downloadBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.searchBucket}
+                  - arn:aws:s3:::${self:custom.downloadBucket}
+        - PolicyName: 'NeuronBridge_DataBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.dataBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.dataBucket}
+        - PolicyName: 'NeuronBridge_PPPMBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.pppmBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.pppmBucket}
+        - PolicyName: 'NeuronBridge_LibraryBucket_Read'
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: 'Allow'
+                Action:
+                  - "s3:GetObject"
+                  - "s3:GetObjectTagging"
+                Resource:
+                  - arn:aws:s3:::${self:custom.libraryBucket}/*
+                  - arn:aws:s3:::${self:custom.libraryThumbnailsBucket}/*
+              - Effect: 'Allow'
+                Action:
+                  - "s3:ListBucket"
+                Resource:
+                  - arn:aws:s3:::${self:custom.libraryBucket}
+                  - arn:aws:s3:::${self:custom.libraryThumbnailsBucket}
+
+
+  CognitoUnAuthRole:
+    Type: AWS::IAM::Role
+    Properties:
+      Path: /
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: 'Allow'
+            Principal:
+              Federated: 'cognito-identity.amazonaws.com'
+            Action:
+              - 'sts:AssumeRoleWithWebIdentity'
+            Condition:
+              StringEquals:
+                'cognito-identity.amazonaws.com:aud':
+                  Ref: CognitoIdentityPool
+              'ForAnyValue:StringLike':
+                'cognito-identity.amazonaws.com:amr': unauthenticated
+
+Outputs:
+  UserPoolId:
+    Description: User pool ID
+    Value: ${self:custom.userPoolId}
+  UserPoolClientId:
+    Description: Client pool
+    Value:
+      Ref: CognitoUserPoolClient
+  IdentityPoolId:
+    Description: Identity pool
+    Value:
+      Ref: CognitoIdentityPool
