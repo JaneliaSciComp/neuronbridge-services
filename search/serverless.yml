@@ -14,7 +14,7 @@ plugins:
 
 custom:
   version: 3.0.0
-  tracing: false
+  tracing: true
   debug: true
 
   downloadBucket: ${file(../config.yml):config.downloadBucket}

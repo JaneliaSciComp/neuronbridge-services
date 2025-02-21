@@ -54,16 +54,24 @@ async function createDefaultChannel(searchData) {
 
   // if not a png, transform to png
   if (/\.(tiff?|gif|jpe?g|bmp)$/.test(upload)) {
-    console.log(`Converting uploaded image to png`);
-    const pngExt = ".png";
-    const image = await Jimp.read(imageContent);
-    const imageBuffer = await image.getBufferAsync(pngMime);
-    const pngImageName = getSearchKey(fullSearchInputImage, pngExt);
-    sourceImage = pngImageName;
-    channelName = upload.replace(/\.([^.]*)$/, "_1.png");
-    await putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
-    searchMetaData.displayableMask = getSearchMaskId(pngImageName, pngExt);
-    console.log(`Image conversion complete`);
+    try {
+      console.log(`Converting uploaded image to png`);
+      const pngExt = ".png";
+      const image = await Jimp.read(imageContent);
+      const imageBuffer = await image.getBufferAsync(pngMime);
+      const pngImageName = getSearchKey(fullSearchInputImage, pngExt);
+      sourceImage = pngImageName;
+      console.log(`Upload converted image to ${searchBucket}/${pngImageName}`);
+      channelName = upload.replace(/\.([^.]*)$/, "_1.png");
+      await putS3Content(searchBucket, pngImageName, pngMime, imageBuffer);
+      searchMetaData.displayableMask = getSearchMaskId(pngImageName, pngExt);
+      console.log(`Image conversion complete`);
+    } catch (err) {
+      console.log(err);
+      searchMetaData.errorMessage = "There was an error converting the uploaded image to PNG format. Please try again.";
+      await updateSearchMetadata(searchMetaData);
+      throw new Error('image conversion error');
+    }
   }
   // create new file in generatedMIPS directory as channel_1.png
   const channelPath = `private/${identityId}/${searchDir}/generatedMIPS/${channelName}`;
