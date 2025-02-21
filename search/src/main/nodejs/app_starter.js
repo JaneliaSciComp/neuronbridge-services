@@ -21,10 +21,6 @@ import { cdsStarter } from './cds_starter';
 const brainAlignJobDefinition = process.env.BRAIN_ALIGN_JOB_DEFINITION;
 const vncAlignJobDefinition = process.env.VNC_ALIGN_JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
-const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1;
-const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
-const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1;
-const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
 
 const batchClient = new BatchClient();
@@ -128,6 +124,7 @@ const getNewRecords = async (e) => {
 };
 
 const startColorDepthSearch = async (searchParams) => {
+    const { concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits, } = getLimits();
     const limitsMessage = await checkLimits(
         searchParams,
         concurrentColorDepthSearchLimits,
@@ -193,6 +190,7 @@ const createDisplayableMask = async (bucket, prefix, key) => {
 };
 
 const startAlignment = async (searchParams) => {
+    const { concurrentAlignmentLimits, perDayAlignmentLimits, } = getLimits();
     const limitsMessage = await checkLimits(
         searchParams,
         concurrentAlignmentLimits,
@@ -342,6 +340,15 @@ const selectComputeResources = estimatedMemory => {
 
 const getCurrentSearchBucket = () => {
     return process.env.SEARCH_BUCKET;
+};
+
+const getLimits = () => {
+    return {
+        concurrentColorDepthSearchLimits: process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1,
+        perDayColorDepthSearchLimits: process.env.MAX_SEARCHES_PER_DAY || 1,
+        concurrentAlignmentLimits: process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1,
+        perDayAlignmentLimits: process.env.MAX_ALIGNMENTS_PER_DAY || 1,
+    };
 };
 
 const setAlignmentJobParams = (searchParams, computeResources) => {
