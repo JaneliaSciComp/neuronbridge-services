@@ -11,12 +11,15 @@ import {
   ALIGNMENT_JOB_COMPLETED
 } from "./awsappsyncutils";
 
-const searchBucket = process.env.SEARCH_BUCKET;
 const s3Retries = process.env.S3_RETRIES || 3;
 
 async function getSearchRecord(searchId) {
   const searchMetadata = await getSearchMetadata(searchId);
   return searchMetadata;
+}
+
+function getSearchBucket() {
+  return process.env.SEARCH_BUCKET;
 }
 
 async function createDefaultChannel(searchData) {
@@ -25,6 +28,7 @@ async function createDefaultChannel(searchData) {
   // png, jpeg, bmp, tiff or gif images that are already aligned. The 3D stacks
   // need to go through the aligner which will output the channels for masking
 
+  const searchBucket = getSearchBucket();
   const fullSearchInputImage = `${searchInputFolder}/${upload}`;
   // grab the image data
   const imageContent = await getS3ContentAsByteBufferWithRetry(
@@ -76,6 +80,7 @@ async function createDefaultChannel(searchData) {
   }
   // create new file in generatedMIPS directory as channel_1.png
   const channelPath = `private/${identityId}/${searchDir}/generatedMIPS/${channelName}`;
+  console.log(`Copying ${searchBucket}/${sourceImage} to ${channelPath}`);
   await copyS3Content(
     searchBucket,
     `/${searchBucket}/${sourceImage}`,
@@ -109,9 +114,10 @@ export const searchCreateDefaultChannel = async (event) => {
 
   try {
     const { searchId } = JSON.parse(event.body);
-      const searchData = await getSearchRecord(searchId);
-      returnBody = await createDefaultChannel(searchData);
+    const searchData = await getSearchRecord(searchId);
+    returnBody = await createDefaultChannel(searchData);
   } catch (error) {
+    console.error('Error creating default channel', error);
     returnObj.statusCode = 500;
     returnBody.message = error.message;
   }
