@@ -66,6 +66,7 @@ custom:
   # determines if users can create their own account on a site
   disableAccountCreation: ${file(../config.yml):config.disableAccountCreation}
 
+  # Cognito resources
   userPoolId: !Ref CognitoUserPool
   userPoolClientId: !Ref CognitoUserPoolClient
   identityPoolId: !Ref CognitoIdentityPool
