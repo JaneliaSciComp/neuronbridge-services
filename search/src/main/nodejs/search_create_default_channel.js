@@ -1,4 +1,4 @@
-import Jimp from "jimp";
+import { Jimp } from 'jimp';
 import {
   copyS3Content,
   putS3Content,
@@ -57,8 +57,9 @@ async function createDefaultChannel(searchData) {
     try {
       console.log(`Converting uploaded image to png`);
       const pngExt = ".png";
-      const image = await Jimp.read(imageContent);
-      const imageBuffer = await image.getBufferAsync(pngMime);
+      const image = await Jimp.fromBuffer(imageContent);
+      console.log(`Created Jimp image from buffer`);
+      const imageBuffer = await image.getBuffer(pngMime);
       const pngImageName = getSearchKey(fullSearchInputImage, pngExt);
       sourceImage = pngImageName;
       console.log(`Upload converted image to ${searchBucket}/${pngImageName}`);
@@ -84,9 +85,11 @@ async function createDefaultChannel(searchData) {
   // create a thumbnail of the uploaded image
   const thumbnailName = "upload_thumbnail.png";
   console.log(`Generating thumbnail in private/${identityId}/${searchDir}/${thumbnailName}`);
-  const original = await Jimp.read(imageContent).catch(err => console.log(err));
-  const thumbnail = anatomicalRegion === "vnc" ? original.scaleToFit(70, 150) : original.scaleToFit(150, 70);
-  const thumbnailBuffer = await thumbnail.getBufferAsync(pngMime);
+  const original = await Jimp.fromBuffer(imageContent).catch(err => console.log(err));
+  const thumbnail = anatomicalRegion === "vnc"
+                      ? original.scaleToFit({w:70, h:150})
+                      : original.scaleToFit({w:150, h:70});
+  const thumbnailBuffer = await thumbnail.getBuffer(pngMime);
   const thumbnailPath = `private/${identityId}/${searchDir}/${thumbnailName}`;
   await putS3Content(searchBucket, thumbnailPath, pngMime, thumbnailBuffer);
   searchMetaData.uploadThumbnail = thumbnailName;

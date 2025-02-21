@@ -1,7 +1,7 @@
 import path from 'path';
 import fs from 'fs';
 import { getS3ContentAsByteBufferWithRetry } from './utils';
-import Jimp from 'jimp';
+import { Jimp } from 'jimp';
 import { fromArrayBuffer } from 'geotiff';
 
 export const loadMIPRange = async (bucketName, key, start, end) => {
@@ -20,7 +20,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
     let height = 0;
 
     if (mipExt === ".png") {
-        const img = await Jimp.read(imgBuffer);
+        const img = await Jimp.fromBuffer(imgBuffer);
         width = img.bitmap.width;
         height = img.bitmap.height;
 

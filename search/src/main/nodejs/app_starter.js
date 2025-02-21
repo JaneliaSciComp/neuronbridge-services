@@ -1,5 +1,5 @@
 import { BatchClient, SubmitJobCommand } from "@aws-sdk/client-batch";
-import Jimp from 'jimp';
+import { Jimp } from 'jimp';
 import { getSearchKey, getSearchMaskId}  from './searchutils';
 import {
     getS3ContentAsByteBufferWithRetry,
@@ -176,8 +176,8 @@ const createDisplayableMask = async (bucket, prefix, key) => {
             const imageContent = await getS3ContentAsByteBufferWithRetry(bucket, fullKey);
             const pngMime = "image/png";
             const pngExt = ".png";
-            const image = await Jimp.read(imageContent);
-            const imageBuffer = await image.getBufferAsync(pngMime);
+            const image = await Jimp.fromBuffer(imageContent);
+            const imageBuffer = await image.getBuffer(pngMime);
             const pngImageName = getSearchKey(fullKey, pngExt);
             console.log(`Put ${bucket}:${pngImageName}`, imageBuffer);
             await putS3Content(bucket, pngImageName, pngMime, imageBuffer);
