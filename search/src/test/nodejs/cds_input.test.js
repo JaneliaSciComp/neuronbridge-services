@@ -80,7 +80,7 @@ describe('prepare custom cds input', () => {
         };
         const testBucketName = 'testDataBucket';
         const searchedData = await getSearchedLibraries(inputSearchedData, testBucketName);
-        console.log(searchedData);
+        console.log('Searched libraries:', searchedData);
         expect(searchedData.searchType).toBe('em2lm');
         expect(searchedData.anatomicalRegion).toBe('vnc');
         expect(searchedData.searchedLibraries.length).toBe(4);

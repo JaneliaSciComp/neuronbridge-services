@@ -26,7 +26,6 @@ const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEAR
 const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1;
 const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
-const searchBucket = process.env.SEARCH_BUCKET;
 
 const batchClient = new BatchClient();
 
@@ -153,15 +152,16 @@ const startColorDepthSearch = async (searchParams) => {
         const searchInputName = searchParams.searchMask
             ? searchParams.searchMask
             : searchParams.searchInputName;
+        const currentSearchBucket = getCurrentSearchBucket();
 
-        searchParams.displayableMask = await createDisplayableMask(searchBucket, searchParams.searchInputFolder, searchInputName);
+        searchParams.displayableMask = await createDisplayableMask(currentSearchBucket, searchParams.searchInputFolder, searchInputName);
         if (searchParams.displayableMask) {
             await updateSearchMetadata({
                 id: searchParams.id || searchParams.searchId,
                 displayableMask: searchParams.displayableMask,
             });
         }
-        searchParams.searchBucket = searchBucket;
+        searchParams.searchBucket = currentSearchBucket;
         const cdsInvocationResult = await cdsStarter(searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
         return cdsInvocationResult;
@@ -179,7 +179,7 @@ const createDisplayableMask = async (bucket, prefix, key) => {
             const image = await Jimp.fromBuffer(imageContent);
             const imageBuffer = await image.getBuffer(pngMime);
             const pngImageName = getSearchKey(fullKey, pngExt);
-            console.log(`Put ${bucket}:${pngImageName}`, imageBuffer);
+            console.log(`Upload displayable mask to ${bucket}:${pngImageName}`, imageBuffer);
             await putS3Content(bucket, pngImageName, pngMime, imageBuffer);
             console.info(`${fullKey} converted to png successfully`);
             return getSearchMaskId(pngImageName, pngExt);
@@ -249,7 +249,7 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits, limit
 
 const submitAlignmentJob = async (searchParams) => {
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
-    const searchInputMetadata = await getS3ContentMetadata(searchBucket, fullSearchInputImage);
+    const searchInputMetadata = await getS3ContentMetadata(getCurrentSearchBucket(), fullSearchInputImage);
     console.log('Search input metadata', searchInputMetadata);
     const searchInputSize = searchInputMetadata.ContentLength;
     const searchInputContentType = searchInputMetadata.ContentType;
@@ -338,6 +338,10 @@ const selectComputeResources = estimatedMemory => {
             cpus: 40
         };
     }
+};
+
+const getCurrentSearchBucket = () => {
+    return process.env.SEARCH_BUCKET;
 };
 
 const setAlignmentJobParams = (searchParams, computeResources) => {
