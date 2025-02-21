@@ -39,21 +39,7 @@ describe('Color depth search start app entry point', () => {
             }),
         };
 
-        const searchData = {
-            id: testSearchId,
-            searchId: testSearchId,
-            searchMask: 'generatedMIPS/testMIP.png',
-            step: 2,
-            upload: 'testMIP.png',
-            upload_thumbnail: 'upload_thumbnail.png',
-            selectedLibraries: ['testLibrary'],
-            searchInputFolder: 'src/test/resources/mips',
-            identityId: 'testUserId',
-            searchDir : 'testSearchDir',
-            anatomicalRegion: 'brain',
-        };
-
-        prepareMocks(searchData);
+        prepareMocks(testSearchId, 'testMIP.png');
 
         const result = await appStarter(input);
 
@@ -70,16 +56,34 @@ describe('Color depth search start app entry point', () => {
                 submittedSearches: [
                     {
                         id: testSearchId,
-                        searchMask: 'generatedMIPS/testMIP.png',
+                        searchMask: 'generatedMIPS/testMIP.tif',
                     }
                 ],
             }),
         };
 
+        const searchData = prepareMocks(testSearchId, 'testMIP.tif');
+
+        const result = await appStarter(input);
+
+        expect(result.statusCode).toBe(200);
+        // Check that displayable mask was uploaded to the bucket
+        expect(utils.putS3Content).toHaveBeenCalledWith(
+            testBucketName,
+            `${searchData.searchInputFolder}/generatedMIPS/${searchData.displayableMask}`,
+            'image/png',
+            expect.any(Buffer)
+        );
+        expect(utils.invokeFunction).toHaveBeenCalled();
+    });
+
+    function prepareMocks(testSearchId, searchMask) {
+
         const searchData = {
             id: testSearchId,
             searchId: testSearchId,
-            searchMask: 'generatedMIPS/testMIP.tif',
+            searchMask: `generatedMIPS/${searchMask}`,
+            displayableMask: 'testMIP.png',
             step: 2,
             upload: 'testMIP.tif',
             upload_thumbnail: 'upload_thumbnail.png',
@@ -89,24 +93,7 @@ describe('Color depth search start app entry point', () => {
             searchDir : 'testSearchDir',
             anatomicalRegion: 'brain',
         };
-        const displayableMask = 'testMIP.png';
 
-        prepareMocks(searchData);
-
-        const result = await appStarter(input);
-
-        expect(result.statusCode).toBe(200);
-        // Check that displayable mask was uploaded to the bucket
-        expect(utils.putS3Content).toHaveBeenCalledWith(
-            testBucketName,
-            `${searchData.searchInputFolder}/generatedMIPS/${displayableMask}`,
-            'image/png',
-            expect.any(Buffer)
-        );
-        expect(utils.invokeFunction).toHaveBeenCalled();
-    });
-
-    function prepareMocks(searchData) {
         jest.spyOn(utils, 'getS3ContentAsByteBufferWithRetry')
             .mockResolvedValueOnce(fs.readFileSync(`src/test/resources/mips/${searchData.upload}`));
 
@@ -143,5 +130,7 @@ describe('Color depth search start app entry point', () => {
                     workflowArn: 'stepFunctionCallArn',
                 })),
             });
+
+        return searchData;
     }
 })
