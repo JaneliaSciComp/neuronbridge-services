@@ -1,6 +1,6 @@
-org: janelia
 service: janelia-neuronbridge-cds
 
+org: janelia
 
 plugins:
   - serverless-appsync-plugin
