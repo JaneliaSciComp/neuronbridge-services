@@ -27,7 +27,7 @@ const parallelDispatchFunction = process.env.PARALLEL_DISPATCH_FUNCTION_ARN;
 const searchFunction = process.env.SEARCH_FUNCTION;
 const reduceFunction = process.env.REDUCE_FUNCTION;
 const searchTimeoutSecs = process.env.SEARCH_TIMEOUT_SECS;
-
+const toleratedPercentageFailure = process.env.TOLERATED_PERCENTAGE_FAILURE || 10;
 const maxParallelism = process.env.MAX_PARALLELISM || DEFAULTS.maxParallelism;
 
 const defaultBatchSize = () => {
@@ -90,6 +90,7 @@ export const cdsStarter = async (event) => {
         batchSize: batchSize,
         maxParallelism: maxParallelism,
         searchTimeoutSecs,
+        toleratedPercentageFailure: toleratedPercentageFailure,
         jobParameters: jobParams,
         datasetStartIndex: 0,
         datasetEndIndex: searchedData.totalSearches,

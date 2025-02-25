@@ -436,8 +436,8 @@ const createFinalCDSResults = (cdsResults, jobId, batchId) => {
             results: zlib.gzipSync(resultsSValue).toString('base64')
         };
 
-    const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
-    const ttl = (Math.floor(+new Date() / 1000) + ttlDelta);
+    const ttlDelta = defaultBatchResultsMinToLive * 60; // time to live in seconds
+    const ttl = (Math.floor(Date.now() / 1000) + ttlDelta);
 
     return {
         jobId: jobId,

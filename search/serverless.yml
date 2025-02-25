@@ -48,6 +48,7 @@ custom:
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
   parallelDispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
+  toleratedPercentageFailure: ${env:TOLERATED_PERCENTAGE_FAILURE, 10}
   searchBatchSize: ${file(../config.yml):config.searchBatchSize}
   searchParallelization: ${file(../config.yml):config.searchParallelization}
   cdsTimeoutInSeconds: ${file(../config.yml):config.cdsTimeoutInSeconds}
@@ -364,6 +365,7 @@ functions:
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
       MAX_PARALLELISM: ${self:custom.searchParallelization}
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      TOLERATED_PERCENTAGE_FAILURE: ${self:custom.toleratedPercentageFailure}
       PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
       REDUCE_FUNCTION: !Ref CombinerLambdaFunction
       DATA_BUCKET: ${self:custom.dataBucket}
