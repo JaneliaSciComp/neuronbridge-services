@@ -76,7 +76,6 @@ describe('combine EM SearchResults', () => {
     };
 
     beforeEach(() => {
-        console.log('!!!!! 1');
         jest.resetAllMocks();
         process.env = {
             ...OLD_ENV,
@@ -85,9 +84,7 @@ describe('combine EM SearchResults', () => {
             EM_PUBLISHED_SKELETONS_TABLE: 'em-published-skeletons',
             DEBUG: 'true',
         };
-
-        console.log('!!!!! ENV: ', process.env)
-    });
+   });
 
     it('combine successful EM search results', async () => {
         jest.spyOn(clientDbUtils, 'queryDb')
