@@ -1,17 +1,17 @@
-import AWS from 'aws-sdk';
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocumentClient, PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
+import { LambdaClient, InvokeCommand, LogType } from "@aws-sdk/client-lambda";
+import { Upload } from "@aws-sdk/lib-storage";
+import { S3Client, CopyObjectCommand, DeleteObjectCommand, GetObjectCommand,
+         HeadObjectCommand, ListObjectsV2Command, PutObjectCommand } from "@aws-sdk/client-s3";
+import { SFNClient, StartExecutionCommand } from "@aws-sdk/client-sfn";
 import stream from 'stream';
 import { backOff } from "exponential-backoff";
 
-AWS.config.apiVersions = {
-    lambda: '2015-03-31',
-    s3: '2006-03-01',
-};
-
-const s3 = new AWS.S3();
-const lambda = new AWS.Lambda();
-const stepFunction = new AWS.StepFunctions();
-const dbClient = new AWS.DynamoDB.DocumentClient();
-const db = new AWS.DynamoDB({apiVersion: '2012-08-10'});
+const s3Client = new S3Client();
+const lambdaClient = new LambdaClient();
+const stepFunctionClient = new SFNClient();
+const dbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient());
 
 export const DEBUG = Boolean(process.env.DEBUG);
 
@@ -32,7 +32,7 @@ export const getAllKeys = async params => {
     const allKeys = [];
     let result;
     do {
-        result = await s3.listObjectsV2(params).promise();
+        result = await s3Client.send(new ListObjectsV2Command(params));
         result.Contents.forEach(obj => allKeys.push(obj.Key));
         params.ContinuationToken = result.NextContinuationToken;
     } while (result.NextContinuationToken);
@@ -40,12 +40,12 @@ export const getAllKeys = async params => {
     return allKeys;
 };
 
-const getS3Content = async (bucket, key) => {
+const getS3ContentAsString = async (bucket, key) => {
     try {
-        if (DEBUG)
-            console.log(`Getting content from ${bucket}:${key}`);
-        const response = await s3.getObject({ Bucket: bucket, Key: key}).promise();
-        return response.Body;
+        if (DEBUG) console.log(`Getting content as string from ${bucket}:${key}`);
+        const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key}));
+        const bodyAsString = await response.Body.transformToString();
+        return bodyAsString;
     } catch (e) {
         if (DEBUG) console.error(`Error getting content ${bucket}:${key}`, e);
         throw e; // rethrow it
@@ -53,8 +53,8 @@ const getS3Content = async (bucket, key) => {
 };
 
 // Retrieve a file from S3
-export const getS3ContentWithRetry = async (bucket, key) => {
-    return await backOff(() => getS3Content(bucket, key), {
+export const getS3ContentAsStringWithRetry = async (bucket, key) => {
+    return await backOff(() => getS3ContentAsString(bucket, key), {
         ...retryOptions,
         retry: (e, attemptNumber) => {
             console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} getting object ${bucket}:${key}`, e);
@@ -63,27 +63,40 @@ export const getS3ContentWithRetry = async (bucket, key) => {
     });
 };
 
-export const getObjectDataArray = async (bucket, key) => {
+const getS3ContentAsByteBuffer = async (bucket, key) => {
     try {
-        const s3Content = await getS3ContentWithRetry(bucket, key);
-        return s3Content.buffer;
+        if (DEBUG) console.log(`Getting content as bytes from s3://${bucket}/${key}`);
+        const response = await s3Client.send(new GetObjectCommand({ Bucket: bucket, Key: key}));
+        const bodyAsArray = await response.Body.transformToByteArray();
+        if (DEBUG) console.log(`Read ${bodyAsArray.length} bytes from s3://${bucket}/${key}`);
+        return Buffer.from(bodyAsArray);
     } catch (e) {
-        if (DEBUG) console.error(`Error getting object data array from ${bucket}:${key}`, e);
+        if (DEBUG) console.error(`Error getting content ${bucket}:${key}`, e);
         throw e; // rethrow it
     }
 };
 
+export const getS3ContentAsByteBufferWithRetry = async (bucket, key) => {
+    return await backOff(() => getS3ContentAsByteBuffer(bucket, key), {
+        ...retryOptions,
+        retry: (e, attemptNumber) => {
+            console.error(`Failed attempt ${attemptNumber}/${retryOptions.numOfAttempts} getting object ${bucket}:${key}`, e);
+            return true;
+        }
+    });
+};
+
 // Retrieve a JSON file from S3
 export const getObjectWithRetry = async (bucket, key) => {
-    const body = await getS3ContentWithRetry(bucket, key);
-    return JSON.parse(body.toString());
+    const body = await getS3ContentAsStringWithRetry(bucket, key);
+    return JSON.parse(body);
 };
 
 export const getS3ContentMetadata = async (bucket, key) => {
     try {
         if (DEBUG)
             console.log(`Getting content metadata for ${bucket}:${key}`);
-        return await s3.headObject({ Bucket: bucket, Key: key}).promise();
+        return await s3Client.send(new HeadObjectCommand({ Bucket: bucket, Key: key}));
     } catch (e) {
         console.error(`Error getting metadata for ${bucket}:${key}`, e);
         throw e; // rethrow it
@@ -105,12 +118,12 @@ export const putObject = async (Bucket, Key, data, space="\t") => {
     try {
         if (DEBUG)
             console.log(`Putting object to ${Bucket}:${Key}`);
-        const res =  await s3.putObject({
+        const res =  await s3Client.send(new PutObjectCommand({
             Bucket,
             Key,
             Body: JSON.stringify(data, null, space),
             ContentType: 'application/json'
-        }).promise();
+        }));
         if (DEBUG) {
             console.log(`Put object to ${Bucket}:${Key}:`, data, res);
         }
@@ -127,12 +140,12 @@ export const putS3Content = async (Bucket, Key, contentType, content) => {
         if (DEBUG) {
             console.log(`Putting content to ${Bucket}:${Key}`);
         }
-        const res = await s3.putObject({
+        const res = await s3Client.send(new PutObjectCommand({
             Bucket,
             Key,
             Body: content,
-            ContentType: contentType
-        }).promise();
+            ContentType: contentType,
+        }));
         if (DEBUG) {
             console.log(`Put content to ${Bucket}:${Key}`, res);
         }
@@ -147,32 +160,34 @@ export const putS3Content = async (Bucket, Key, contentType, content) => {
 // to encode it with encodeURI(), in case there are any invalid
 // characters in there.
 export const copyS3Content = async (Bucket, Source, Key) => {
-   try {
-       if (DEBUG) {
-           console.log(`Copying content to ${Bucket}:${Key} from ${Source}`);
-       }
-       const res = await s3.copyObject({
-           Bucket,
-           CopySource: Source,
-           Key,
-       }).promise();
-       if (DEBUG) {
-           console.log(`Copied content to ${Bucket}:${Key} from ${Source}`, res);
-       }
+    try {
+        const params = {
+            Bucket,
+            CopySource: Source,
+            Key,
+        };
+        if (DEBUG) {
+            console.log(`Copying content to ${Bucket}:${Key} from ${Source} using:`, params);
+        }
+
+        const res = await s3Client.send(new CopyObjectCommand(params));
+        if (DEBUG) {
+            console.log(`Copied content to ${Bucket}:${Key} from ${Source}`, res);
+        }
     } catch (e) {
         console.error(`Error copying content to ${Bucket}:${Key} from ${Source}`, e);
         throw e; // rethrow it
     }
     return `s3://${Bucket}/${Key}`;
-
 };
 
 // Remove key from an S3 bucket
 export const removeKey = async (Bucket, Key) => {
     try {
-        const res = await s3.deleteObject({
+        const res = await s3Client.send(new DeleteObjectCommand({
             Bucket,
-            Key}).promise();
+            Key,
+        }));
         console.log(`Removed object ${Bucket}:${Key}`, res);
     } catch (e) {
         if (DEBUG) console.error(`Error removing object ${Bucket}:${Key}`, e);
@@ -183,7 +198,7 @@ export const removeKey = async (Bucket, Key) => {
 // Verify that key exists on S3
 export const verifyKey = async (Bucket, Key) => {
     try {
-        await s3.headObject({Bucket, Key}).promise();
+        await s3Client.send(new HeadObjectCommand({Bucket, Key}));
         console.log(`Found object ${Bucket}:${Key}`);
         return true;
     } catch (e) {
@@ -196,11 +211,15 @@ export const streamObject = async (Bucket, Key, data) => {
     try {
         console.log(`Streaming object to ${Bucket}:${Key}`);
         const writeStream = new stream.PassThrough();
-        const uploadPromise = s3.upload({
-            Bucket,
-            Key,
-            Body: writeStream,
-            ContentType: 'application/json'
+        const upload = new Upload({
+            client: s3Client,
+
+            params: {
+                Bucket,
+                Key,
+                Body: writeStream,
+                ContentType: 'application/json'
+            }
         });
 
         const dataStream = new stream.Readable({objectMode: true});
@@ -230,7 +249,7 @@ export const streamObject = async (Bucket, Key, data) => {
         });
         dataStream.push('\n}');
         dataStream.push(null);
-        await uploadPromise.promise();
+        await upload.done();
         console.log(`Finished streaming data to ${Bucket}:${Key}`);
     } catch (e) {
         console.error(`Error streaming data to ${Bucket}:${Key}`, e);
@@ -257,29 +276,14 @@ export const invokeFunction = async (functionName, parameters) => {
         console.log(`Invoke sync ${functionName} with`, parameters);
     const params = {
         FunctionName: functionName,
+        InvocationType: 'RequestResponse',
         Payload: JSON.stringify(parameters),
-        LogType: "Tail"
+        LogType: LogType.None,
     };
     try {
-        return await lambda.invoke(params).promise();
+        return await lambdaClient.send(new InvokeCommand(params));
     } catch (e) {
         console.error(`Error invoking ${functionName}`, params, e);
-        throw e; // rethrow it
-    }
-};
-
-// Invoke another Lambda function asynchronously
-export const invokeAsync = async (functionName, parameters) => {
-    if (DEBUG)
-        console.log(`Invoke async ${functionName} with`, parameters);
-    const params = {
-        FunctionName: functionName,
-        InvokeArgs: JSON.stringify(parameters),
-    };
-    try {
-        return await lambda.invokeAsync(params).promise();
-    } catch (e) {
-        console.error(`Error invoking async ${functionName}`, params, e);
         throw e; // rethrow it
     }
 };
@@ -291,7 +295,7 @@ export const startStepFunction = async (uniqueName, stateMachineParams, stateMac
         input: JSON.stringify(stateMachineParams),
         name: uniqueName
     };
-    const result = await stepFunction.startExecution(params).promise();
+    const result = await stepFunctionClient.send(new StartExecutionCommand(params));
     console.log("Step function started: ", result.executionArn);
     return result;
 };
@@ -310,7 +314,7 @@ async function getSearchRecords(ownerId, TableName) {
     };
 
     try {
-        const data = await dbClient.scan(params).promise();
+        const data = await dbDocClient.send(new ScanCommand(params));
         if (data.Count > 0) {
             return data.Items;
         }
@@ -350,10 +354,10 @@ export const putDbItemWithRetry = async (tableName, item) => {
 };
 
 export const putDbItem = async (tableName, item) => {
-    return await db.putItem({
+    return await dbDocClient.send(new PutCommand({
         TableName: tableName,
         Item: item
-    }).promise();
+    }));
 };
 
 export const getBucketNameFromURL = bucketURL => {

@@ -7,22 +7,22 @@ config:
   searchBucket: janelia-neuronbridge-search-${opt:stage, 'dev'}
   downloadBucket: janelia-neuronbridge-downloads-${opt:stage, 'dev'}
   dataBucket: janelia-neuronbridge-data-${env:SEARCH_DATA_LEVEL, opt:stage, 'dev'}
-  perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 100}
-  perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 10}
+  perDaySearchLimits: ${env:PER_DAY_SEARCH_LIMITS, 50}
+  perDayAlignmentLimits: ${env:PER_DAY_ALIGNMENT_LIMITS, 5}
   concurrentSearchLimits: ${env:CONCURRENT_SEARCH_LIMITS, 1}
   concurrentAlignmentLimits: ${env:CONCURRENT_ALIGNMENT_LIMITS, 1}
 
   searchBatchSize: 40
-  searchParallelization: 10000
+  searchParallelization: 5000
   cdsTimeoutInSeconds: 400
 
   publishedNamesDb:
-    dev: 'v3.2.1'
-    val: 'v3.2.0'
-    prod: 'v3.2.1'
+    dev: 'v3.4.1'
+    val: 'v3.4.0'
+    prod: 'v3.4.0'
     devpre: 'v3.0.0'
     prodpre: 'v3.0.0'
-    other: 'v3.2.1'
+    other: 'v3.4.0'
   # determines if users can create their own account on a site
   disableAccountCreation:
     dev: true

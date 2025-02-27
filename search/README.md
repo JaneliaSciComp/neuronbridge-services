@@ -77,3 +77,5 @@ as below:
 }
 ```
 
+## Note
+Removing this stack will remove the installed identity pool, therefore users will no longer have access to their previous searches. In order to prevent that, we added a hook, so that the stack cannot be removed by user mistake.

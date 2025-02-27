@@ -1,21 +1,24 @@
-import archiver from "archiver";
-import { v1 as uuidv1 } from "uuid";
-import AWS from "aws-sdk";
+import archiver from 'archiver';
+import { v1 as uuidv1 } from 'uuid';
 import {
   getObjectWithRetry,
-  getS3ContentWithRetry,
   getBucketNameFromURL,
-} from "./utils";
-import { PassThrough } from "stream";
-import path from "path";
+  getS3ContentAsStringWithRetry,
+  getS3ContentAsByteBufferWithRetry,
+} from './utils';
+import { PassThrough } from 'stream';
+import path from 'path';
 
-import { getSearchMetadata } from "./awsappsyncutils";
+import { getSearchMetadata } from './awsappsyncutils';
+import { S3Client } from '@aws-sdk/client-s3';
+import { Upload } from '@aws-sdk/lib-storage';
 
 const searchBucket = process.env.SEARCH_BUCKET;
 const downloadBucket = process.env.DOWNLOAD_BUCKET;
 const dataBucket = process.env.DATA_BUCKET;
+const archiverBufferSizeInMB = process.env.ARCHIVER_BUFFER_MB || '128';
 
-const s3 = new AWS.S3();
+const s3Client = new S3Client();
 
 async function getSearchRecord(searchId) {
   const searchMetadata = await getSearchMetadata(searchId);
@@ -23,7 +26,7 @@ async function getSearchRecord(searchId) {
 }
 
 async function getSearchResultsForIds(searchRecord, ids) {
-  const resultFile = searchRecord.searchMask.replace(/[^.]*$/, "result");
+  const resultFile = searchRecord.searchMask.replace(/[^.]*$/, 'result');
   const resultsUrl = `private/${searchRecord.identityId}/${searchRecord.searchDir}/${resultFile}`;
 
   const resultObject = await getObjectWithRetry(searchBucket, resultsUrl);
@@ -47,15 +50,10 @@ async function getInteractiveSearchResults(searchId, ids) {
   return chosenResults;
 }
 
-async function getPrecomputedSearchResults(
-  searchId,
-  ids,
-  algo = "cdm",
-  version
-) {
+async function getPrecomputedSearchResults(searchId, ids, algo = 'cdm', version) {
   // get results from
   // s3://janelia-neuronbridge-data-dev/{precomputedDataRootPath}/metadata/cdsresults/{searchId.json}
-  const metadataDir = algo === "pppm" ? "pppmresults" : "cdsresults";
+  const metadataDir = algo === 'pppm' ? 'pppmresults' : 'cdsresults';
   const resultsKey = `${version}/metadata/${metadataDir}/${searchId}`;
   const resultsObj = await getObjectWithRetry(dataBucket, resultsKey);
 
@@ -64,62 +62,10 @@ async function getPrecomputedSearchResults(
     ids.includes(result.image.id)
   );
   console.log(
-    `found ${filteredResults.length} matching results out of ${resultsObj.results.length} results`
+    `found ${filteredResults.length} matching results `,
+    `out of ${resultsObj.results.length} results`,
   );
   return filteredResults;
-}
-
-const getReadStream = (key, sourceBucket) => {
-  let streamCreated = false;
-
-  const passThroughStream = new PassThrough();
-
-  passThroughStream.on("newListener", (event) => {
-    if (!streamCreated && event === "data") {
-      console.log(`⭐  create read stream for ${sourceBucket}:${key}`);
-
-      const s3Stream = s3
-        .getObject({ Bucket: sourceBucket, Key: key })
-        .createReadStream();
-
-      s3Stream
-        .on("error", (err) => passThroughStream.emit("error", err))
-        .on("finish", () =>
-          console.log(`✅  finish read stream for key ${key}`)
-        )
-        .on("close", () => console.log(`❌  read stream closed\n`))
-        .pipe(passThroughStream);
-
-      streamCreated = true;
-    }
-  });
-  return passThroughStream;
-};
-
-const streamTo = (key, callback) => {
-  var passthrough = new PassThrough();
-  const uploadParams = {
-    Bucket: downloadBucket,
-    Key: key,
-    Body: passthrough,
-    ContentType: "application/zip",
-  };
-  s3.upload(uploadParams, (err, data) => {
-    if (err) {
-      console.error("upload error", err);
-    } else {
-      console.log(" ❌ upload done", data);
-      callback();
-    }
-  });
-  return passthrough;
-};
-
-function getFilePath(algo, result) {
-  if (algo === "pppm") {
-    return result.files.CDMBest;
-  }
-  return result.image.files.CDM;
 }
 
 export const downloadCreator = async (event) => {
@@ -129,104 +75,93 @@ export const downloadCreator = async (event) => {
   // Accept list of selected ids and the resultSet id/path
   const {
     ids = [],
-    searchId = "",
+    searchId = '',
     precomputed = false,
-    algo = "cdm",
+    algo = 'cdm',
   } = event.body ? JSON.parse(event.body) : {};
 
   console.log(
-    `looking for ids: ${ids.join(", ")} in ${
-      precomputed ? "precomputed " : "custom "
-    }search ${searchId}`
+    `download: ${downloadId}`,
+    `looking for ids: ${ids.join(', ')} in `,
+    `${precomputed ? 'precomputed ' : 'custom '} search ${searchId}`,
   );
 
   const versionFile = process.env.STAGE.match(/^prod/)
-    ? "current.txt"
-    : "next.txt";
-  const version = await getS3ContentWithRetry(dataBucket, versionFile);
-  const trimmedVersion = version.toString().replace(/\r?\n|\r/, "");
+    ? 'current.txt'
+    : 'next.txt';
+  const version = await getS3ContentAsStringWithRetry(dataBucket, versionFile);
+  const trimmedVersion = version.toString().replace(/\r?\n|\r/, '');
 
-  const config = await getObjectWithRetry(
-    dataBucket,
-    `${trimmedVersion}/config.json`
-  );
+  const config = await getObjectWithRetry(dataBucket, `${trimmedVersion}/config.json`);
 
   console.log(`ℹ️  getting data for version: ${trimmedVersion}`);
 
-  console.log(Object.keys(config.stores).join(", "));
+  console.log(Object.keys(config.stores).join(', '));
 
   // if precomputed search, get results from different location to interactive search
   const chosenResults = precomputed
     ? await getPrecomputedSearchResults(searchId, ids, algo, trimmedVersion)
     : await getInteractiveSearchResults(searchId, ids);
 
-  // Loop over the ids and generate streams for each one.
-  await new Promise((resolve, reject) => {
-    const writeStream = streamTo(downloadTarget, resolve);
+  console.log(`Prepare to upload chosen results to ${downloadBucket}:${downloadTarget}`);
 
-    writeStream.on("close", () => {
-      console.log(`✅  close write stream`);
-    });
-    writeStream.on("end", () => {
-      console.log(`🛑  end write stream`);
-      // the resolve function is no longer called here as we need it to
-      // be called once the writeStream has finished, so the resolve
-      // function is passed to the streamTo function as a callback to be
-      // called once the stream has been closed.
-    });
-    writeStream.on("error", () => {
-      console.log("write stream error");
-      reject();
-    });
-
+  try {
     // Create an archive that streams directly to the download bucket.
-    const archive = archiver("zip");
-    archive
-      .on("error", (error) => {
-        console.log("Archive Error");
-        throw new Error(
-          `${error.name} ${error.code} ${error.message} ${error.path}  ${error.stack}`
-        );
-      })
-      .on("progress", (data) => {
-        console.log("archive event: progress", data);
-      });
-
-    archive.pipe(writeStream);
-
-    chosenResults.forEach((result) => {
-      console.log(`ℹ️  generating filepath from ${algo}-${result.image.id}`);
-      const filePath = getFilePath(algo, result);
-      console.log(filePath);
+    const archive = archiver('zip', {
+      zlib: { level: 0 },
+    });
+    const writer = writeContentTo('application/zip', archive, downloadBucket, downloadTarget);
+    // Loop over the ids and generate streams for each one.
+    for (const [i, result] of chosenResults.entries()) {
+      console.log(`ℹ️ process entry ${i} from ${algo}-${result.image.id}`);
+      const filePath = algo === 'pppm' ? result.files.CDMBest : result.image.files.CDM;
       const fileName = path.basename(filePath);
-      console.log(fileName);
+      console.log(`${filePath} -> ${fileName}`);
       // Use the information in the resultSet object to find the image path
       // and source bucket
       const storeObj = config.stores[result.image.files.store];
-      const storePrefix = algo === "pppm" ? storeObj.prefixes.CDMBest : storeObj.prefixes.CDM;
+      const storePrefix = algo === 'pppm' ? storeObj.prefixes.CDMBest : storeObj.prefixes.CDM;
       const sourceBucket = getBucketNameFromURL(storePrefix);
-      // Pass the image from the source bucket into the download bucket via
-      // the archiver.
-      console.log(`ℹ️  appending ${sourceBucket}:${fileName} to archive`);
-      archive.append(getReadStream(filePath, sourceBucket), { name: fileName });
-    });
-
-    // Once all image transfers are complete, close the archive
-    console.log(`⭐  all files added to write stream`);
+      // Pass the image from the source bucket into the download bucket via the archiver.
+      const archiveEntry = await getS3ContentAsByteBufferWithRetry(sourceBucket, filePath);
+      archive.append(archiveEntry, { name: fileName });
+      console.log(`✅ entry ${i}: ${sourceBucket}:${fileName} - added to archive`);
+    }
     archive.finalize();
-  }).catch((error) => {
-    console.log("Promise Error");
-    throw new Error(`${error.code} ${error.message} ${error.data}`);
+
+    await writer.done();
+
+    // Create a link to the newly created archive file
+    // and return it as the response.
+    console.log(`⭐  return download link`);
+    return {
+      isBase64Encoded: false,
+      statusCode: 200,
+      body: JSON.stringify({ download: downloadTarget, bucket: downloadBucket }),
+    };
+  } catch(err) {
+    console.error('❌ Upload error', err);
+    throw err;
+  }
+};
+
+const writeContentTo = (ContentType, ContentStream, Bucket, Key) => {
+  console.log(`⭐  write content to ${Bucket}:${Key} for content-type: ${ContentType}`);
+
+  const writeStream = new PassThrough({
+    highWaterMark: archiverBufferSizeInMB * 1024 * 1024,
+  });
+  ContentStream.pipe(writeStream);
+  // create the writer
+  const upload = new Upload({
+    client: s3Client,
+    params: {
+      Bucket,
+      Key,
+      Body: writeStream,
+      ContentType,
+    },
   });
 
-  // Create a link to the newly created archive file and return it
-  // as the response.
-  console.log(`⭐  should be called last`);
-  const returnObj = {
-    isBase64Encoded: false,
-    statusCode: 200,
-    body: JSON.stringify({ download: downloadTarget, bucket: downloadBucket }),
-  };
-
-  return returnObj;
+  return upload;
 };

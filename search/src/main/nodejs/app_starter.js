@@ -1,8 +1,8 @@
-import AWS from 'aws-sdk';
-import Jimp from 'jimp';
-import {getSearchKey, getSearchMaskId} from './searchutils';
+import { BatchClient, SubmitJobCommand } from "@aws-sdk/client-batch";
+import { Jimp } from 'jimp';
+import { getSearchKey, getSearchMaskId}  from './searchutils';
 import {
-    getS3ContentWithRetry,
+    getS3ContentAsByteBufferWithRetry,
     getS3ContentMetadata,
     putS3Content,
     startStepFunction,
@@ -15,20 +15,15 @@ import {
     lookupSearchMetadata,
     updateSearchMetadata
 } from './awsappsyncutils';
-import {generateMIPs} from './mockMIPGeneration';
-import {cdsStarter} from './cds_starter';
+import { generateMIPs } from './mockMIPGeneration';
+import { cdsStarter } from './cds_starter';
 
 const brainAlignJobDefinition = process.env.BRAIN_ALIGN_JOB_DEFINITION;
 const vncAlignJobDefinition = process.env.VNC_ALIGN_JOB_DEFINITION;
 const jobQueue = process.env.JOB_QUEUE;
-const perDayColorDepthSearchLimits = process.env.MAX_SEARCHES_PER_DAY || 1;
-const concurrentColorDepthSearchLimits = process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1;
-const perDayAlignmentLimits = process.env.MAX_ALIGNMENTS_PER_DAY || 1;
-const concurrentAlignmentLimits = process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1;
 const alignMonitorStateMachineArn = process.env.ALIGN_JOB_STATE_MACHINE_ARN;
-const searchBucket = process.env.SEARCH_BUCKET;
 
-const bc = new AWS.Batch();
+const batchClient = new BatchClient();
 
 export const appStarter = async (event) => {
     console.log(event);
@@ -36,7 +31,7 @@ export const appStarter = async (event) => {
     let eventBody;
     if (event.body) {
         eventBody = JSON.parse(event.body);
-        console.log("Parsed body", eventBody);
+        console.log('Parsed body', eventBody);
         sourceIsHttpApiGateway = true;
     } else {
         eventBody = event;
@@ -129,6 +124,7 @@ const getNewRecords = async (e) => {
 };
 
 const startColorDepthSearch = async (searchParams) => {
+    const { concurrentColorDepthSearchLimits, perDayColorDepthSearchLimits, } = getLimits();
     const limitsMessage = await checkLimits(
         searchParams,
         concurrentColorDepthSearchLimits,
@@ -153,15 +149,16 @@ const startColorDepthSearch = async (searchParams) => {
         const searchInputName = searchParams.searchMask
             ? searchParams.searchMask
             : searchParams.searchInputName;
+        const currentSearchBucket = getCurrentSearchBucket();
 
-        searchParams.displayableMask = await createDisplayableMask(searchBucket, searchParams.searchInputFolder, searchInputName);
+        searchParams.displayableMask = await createDisplayableMask(currentSearchBucket, searchParams.searchInputFolder, searchInputName);
         if (searchParams.displayableMask) {
             await updateSearchMetadata({
                 id: searchParams.id || searchParams.searchId,
                 displayableMask: searchParams.displayableMask,
             });
         }
-        searchParams.searchBucket = searchBucket;
+        searchParams.searchBucket = currentSearchBucket;
         const cdsInvocationResult = await cdsStarter(searchParams);
         console.log('Started ColorDepthSearch', cdsInvocationResult);
         return cdsInvocationResult;
@@ -173,13 +170,13 @@ const createDisplayableMask = async (bucket, prefix, key) => {
         const fullKey = `${prefix}/${key}`;
         try {
             console.log(`Convert ${bucket}:${key} to PNG`);
-            const imageContent = await getS3ContentWithRetry(bucket, fullKey);
+            const imageContent = await getS3ContentAsByteBufferWithRetry(bucket, fullKey);
             const pngMime = "image/png";
             const pngExt = ".png";
-            const image = await Jimp.read(imageContent);
-            const imageBuffer = await image.getBufferAsync(pngMime);
+            const image = await Jimp.fromBuffer(imageContent);
+            const imageBuffer = await image.getBuffer(pngMime);
             const pngImageName = getSearchKey(fullKey, pngExt);
-            console.log(`Put ${bucket}:${pngImageName}`, imageBuffer);
+            console.log(`Upload displayable mask to ${bucket}:${pngImageName}`, imageBuffer);
             await putS3Content(bucket, pngImageName, pngMime, imageBuffer);
             console.info(`${fullKey} converted to png successfully`);
             return getSearchMaskId(pngImageName, pngExt);
@@ -193,6 +190,7 @@ const createDisplayableMask = async (bucket, prefix, key) => {
 };
 
 const startAlignment = async (searchParams) => {
+    const { concurrentAlignmentLimits, perDayAlignmentLimits, } = getLimits();
     const limitsMessage = await checkLimits(
         searchParams,
         concurrentAlignmentLimits,
@@ -249,7 +247,7 @@ const checkLimits = async (searchParams, concurrentSearches, perDayLimits, limit
 
 const submitAlignmentJob = async (searchParams) => {
     const fullSearchInputImage = `${searchParams.searchInputFolder}/${searchParams.searchInputName}`;
-    const searchInputMetadata = await getS3ContentMetadata(searchBucket, fullSearchInputImage);
+    const searchInputMetadata = await getS3ContentMetadata(getCurrentSearchBucket(), fullSearchInputImage);
     console.log('Search input metadata', searchInputMetadata);
     const searchInputSize = searchInputMetadata.ContentLength;
     const searchInputContentType = searchInputMetadata.ContentType;
@@ -272,7 +270,7 @@ const submitAlignmentJob = async (searchParams) => {
     console.log('Job parameters', params);
     try {
         // submit batch job
-        const job = await bc.submitJob(params).promise();
+        const job = await batchClient.send(new SubmitJobCommand(params));
         const now = new Date();
         console.log('Submitted', job);
         console.log(`Job ${job.jobName} launched with id ${job.jobId}`, job);
@@ -338,6 +336,19 @@ const selectComputeResources = estimatedMemory => {
             cpus: 40
         };
     }
+};
+
+const getCurrentSearchBucket = () => {
+    return process.env.SEARCH_BUCKET;
+};
+
+const getLimits = () => {
+    return {
+        concurrentColorDepthSearchLimits: process.env.MAX_ALLOWED_CONCURRENT_SEARCHES || 1,
+        perDayColorDepthSearchLimits: process.env.MAX_SEARCHES_PER_DAY || 1,
+        concurrentAlignmentLimits: process.env.MAX_ALLOWED_CONCURRENT_ALIGNMENTS || 1,
+        perDayAlignmentLimits: process.env.MAX_ALIGNMENTS_PER_DAY || 1,
+    };
 };
 
 const setAlignmentJobParams = (searchParams, computeResources) => {

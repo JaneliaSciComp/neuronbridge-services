@@ -1,8 +1,8 @@
-import AWS from 'aws-sdk';
-import {getSearchMaskId, getSearchSubFolder} from './searchutils';
-import {updateSearchMetadata, ALIGNMENT_JOB_COMPLETED} from './awsappsyncutils';
+import { S3Client, CopyObjectCommand } from "@aws-sdk/client-s3";
+import { getSearchMaskId, getSearchSubFolder } from './searchutils';
+import { updateSearchMetadata, ALIGNMENT_JOB_COMPLETED } from './awsappsyncutils';
 
-const s3 = new AWS.S3();
+const s3Client = new S3Client();
 
 const searchBucket = process.env.SEARCH_BUCKET;
 const TEST_IMAGE_BUCKET = process.env.SEARCH_BUCKET;
@@ -21,11 +21,11 @@ export const generateMIPs = async (searchParams) => {
 
     for(let channelNumber = 0; channelNumber < nchannels; channelNumber++) {
         const mipName = `${searchMaskId}_U_20x_HR_0${channelNumber+1}.png`;
-        await s3.copyObject({
+        await s3Client.send(new CopyObjectCommand({
             CopySource: `${TEST_IMAGE_BUCKET}/${TEST_IMAGE}`,
             Bucket: searchBucket,
             Key: `${mipsFolder}/${mipName}`
-        }).promise();
+        }));
         const mip = `${MIPS_FOLDER}/${mipName}`;
         if (channelNumber === 0) {
             displayableMask = mip;

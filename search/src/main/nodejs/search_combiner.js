@@ -54,13 +54,13 @@ const mergeBatchResults = async (searchId, items, allBatchResults) => {
 const extractResults = (item) => {
     try {
         const resultsSValue = item.resultsMimeType === 'application/gzip'
-            ? zlib.gunzipSync(item.results)
+            ? zlib.gunzipSync(Buffer.from(item.results, 'base64'))
             : item.results;
         const intermediateResults = JSON.parse(resultsSValue);
         // convert all intermediate results
         return intermediateResults.map(r => convertItermediateResults(r));
     } catch (e) {
-        console.log(`Error extracting results for ${item.jobId}:${item.batchId}`);
+        console.log(`Error extracting results for ${item.jobId}:${item.batchId}`, e);
         throw e;
     }
 };
@@ -269,7 +269,7 @@ export const searchCombiner = async (event) => {
     if (DEBUG) console.log('Input event:', JSON.stringify(event));
 
     // Parameters
-    const { jobId, tasksTableName, timedOut, completed, withErrors, fatalErrors } = event;
+    const { jobId, tasksTableName, timedOut, completed, batchErrors } = event;
     const { searchBucket, searchId, maskKeys, maxResultsPerMask } = event.jobParameters;
     const fullSearchInputName = maskKeys[0];
     const searchInputName = fullSearchInputName.substring(fullSearchInputName.lastIndexOf("/") + 1);
@@ -277,19 +277,7 @@ export const searchCombiner = async (event) => {
     let allBatchResults = {};
 
     const now = new Date();
-    if (fatalErrors && fatalErrors.length > 0) {
-        // if there are fatalErrors do not try any reducing step because
-        // the process had already been invoked and most likely failed
-        // so simply report the error just in case it has not been reported yet
-        console.log(`Job ${jobId} - ${searchId} completed with fatal errors`);
-        await updateSearchMetadata({
-            id: searchId,
-            step: SEARCH_COMPLETED,
-            errorMessage: "Color depth search completed with fatal errors",
-            cdsFinished: now.toISOString()
-        });
-        return event;
-    } else if (timedOut) {
+    if (timedOut || !completed) {
         console.log(`Job ${jobId} - ${searchId} timed out`);
         await updateSearchMetadata({
             id: searchId,
@@ -297,12 +285,12 @@ export const searchCombiner = async (event) => {
             errorMessage: "Color depth search timed out",
             cdsFinished: now.toISOString()
         });
-    } else if (withErrors || !completed) {
-        console.log(`Job ${jobId} - ${searchId} completed with errors`);
+    } else if (batchErrors && batchErrors.length > 0) {
+        console.log(`Job ${jobId} - ${searchId} completed with errors`, batchErrors);
         await updateSearchMetadata({
             id: searchId,
             step: SEARCH_COMPLETED,
-            errorMessage: "Color depth search completed with errors",
+            errorMessage: `Color depth search completed with errors: ${JSON.stringify(batchErrors)}`,
             cdsFinished: now.toISOString()
         });
     }

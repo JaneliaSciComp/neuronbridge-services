@@ -299,6 +299,5 @@ resources:
                 - Effect: Allow
                   Action:
                     - lambda:InvokeFunction
-                    - lambda:InvokeAsync
                   Resource: '*'
               Version: '2012-10-17'

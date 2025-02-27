@@ -1,10 +1,8 @@
-import AWS from 'aws-sdk';
+import { BatchClient, DescribeJobsCommand } from "@aws-sdk/client-batch";
 
 import { getSearchMetadata, updateSearchMetadata} from './awsappsyncutils';
 
-const bc = new AWS.Batch({
-    apiVersion: '2016-08-10'
-});
+const batchClient = new BatchClient();
 
 export const isJobDone = async (event) =>  {
     console.log('Input event:', JSON.stringify(event));
@@ -29,9 +27,9 @@ const monitorAlignmentJob = async (alignJobParams) => {
     const jobId = alignJobParams.jobId;
 
     // retrieve jobs
-    const jobDescriptions = await bc.describeJobs({
+    const jobDescriptions = await batchClient.send(new DescribeJobsCommand({
         jobs: [jobId]
-    }).promise();
+    }));
     console.log('Jobs', jobDescriptions);
     if (!jobDescriptions.jobs)  {
         console.log('Something must have gone completely wrong - no jobs found for', alignJobParams);

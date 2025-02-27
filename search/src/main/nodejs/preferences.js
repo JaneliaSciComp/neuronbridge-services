@@ -1,11 +1,13 @@
-import AWS from "aws-sdk";
+import { DynamoDBDocumentClient, DeleteCommand,
+         QueryCommand, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-const db = new AWS.DynamoDB.DocumentClient({
+const dbDocClient = DynamoDBDocumentClient.from(new DynamoDBClient({
   maxRetries: 3,
   httpOptions: {
     timeout: 5000
   }
-});
+}));
 
 async function deletePreferences(jwt) {
   const params = {
@@ -14,7 +16,7 @@ async function deletePreferences(jwt) {
       'username': jwt.claims.username
     }
   };
-  const result = await db.delete(params).promise();
+  const result = await dbDocClient.send(new DeleteCommand(params));
   return result;
 }
 
@@ -28,7 +30,7 @@ async function getPreferences(jwt) {
     ReturnConsumedCapacity: 'TOTAL'
   };
 
-  const data = await db.query(params).promise();
+  const data = await dbDocClient.send(new QueryCommand(params));
   return data.Items[0] || {};
 }
 
@@ -45,7 +47,7 @@ async function updatePreferences(jwt, itemAttributes) {
     TableName: process.env.TABLE,
     Item: item
   };
-  await db.put(params).promise();
+  await dbDocClient.send(new PutCommand(params));
   return item;
 }
 

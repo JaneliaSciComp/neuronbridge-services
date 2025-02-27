@@ -1,20 +1,21 @@
 service: janelia-neuronbridge-cds
 
+org: janelia
+
 plugins:
-  - serverless-plugin-aws-alerts
   - serverless-appsync-plugin
   - serverless-bundle
   - serverless-deployment-bucket
-  - serverless-step-functions
   - serverless-dotenv-plugin
+  - serverless-step-functions
+  - serverless-plugin-aws-alerts
   - ./hooks/custom-hooks-plugin.js # custom hooks plugin
+
 
 custom:
   version: 3.0.0
-  tracing: false
+  tracing: true
   debug: true
-
-  nodeJSRuntime: nodejs16.x
 
   downloadBucket: ${file(../config.yml):config.downloadBucket}
   dataBucket: ${file(../config.yml):config.dataBucket}
@@ -47,6 +48,7 @@ custom:
   burstComputeStage: ${env:BURST_COMPUTE_STAGE, self:provider.stage}
   tasksTable: ${cf:burst-compute-${self:custom.burstComputeStage}.TasksTable}
   parallelDispatchFunction: ${cf:burst-compute-${self:custom.burstComputeStage}.DispatchLambdaFunction}
+  toleratedPercentageFailure: ${env:TOLERATED_PERCENTAGE_FAILURE, 10}
   searchBatchSize: ${file(../config.yml):config.searchBatchSize}
   searchParallelization: ${file(../config.yml):config.searchParallelization}
   cdsTimeoutInSeconds: ${file(../config.yml):config.cdsTimeoutInSeconds}
@@ -87,10 +89,14 @@ custom:
           - protocol: email
             endpoint: ${self:custom.alertEmail}
 
+
 useDotenv: true
+
 
 provider:
   name: aws
+  architecture: arm64
+  runtime: nodejs20.x
   region: ${opt:region, "us-east-1"}
   stage: ${opt:stage, "dev"}
   deploymentBucket:
@@ -106,6 +112,7 @@ provider:
     DEVELOPER: ${env:USER}
     STAGE: ${self:provider.stage}
   tracing:
+    apiGateway: ${self:custom.tracing}
     lambda: ${self:custom.tracing}
   environment:
     AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
@@ -188,7 +195,6 @@ provider:
         - Effect: Allow
           Action:
             - lambda:InvokeFunction
-            - lambda:InvokeAsync
           Resource: "*"
         - Effect: Allow
           Action:
@@ -243,7 +249,6 @@ provider:
             - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.oldSearchTable}"
             - "arn:aws:dynamodb:${self:provider.region}:*:table/${self:custom.searchTable}"
 
-
   httpApi:
     payload: "2.0"
     cors: true
@@ -268,7 +273,6 @@ package:
   individually: true
   patterns:
     - 'src/main/nodejs/**'
-    - 'cds_config.json'
 
 
 appSync:
@@ -343,7 +347,6 @@ appSync:
 functions:
 
   appStarter:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/app_starter.appStarter
     memorySize: 256
     timeout: 25
@@ -362,6 +365,7 @@ functions:
       MAX_ALLOWED_CONCURRENT_SEARCHES: ${file(../config.yml):config.concurrentSearchLimits}
       MAX_PARALLELISM: ${self:custom.searchParallelization}
       MAX_SEARCHES_PER_DAY: ${file(../config.yml):config.perDaySearchLimits}
+      TOLERATED_PERCENTAGE_FAILURE: ${self:custom.toleratedPercentageFailure}
       PARALLEL_DISPATCH_FUNCTION_ARN: ${self:custom.parallelDispatchFunction}
       REDUCE_FUNCTION: !Ref CombinerLambdaFunction
       DATA_BUCKET: ${self:custom.dataBucket}
@@ -393,7 +397,6 @@ functions:
           - monitoredAlarms
 
   combiner:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_combiner.searchCombiner
     memorySize: 384
     timeout: ${self:custom.cdsTimeoutInSeconds}
@@ -420,7 +423,6 @@ functions:
           - monitoredAlarms
 
   monitor:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/monitor.isJobDone
     memorySize: 128
     timeout: 180
@@ -429,9 +431,8 @@ functions:
       DEBUG: ${self:custom.debug}
 
   search:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/batch_search.batchSearch
-    memorySize: 640
+    memorySize: 512
     timeout: ${self:custom.cdsTimeoutInSeconds}
     environment:
       DEBUG: ${self:custom.debug}
@@ -451,7 +452,6 @@ functions:
           - monitoredAlarms
 
   searchCopyAlignment:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_copy.searchCopyAlignment
     memorySize: 128
     timeout: 10
@@ -469,7 +469,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchCreateDefaultChannel:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_create_default_channel.searchCreateDefaultChannel
     memorySize: 128
     timeout: 10
@@ -487,7 +486,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchNewFromImage:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_new_from_image.searchNewFromImage
     memorySize: 128
     timeout: 10
@@ -505,7 +503,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   searchUpdate:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/search_update.searchUpdate
     memorySize: 128
     timeout: 25
@@ -514,9 +511,8 @@ functions:
       APPSYNC_API_URL: { Fn::GetAtt: [ GraphQlApi, GraphQLUrl ] }
 
   downloadCreator:
-    runtime: ${self:custom.nodeJSRuntime}
     handler: src/main/nodejs/download_creator.downloadCreator
-    memorySize: 256
+    memorySize: 384
     timeout: 29
     # maximum timeout for an http API gateway is 29 seconds, so this
     # could bite us. Might have to resort to triggering a lambda and
@@ -524,6 +520,7 @@ functions:
     maximumEventAge: 60
     maximumRetryAttempts: 1
     environment:
+      ARCHIVER_BUFFER_MB: 256
       DEBUG: ${self:custom.debug}
       SEARCH_BUCKET: ${self:custom.searchBucket}
       DOWNLOAD_BUCKET: ${self:custom.downloadBucket}
@@ -539,7 +536,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   curatedMatches:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: curatedMatches
     handler: src/main/nodejs/curated_matches.curatedMatches
@@ -553,10 +549,7 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-
-
   publishedNames:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: publishedNames
     handler: src/main/nodejs/published_names.publishedNames
@@ -572,7 +565,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   publishingDOI:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: publishingDOI
     handler: src/main/nodejs/publishingDOI.publishingDOI
@@ -587,9 +579,7 @@ functions:
           authorizer:
             name: neuronBridgeJwtAuthorizer
 
-
   preferences:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: preferencesRole
     handler: src/main/nodejs/preferences.handler
@@ -614,7 +604,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   announcements:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: announcementsRole
     handler: src/main/nodejs/announcements.announcements
@@ -639,7 +628,6 @@ functions:
             name: neuronBridgeJwtAuthorizer
 
   mailinglist:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 10
     role: mailinglistRole
     handler: src/main/nodejs/mailinglist.handler
@@ -656,7 +644,6 @@ functions:
 
   # lambda function to migrate v2.x searches to v3.x
   searchMigration:
-    runtime: ${self:custom.nodeJSRuntime}
     timeout: 600
     role: searchMigration
     handler: src/main/nodejs/search_migration.searchMigration
@@ -666,6 +653,7 @@ functions:
       SEARCH_BUCKET: ${self:custom.searchBucket}
       LM_PUBLISHED_STACKS_TABLE: ${self:custom.publishedLMStacksTable}
       EM_PUBLISHED_SKELETONS_TABLE: ${self:custom.publishedEMSkeletonsTable}
+
 
 stepFunctions:
   validate: true # enable pre-deployment definition validation
@@ -710,6 +698,7 @@ stepFunctions:
           EndState:
             Type: Pass
             End: true
+
 
 resources:
   - ${file(sls_resources/cognito-pools.yml)}

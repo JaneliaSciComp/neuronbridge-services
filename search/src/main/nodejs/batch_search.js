@@ -1,9 +1,9 @@
 import path from 'path';
 import zlib from 'zlib';
 
-import {GenerateColorMIPMasks, ColorMIPSearch} from './mipsearch';
-import {loadMIPRange} from "./load_mip";
-import {DEBUG, getObjectWithRetry, putDbItemWithRetry} from './utils';
+import { GenerateColorMIPMasks, ColorMIPSearch } from './mipsearch';
+import { loadMIPRange } from "./load_mip";
+import { DEBUG, getObjectWithRetry } from './utils';
 
 const defaultBatchResultsMinToLive = process.env.BATCH_RESULTS_MIN_TO_LIVE || 15; // default ttl for batch results 15min if not set in the config
 
@@ -42,9 +42,9 @@ export const batchSearch = async (event) => {
         minMatchingPixRatio: jobParameters.minMatchingPixRatio || 2.0
     };
     validateBatchParams(batchParams);
-    const nresults = await executeColorDepthsSearches(batchParams, startIndex, endIndex);
+    const cdsResults = await executeColorDepthsSearches(batchParams, startIndex, endIndex);
     logWithMemoryUsage(`Completed Batch Id: ${batchId}`); // log final memory stats
-    return nresults;
+    return cdsResults;
 };
 
 const validateBatchParams = (batchParams) => {
@@ -72,6 +72,7 @@ const validateBatchParams = (batchParams) => {
 
 const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => {
     if (DEBUG) {
+        console.log('Execute ColorDepthSearch batch:', batchParams);
         logWithMemoryUsage(`Compare ${batchParams.maskKeys.length} masks with mips between [${startIndex},${endIndex}] from ${batchParams.libraries.length} libraries`);
     }
     const cdsResults = await findAllColorDepthMatches({
@@ -86,8 +87,7 @@ const executeColorDepthsSearches = async (batchParams, startIndex, endIndex) => 
         minMatchingPixRatio: batchParams.minMatchingPixRatio
     }, startIndex, endIndex);
     logWithMemoryUsage(`Batch Id: ${batchParams.batchId} - found ${cdsResults.length} matches.`);
-    await writeCDSResults(cdsResults, batchParams.tasksTableName, batchParams.jobId, batchParams.batchId);
-    return cdsResults.length;
+    return createFinalCDSResults(cdsResults, batchParams.jobId, batchParams.batchId);
 };
 
 const findAllColorDepthMatches = async (params, startIndex, endIndex) => {
@@ -267,11 +267,17 @@ const perMaskMetadata = (params) => {
 };
 
 const runMaskSearches = async (params) => {
+    if (DEBUG) {
+        console.log('Run mask searches', params);
+    }
     const maskMetadata = getMaskMIPMetdata(params.masksBucket, params.maskKey);
 
     const zTolerance = params.pixColorFluctuation == null ? 0.0 : params.pixColorFluctuation / 100.0;
     const maskThreshold = params.maskThreshold != null ? params.maskThreshold : 0;
 
+    if (DEBUG) {
+        console.log(`Load mask ${params.maskKey} from ${params.masksBucket}`);
+    }
     const maskImage = await loadMIPRange(params.masksBucket, params.maskKey, 0, 0);
 
     const cdMask = GenerateColorMIPMasks({
@@ -293,9 +299,9 @@ const runMaskSearches = async (params) => {
     const pixMatchRatioThreshold = params.minMatchingPixRatio != null ? params.minMatchingPixRatio / 100.0 : 0.0;
     let results = [];
     for (let i = 0; i < params.targetMIPs.length; i++) {
-        const tarImage = await loadMIPRange(params.targetMIPs[i].bucketName, params.targetMIPs[i].mipKey, cdMask.maskpos_st, cdMask.maskpos_ed);
+        let tarImage = await loadMIPRange(params.targetMIPs[i].bucketName, params.targetMIPs[i].mipKey, cdMask.maskpos_st, cdMask.maskpos_ed);
         if (tarImage.data != null) {
-            const sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
+            let sr = ColorMIPSearch(tarImage.data, params.dataThreshold, zTolerance, cdMask);
             if (DEBUG) {
                 console.log(`Comparison result with ${params.targetMIPs[i]}`, sr, `mask size: ${cdMask.maskPositions.length}`);
                 logWithMemoryUsage(`Compared ${params.maskKey} with ${params.targetMIPs[i]}`);
@@ -316,7 +322,9 @@ const runMaskSearches = async (params) => {
                 }
                 results.push(r);
             }
+            sr = null; // reset for gc
         }
+        tarImage = null;  // reset for gc
     }
     return results;
 };
@@ -409,10 +417,7 @@ const populateEMMetadataFromName = (mipName, mipMetadata) => {
     return mipMetadata;
 };
 
-const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
-    const ttlDelta = defaultBatchResultsMinToLive * 60; // 20 min TTL
-    const ttl = (Math.floor(+new Date() / 1000) + ttlDelta).toString();
-
+const createFinalCDSResults = (cdsResults, jobId, batchId) => {
     const matchedMetadata = cdsResults
         .map(perMaskMetadata)
         .sort(function(a, b) { return a.matchingPixels < b.matchingPixels ? 1 : -1; });
@@ -422,17 +427,25 @@ const writeCDSResults = async (cdsResults, tableName, jobId, batchId) => {
     const resultsSValue = JSON.stringify(groupedResults);
 
     const resultsAttr = resultsSValue.length < 8192
-        ? { results: {S: resultsSValue} }
-        : { resultsMimeType: {S: 'application/gzip'}, results: {B: zlib.gzipSync(resultsSValue)} };
+        ? {
+            resultsMimeType: 'application/json',
+            results: resultsSValue
+        }
+        : {
+            resultsMimeType: 'application/gzip',
+            results: zlib.gzipSync(resultsSValue).toString('base64')
+        };
 
-    const item = {
-        jobId: {S: jobId},
-        batchId: {N: ""+batchId},
-        ttl: {N: ttl},
+    const ttlDelta = defaultBatchResultsMinToLive * 60; // time to live in seconds
+    const ttl = (Math.floor(Date.now() / 1000) + ttlDelta);
+
+    return {
+        jobId: jobId,
+        batchId: batchId.toString(),
+        nresults: cdsResults.length.toString(),
+        ttl: ttl.toString(),
         ...resultsAttr,
     };
-
-    return await putDbItemWithRetry(tableName, item);
 };
 
 const groupBy = (...keys) => xs =>
@@ -448,7 +461,7 @@ const updateGB = (...keys) => (acc, e) => {
     return acc;
 };
 
-const divProps =(...keys) => e =>
+const divProps = (...keys) => e =>
     Object.entries(e).reduce(
         ( acc, [k, v] ) =>
             keys.includes(k)? {...acc, labels:{...acc.labels, [k]:v}}

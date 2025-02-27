@@ -1,9 +1,10 @@
-import AWS  from 'aws-sdk';
-import AWSAppSyncClient from "aws-appsync";
-import { AUTH_TYPE } from 'aws-appsync';
-import gql from "graphql-tag";
-require("isomorphic-fetch");
+import { fromNodeProviderChain } from '@aws-sdk/credential-providers';
+import { SignatureV4 } from '@aws-sdk/signature-v4';
+import { Sha256 } from '@aws-crypto/sha256-js';
+import { default as fetch, Request } from 'node-fetch';
+import { HttpRequest } from '@smithy/protocol-http';
 
+const { APPSYNC_API_URL } = process.env;
 const DEBUG = !!process.env.DEBUG;
 
 export const ALIGNMENT_JOB_SUBMITTED = 1;
@@ -11,68 +12,234 @@ export const ALIGNMENT_JOB_COMPLETED = 2;
 export const SEARCH_IN_PROGRESS = 3;
 export const SEARCH_COMPLETED = 4;
 
-const appSyncClient = new AWSAppSyncClient({
-    url: process.env.APPSYNC_API_URL,
-    region: process.env.AWS_REGION,
-    auth: {
-        type: AUTH_TYPE.AWS_IAM,
-        credentials: AWS.config.credentials
-    },
-    disableOffline: true
+const getSearchMetadataGQL = `query getSearch($searchId: ID!) {
+    getSearch(id: $searchId) {
+        id
+        step
+        owner
+        identityId
+        searchDir
+        upload
+        uploadThumbnail
+        searchType
+        selectedLibraries
+        anatomicalRegion
+        algorithm
+        userDefinedImageParams
+        channel
+        referenceChannel
+        voxelX
+        voxelY
+        voxelZ
+        maskThreshold
+        dataThreshold
+        pixColorFluctuation
+        xyShift
+        mirrorMask
+        minMatchingPixRatio
+        maxResultsPerMask
+        nBatches
+        completedBatches
+        nTotalMatches
+        cdsStarted
+        cdsFinished
+        alignStarted
+        alignFinished
+        alignmentSize
+        createdOn
+        updatedOn
+        displayableMask
+        searchMask
+        computedMIPs
+        errorMessage
+        alignmentErrorMessage
+        simulateMIPGeneration
+        alignmentMovie
+        alignmentScore
+    }
+}`;
+
+const lookupSearchMetadataGQL = `query listSearches($searchFilter: TableSearchFilterInput!) {
+    listSearches(filter: $searchFilter, limit: 100, nextToken: null) {
+        items {
+            id
+            step
+            owner
+            identityId
+            searchDir
+            upload
+            uploadThumbnail
+            searchType
+            selectedLibraries
+            algorithm
+            userDefinedImageParams
+            channel
+            referenceChannel
+            voxelX
+            voxelY
+            voxelZ
+            maskThreshold
+            dataThreshold
+            pixColorFluctuation
+            xyShift
+            mirrorMask
+            minMatchingPixRatio
+            maxResultsPerMask
+            nBatches
+            completedBatches
+            nTotalMatches
+            cdsStarted
+            cdsFinished
+            alignStarted
+            alignFinished
+            alignmentSize
+            createdOn
+            updatedOn
+            displayableMask
+            searchMask
+            computedMIPs
+            errorMessage
+            alignmentErrorMessage
+            simulateMIPGeneration
+            alignmentMovie
+            alignmentScore
+        }
+    }
+}`;
+
+const createSearchMetadataGQL = `mutation createSearch($createInput: CreateSearchInput!) {
+    createSearch(input: $createInput) {
+      id
+      step
+      owner
+      identityId
+      searchDir
+      upload
+      uploadThumbnail
+      searchType
+      selectedLibraries
+      algorithm
+      maskThreshold
+      dataThreshold
+      pixColorFluctuation
+      xyShift
+      mirrorMask
+      minMatchingPixRatio
+      maxResultsPerMask
+      nBatches
+      completedBatches
+      nTotalMatches
+      cdsStarted
+      cdsFinished
+      alignStarted
+      alignFinished
+      createdOn
+      updatedOn
+      displayableMask
+      searchMask
+      computedMIPs
+      errorMessage
+      alignmentErrorMessage
+      anatomicalRegion
+    }
+}`;
+
+const updateSearchMetadataGQL = `mutation updateSearch($updateInput: UpdateSearchInput!) {
+    updateSearch(input: $updateInput) {
+        id
+        step
+        owner
+        identityId
+        searchDir
+        upload
+        uploadThumbnail
+        searchType
+        selectedLibraries
+        algorithm
+        anatomicalRegion
+        maskThreshold
+        dataThreshold
+        pixColorFluctuation
+        xyShift
+        mirrorMask
+        minMatchingPixRatio
+        maxResultsPerMask
+        nBatches
+        completedBatches
+        nTotalMatches
+        cdsStarted
+        cdsFinished
+        alignStarted
+        alignFinished
+        alignmentSize
+        createdOn
+        updatedOn
+        displayableMask
+        searchMask
+        computedMIPs
+        errorMessage
+        alignmentErrorMessage
+        alignmentMovie
+        alignmentScore
+    }
+}`;
+
+const credentialsProvider = fromNodeProviderChain({
 });
 
+const makeSignedAppSyncRequest = async (gqlString, variables) => {
+    try {
+        const appSyncURL = new URL(APPSYNC_API_URL);
+        const credentials = await credentialsProvider();
+        const signer = new SignatureV4({
+            region: process.env.AWS_REGION,
+            service: 'appsync',
+            sha256: Sha256,
+            credentials: credentials,
+        });
+
+        const body = JSON.stringify({
+            query: gqlString,
+            variables,
+        });
+        console.log(`GQL request - host:${appSyncURL.hostname}, `,
+                    `path:${appSyncURL.pathname}`,
+                    body);
+        const request = new HttpRequest({
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'host': appSyncURL.hostname,
+            },
+            hostname: appSyncURL.hostname,
+            path: appSyncURL.pathname,
+            body: body,
+            region: process.env.AWS_REGION,
+        });
+        console.log('GQL request before signing it:', request);
+        const signedRequest = await signer.sign(request, {
+            signingDate: new Date(),
+        });
+        console.log('Signed GQL request:', signedRequest);
+        const httpRequest = new Request(appSyncURL, signedRequest);
+        const response = await fetch(httpRequest);
+
+        console.log('GQL response:', response);
+        return response.json();
+    } catch(err) {
+        console.error('Error making signed request', gqlString, err);
+        throw err;
+    }
+};
+
+
 export const getSearchMetadata = async (searchId) => {
-    const result = await appSyncClient.query({
-        query: gql(`query getSearch($searchId: ID!) {
-            getSearch(id: $searchId) {
-                id
-                step
-                owner
-                identityId
-                searchDir
-                upload
-                uploadThumbnail
-                searchType
-                selectedLibraries
-                anatomicalRegion
-                algorithm
-                userDefinedImageParams
-                channel
-                referenceChannel
-                voxelX
-                voxelY
-                voxelZ
-                maskThreshold
-                dataThreshold
-                pixColorFluctuation
-                xyShift
-                mirrorMask
-                minMatchingPixRatio
-                maxResultsPerMask
-                nBatches
-                completedBatches
-                nTotalMatches
-                cdsStarted
-                cdsFinished
-                alignStarted
-                alignFinished
-                alignmentSize
-                createdOn
-                updatedOn
-                displayableMask
-                searchMask
-                computedMIPs
-                errorMessage
-                alignmentErrorMessage
-                simulateMIPGeneration
-                alignmentMovie
-                alignmentScore
-            }
-        }`),
-        variables: { searchId: searchId},
-        fetchPolicy: 'no-cache'
-    });
-    console.log("Search data for", searchId, result);
+    console.log('Searching for', searchId);
+    const result = await makeSignedAppSyncRequest(
+        getSearchMetadataGQL,
+        { searchId: searchId }
+    );
+    console.log('Search result for', searchId, result);
     const searchResult = toSearchResult(result.data.getSearch);
     console.log("Found search result", searchResult);
     return searchResult;
@@ -92,59 +259,14 @@ export const lookupSearchMetadata = async (searchFilterParams) => {
     if (searchFilterParams.lastUpdated) {
         const lastUpdated = searchFilterParams.lastUpdated;
         lastUpdated.setHours(0,0,0,0);
-        searchFilter.updatedOn = {"ge": lastUpdated.toISOString()};
+        searchFilter.updatedOn = {'ge': lastUpdated.toISOString()};
     }
-    const result = await appSyncClient.query({
-        query: gql(`query listSearches($searchFilter: TableSearchFilterInput!) {
-            listSearches(filter: $searchFilter, limit: 100, nextToken: null) {
-                items {
-                    id
-                    step
-                    owner
-                    identityId
-                    searchDir
-                    upload
-                    uploadThumbnail
-                    searchType
-                    selectedLibraries
-                    algorithm
-                    userDefinedImageParams
-                    channel
-                    referenceChannel
-                    voxelX
-                    voxelY
-                    voxelZ
-                    maskThreshold
-                    dataThreshold
-                    pixColorFluctuation
-                    xyShift
-                    mirrorMask
-                    minMatchingPixRatio
-                    maxResultsPerMask
-                    nBatches
-                    completedBatches
-                    nTotalMatches
-                    cdsStarted
-                    cdsFinished
-                    alignStarted
-                    alignFinished
-                    alignmentSize
-                    createdOn
-                    updatedOn
-                    displayableMask
-                    searchMask
-                    computedMIPs
-                    errorMessage
-                    alignmentErrorMessage
-                    simulateMIPGeneration
-                    alignmentMovie
-                    alignmentScore
-                }
-            }
-        }`),
-        variables: { searchFilter: searchFilter}
-    });
-    console.log("Search data for", searchFilterParams, result);
+    console.log('Searching for', searchFilterParams);
+    const result = await makeSignedAppSyncRequest(
+        lookupSearchMetadataGQL,
+        { searchFilter: searchFilter}
+    );
+    console.log('Search result for', searchFilterParams, result);
     const searches = result.data.listSearches.items
         .map(s => toSearchResult(s))
         .filter(s => searchFilterParams.withNoErrorsOnly ? !s.errorMessage && !s.alignmentErrorMessage : true);
@@ -153,49 +275,14 @@ export const lookupSearchMetadata = async (searchFilterParams) => {
 };
 
 export const createSearchMetadata = async (searchData) => {
-  const result = await appSyncClient.mutate({
-    mutation: gql(`mutation createSearch($createInput: CreateSearchInput!) {
-      createSearch(input: $createInput) {
-        id
-        step
-        owner
-        identityId
-        searchDir
-        upload
-        uploadThumbnail
-        searchType
-        selectedLibraries
-        algorithm
-        maskThreshold
-        dataThreshold
-        pixColorFluctuation
-        xyShift
-        mirrorMask
-        minMatchingPixRatio
-        maxResultsPerMask
-        nBatches
-        completedBatches
-        nTotalMatches
-        cdsStarted
-        cdsFinished
-        alignStarted
-        alignFinished
-        createdOn
-        updatedOn
-        displayableMask
-        searchMask
-        computedMIPs
-        errorMessage
-        alignmentErrorMessage
-        anatomicalRegion
-      }
-    }`),
-    variables: {
-      createInput: searchData
-    }
-  });
-  const newSearch = toSearchResult(result.data.createSearch);
-  return newSearch;
+    console.log('Create search metadata', searchData);
+    const result = await makeSignedAppSyncRequest(
+        createSearchMetadataGQL,
+        { createInput: searchData }
+    );
+    console.log('Create search metadata result', searchData, result);
+    const newSearch = toSearchResult(result.data.createSearch);
+    return newSearch;
 };
 
 export const updateSearchMetadata = async (searchData) => {
@@ -203,53 +290,14 @@ export const updateSearchMetadata = async (searchData) => {
         if (DEBUG) console.log('Update not invoked because no search ID was set');
         return searchData;
     }
-    const result = await appSyncClient.mutate({
-        mutation: gql(`mutation updateSearch($updateInput: UpdateSearchInput!) {
-            updateSearch(input: $updateInput) {
-                id
-                step
-                owner
-                identityId
-                searchDir
-                upload
-                uploadThumbnail
-                searchType
-                selectedLibraries
-                algorithm
-                anatomicalRegion
-                maskThreshold
-                dataThreshold
-                pixColorFluctuation
-                xyShift
-                mirrorMask
-                minMatchingPixRatio
-                maxResultsPerMask
-                nBatches
-                completedBatches
-                nTotalMatches
-                cdsStarted
-                cdsFinished
-                alignStarted
-                alignFinished
-                alignmentSize
-                createdOn
-                updatedOn
-                displayableMask
-                searchMask
-                computedMIPs
-                errorMessage
-                alignmentErrorMessage
-                alignmentMovie
-                alignmentScore
-            }
-        }`),
-        variables: {
-            updateInput: searchData
-        }
-    });
-    console.log("Updated search for", searchData, result);
+    console.log('Update search metadata', searchData);
+    const result = await makeSignedAppSyncRequest(
+        updateSearchMetadataGQL,
+        { updateInput: searchData }
+    );
+    console.log('Updated search for', searchData, result);
     const updatedSearch = toSearchResult(result.data.updateSearch);
-    console.log("Updated search result", updatedSearch);
+    console.log('Updated search result', updatedSearch);
     return updatedSearch;
 };
 

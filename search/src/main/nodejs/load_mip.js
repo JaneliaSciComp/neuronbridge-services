@@ -1,8 +1,8 @@
-import path from "path";
-import fs from "fs";
-import {getObjectDataArray} from "./utils";
-import Jimp from "jimp";
-import {fromArrayBuffer} from "geotiff";
+import path from 'path';
+import fs from 'fs';
+import { getS3ContentAsByteBufferWithRetry } from './utils';
+import { Jimp } from 'jimp';
+import { fromArrayBuffer } from 'geotiff';
 
 export const loadMIPRange = async (bucketName, key, start, end) => {
     const mipPath = path.parse(key);
@@ -10,16 +10,17 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
 
     const isEFS = bucketName.startsWith("/mnt/");
 
-    const imgfile = isEFS ?
-        fs.readFileSync(bucketName + "/" + key) /* return Uint8Array */ :
-        await getObjectDataArray(bucketName, key);
+    console.log(`Load MIPs from :${bucketName}:${key}`);
+    const imgBuffer = isEFS
+        ? fs.readFileSync(bucketName + "/" + key) /* return Uint8Array */
+        : await getS3ContentAsByteBufferWithRetry(bucketName, key);
 
     let outdata = null;
     let width = 0;
     let height = 0;
 
     if (mipExt === ".png") {
-        const img = await Jimp.read(imgfile);
+        const img = await Jimp.fromBuffer(imgBuffer);
         width = img.bitmap.width;
         height = img.bitmap.height;
 
@@ -32,7 +33,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
             outdata[3*i+2] = this.bitmap.data[idx + 2];
         });
     } else if (mipExt === '.tif' || mipExt === '.tiff') {
-        const tartiff = await fromArrayBuffer(isEFS ? imgfile.buffer : imgfile);
+        const tartiff = await fromArrayBuffer(imgBuffer.buffer);
         const tarimage = await tartiff.getImage();
 
         width = tarimage.getWidth();
@@ -43,7 +44,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
         outdata = new Uint8Array(outdatasize);
 
         if (isEFS) {
-            const input = imgfile;
+            const input = imgBuffer;
 
             const ifd = tarimage.getFileDirectory();
 
@@ -86,7 +87,7 @@ export const loadMIPRange = async (bucketName, key, start, end) => {
                 }
             }
         } else {
-            const input = new DataView(imgfile);
+            const input = new DataView(imgBuffer.buffer);
 
             const ifd = tarimage.getFileDirectory();
 
