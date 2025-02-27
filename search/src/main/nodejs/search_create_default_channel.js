@@ -50,10 +50,9 @@ async function createDefaultChannel(searchData) {
   // if this isn't a supported image type, based on extension, then
   // fail the upload and bail out.
   if (!/\.(tiff?|png|gif|jpe?g|bmp)$/.test(upload)) {
-    console.log('unsupported image');
     searchMetaData.errorMessage = "The uploaded image does not appear to be in one of our supported 2D formats; tiff, png, gif, jpeg or bmp. If you meant to run an alignment, please select 'Unaligned confocal 3D stack' above and try again.";
     await updateSearchMetadata(searchMetaData);
-    throw new Error('unsupported image');
+    throw new Error(`${upload} - unsupported image`);
   }
 
   // if not a png, transform to png
@@ -62,7 +61,6 @@ async function createDefaultChannel(searchData) {
       console.log(`Converting uploaded image to png`);
       const pngExt = ".png";
       const image = await Jimp.fromBuffer(imageContent);
-      console.log(`Created Jimp image from buffer`);
       const imageBuffer = await image.getBuffer(pngMime);
       const pngImageName = getSearchKey(fullSearchInputImage, pngExt);
       sourceImage = pngImageName;
