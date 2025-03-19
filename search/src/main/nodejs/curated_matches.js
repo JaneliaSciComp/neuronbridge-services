@@ -1,12 +1,6 @@
 import { DynamoDBDocumentClient, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-// https://stackoverflow.com/questions/3446170/escape-string-for-use-in-javascript-regex
-// I removed '*' from the original answer as I want that to be replaced later with .*
-function escapeRegExp(string) {
-  return string.replace(/[.+?^${}()|[\]\\]/g, '\\$&');
-}
-
 export function getQueryParams(query, filter) {
 
   // set the defaults for the query
@@ -143,24 +137,9 @@ export const curatedMatches = async event => {
       lastEvaluatedKey = data.LastEvaluatedKey;
     } while (typeof lastEvaluatedKey !== "undefined");
 
-    console.log(`Found ${foundItems.length} matches`);
+    console.log(`Returning ${foundItems.length} matches after filtering`);
 
-    let matched = [];
-    if (filter === 'start' && !query.match(/\*/)) {
-      matched = foundItems;
-    }
-    else {
-      // use the original search term to filter the returned results.
-      const escapedQuery = escapeRegExp(query);
-      const match = new RegExp(`^${escapedQuery.replace(/\*/g, ".*")}$`, "i");
-      matched = foundItems.filter(item => {
-        return item.name.match(match);
-      });
-    }
-
-    console.log(`Returning ${matched.length} matches after filtering`);
-
-    returnBody.matches = matched;
+    returnBody.matches = foundItems;
     returnBody.params = queryParams;
 
   } catch (error) {
