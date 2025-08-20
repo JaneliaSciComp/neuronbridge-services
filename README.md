@@ -26,24 +26,39 @@ First, follow the instructions at [JaneliaSciComp/burst-compute](https://github.
 The NeuronBridge alignment service requires an AMI instance preconfigured with ECS and with all required volumes mounted as expected by the alignment batch job.
 
 To create the AMI use these steps:
-* start an [Amazon ECS-optimized Amazon Linux AMI](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Amazon+ECS-Optimized+Amazon+Linux+AMI&page=1&ref_=nav_search_box).
-
-* start the EC2 instance
-* run the following commands that mount the expected volumes:
+* Start an [Amazon ECS-optimized Amazon Linux AMI](https://aws.amazon.com/marketplace/search/results?x=0&y=0&searchTerms=Amazon+ECS-Optimized+Amazon+Linux+AMI&page=1&ref_=nav_search_box).
+* When you launch the EC2 instance for creating the AMI you can use a small or even a micro instance,
+but if the EBS volume is relatively small ~10G, attach an additional EBS volume of about 30GB.
+* For generating the AMI the VPC, the security group and the selected key pair should allow you to ssh into the EC2 instance.
+* Once the EC2 instance is up run the following commands that mount the expected volumes:
 
 ```
 sudo yum -y update
 sudo yum install -y fuse-devel
-sudo mkfs -t ext4 /dev/xvdb
 sudo mkdir /scratch_volume
+```
+If you attached to volumes to the EC2 instance use the second volume as scratch. In order to do that run:
+```
+sudo mkfs -t ext4 /dev/xvdb
 sudo echo -e '/dev/xvdb\t/scratch_volume\text4\tdefaults\t0\t0' | sudo tee -a /etc/fstab
 sudo mount –a
+```
+* Now the scratch volume is ready so stop ecs and clear the ecs_data:
+```
 sudo stop ecs
 sudo rm -rf /var/lib/ecs/data/ecs_agent_data.json
 ```
-* save an image from the running EC2 instance
+* Then save an image from the running EC2 instance. Tag the AMI instance with the snapshot together. The tags that we
+typically use are:
 
-Once the AMI instance ID is available make sure you set the proper AMI instance in align/serverless.yml.
+PROJECT=NeuronBridge
+DEVELOPER=<username>
+STAGE=prod
+
+* Once the AMI instance ID is available the EC2 instance is no longer needed so you can terminate it.
+
+* Use the new AMI instance ID in align/serverless.yml.
+
 To deploy:
 ```
 cd align
