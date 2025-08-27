@@ -29,7 +29,7 @@ config:
     val: true
     prod: false
     devpre: true
-    prodpre: false
+    prodpre: true
     other: true
   # we shouldn't need backups on any stage apart from production.
   enableBackups:
