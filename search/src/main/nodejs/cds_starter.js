@@ -124,6 +124,13 @@ export const cdsStarter = async (event) => {
     };
     const searchMetadataKey = getSearchMetadataKey(`${searchInputFolder}/${searchInputName}`);
     await putObject(searchBucket, searchMetadataKey, searchMetadata);
+    // Create a map of library names to counts
+    const librariesCountsMap = searchedData.searchedLibraries !== null && searchedData.searchedLibraries !== undefined
+        ? searchedData.searchedLibraries.reduce((map, library) => {
+                map[library.libraryName] = library.lsize;
+                return map;
+            }, {})
+        : {};
     // Update search metadata if searchId is provided
     await updateSearchMetadata({
         id: searchId,
@@ -137,6 +144,7 @@ export const cdsStarter = async (event) => {
         maxResultsPerMask: jobParams.maxResultsPerMask,
         nBatches: numBatches,
         completedBatches: 0,
+        librariesCountsMap: JSON.stringify(librariesCountsMap),
         cdsStarted: now.toISOString()
     });
 

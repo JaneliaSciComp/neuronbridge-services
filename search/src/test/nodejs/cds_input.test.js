@@ -60,6 +60,7 @@ describe('prepare custom cds input', () => {
             expect(lc.publishedNamePrefix).toBeDefined();
             expect(lc.anatomicalArea).toBe('Brain');
             expect(lc.targetType).toBe('EMImage');
+            expect(lc.lsize).toBeGreaterThan(0);
             expect(lc.alignmentSpace).toBe('JRC2018_Unisex_20x_HR');
             expect(lc.hasOwnProperty('libraryName')).toBe(true);
             expect(lc.hasOwnProperty('searchedNeuronsFolder')).toBe(true);
@@ -93,6 +94,7 @@ describe('prepare custom cds input', () => {
             expect(lc.publishedNamePrefix).toBeUndefined();
             expect(lc.anatomicalArea).toBe('VNC');
             expect(lc.targetType).toBe('LMImage');
+            expect(lc.lsize).toBeGreaterThan(0);
             expect(lc.alignmentSpace).toBe('JRC2018_VNC_Unisex_40x_DS');
             expect(lc.hasOwnProperty('libraryName')).toBe(true);
             expect(lc.hasOwnProperty('searchedNeuronsFolder')).toBe(true);
@@ -131,6 +133,7 @@ describe('prepare custom cds input', () => {
             } else if (lc.targetType === 'LMImage') {
                 expect(lc.publishedNamePrefix).toBeUndefined();
             }
+            expect(lc.lsize).toBeGreaterThan(0);
             expect(lc.alignmentSpace).toBe('JRC2018_VNC_Unisex_40x_DS');
             expect(lc.hasOwnProperty('libraryName')).toBe(true);
             expect(lc.hasOwnProperty('searchedNeuronsFolder')).toBe(true);

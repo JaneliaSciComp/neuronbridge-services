@@ -34,6 +34,7 @@
             "customSearch": {
                 "alignmentSpace": "JRC2018_Unisex_20x_HR",
                 "searchFolder": "searchable_neurons",
+                "defaultSearchLibrary": "FlyLight_Gen1_MCFO",
                 "lmLibraries": [
                     {
                         "name":"FlyLight_Split-GAL4_Drivers",
@@ -41,18 +42,18 @@
                     },
                     {
                         "name": "FlyLight_Gen1_MCFO",
-                        "count": 10
+                        "count": 20
                     },
                     {
                         "name": "FlyLight_Annotator_Gen1_MCFO",
-                        "count": 10
+                        "count": 30
                     }
                 ],
                 "emLibraries": [
                     {
                         "name": "FlyEM_Hemibrain_v1.2.1",
                         "publishedNamePrefix": "hemibrain:1.0",
-                        "count": 10
+                        "count": 40
                     }
                 ]
             }
@@ -81,6 +82,7 @@
             "customSearch": {
                 "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
                 "searchFolder": "searchable_neurons",
+                "defaultSearchLibrary": "FlyLight_Gen1_MCFO",
                 "lmLibraries": [
                     {
                         "name": "FlyLight_Split-GAL4_Drivers",
@@ -88,14 +90,14 @@
                     },
                     {
                         "name": "FlyLight_Gen1_MCFO",
-                        "count": 10
+                        "count": 20
                     }
                 ],
                 "emLibraries": [
                     {
                         "name": "FlyEM_VNC_v0.6",
                         "publishedNamePrefix": "vnc:0.6",
-                        "count": 10
+                        "count": 40
                     }
                 ]
             }
@@ -124,6 +126,7 @@
             "customSearch": {
                 "alignmentSpace": "JRC2018_Unisex_20x_HR",
                 "searchFolder": "searchable_neurons",
+                "defaultSearchLibrary": "FlyLight_Gen1_MCFO",
                 "lmLibraries": [
                     {
                         "name": "FlyLight_Split-GAL4_Drivers",
@@ -131,14 +134,14 @@
                     },
                     {
                         "name": "FlyLight_Gen1_MCFO",
-                        "count": 10
+                        "count": 20
                     }
                 ],
                 "emLibraries": [
                     {
                         "name": "FlyEM_CNS_Brain_v1.0",
                         "publishedNamePrefix": "cns-brain:1.0",
-                        "count": 10
+                        "count": 30
                     }
                 ]
             }
@@ -167,6 +170,7 @@
             "customSearch": {
                 "alignmentSpace": "JRC2018_VNC_Unisex_40x_DS",
                 "searchFolder": "searchable_neurons",
+                "defaultSearchLibrary": "FlyLight_Gen1_MCFO",
                 "lmLibraries": [
                     {
                         "name": "FlyLight_Split-GAL4_Drivers",
@@ -174,14 +178,14 @@
                     },
                     {
                         "name": "FlyLight_Gen1_MCFO",
-                        "count": 10
+                        "count": 20
                     }
                 ],
                 "emLibraries": [
                     {
                         "name": "FlyEM_CNS_VNC_v1.0",
                         "publishedNamePrefix": "vnc:1.0",
-                        "count": 10
+                        "count": 30
                     }
                 ]
             }

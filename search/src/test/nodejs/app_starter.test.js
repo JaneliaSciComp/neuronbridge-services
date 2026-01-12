@@ -92,6 +92,10 @@ describe('Color depth search start app entry point', () => {
             identityId: 'testUserId',
             searchDir : 'testSearchDir',
             anatomicalRegion: 'brain',
+            searchedLibraries: [{
+                libraryName: 'testLibrary',
+                lsize: 20,
+            }],
         };
 
         jest.spyOn(utils, 'getS3ContentAsByteBufferWithRetry')
@@ -118,6 +122,7 @@ describe('Color depth search start app entry point', () => {
                     searchedNeuronsFolder: 'JRC2018_Unisex_20x_HR/testLibrary/searchable_neurons',
                     librarySize: 1000,
                     anatomicalArea: 'Brain',
+                    lsize: 211,
                 }
             ]);
 

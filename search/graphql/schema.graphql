@@ -37,6 +37,7 @@ type Search @aws_cognito_user_pools @aws_iam {
   errorMessage: String
   id: ID!
   identityId: String!
+  librariesCountsMap: AWSJSON
   maskThreshold: Int
   maxResultsPerMask: Int
   mimeType: String
@@ -220,6 +221,7 @@ input UpdateSearchInput {
   displayableMask: String
   errorMessage: String
   id: ID!
+  librariesCountsMap: AWSJSON
   maskThreshold: Int
   maxResultsPerMask: Int
   minMatchingPixRatio: Int
