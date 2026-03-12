@@ -24,6 +24,9 @@ export const searchUpdate = async (event) => {
     if (event.alignFinished) {
         searchData.alignFinished = event.alignFinished;
     }
+    if (event.alignedVolume && event.alignedVolume !== 'None') {
+        searchData.alignedVolume = event.alignedVolume;
+    }
     if (event.alignmentMovie && event.alignmentMovie !== 'None') {
         searchData.alignmentMovie = event.alignmentMovie;
     }

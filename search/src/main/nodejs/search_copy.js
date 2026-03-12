@@ -20,6 +20,7 @@ async function copyAlignment(searchData) {
     searchDir,
     searchInputFolder,
     uploadThumbnail,
+    alignedVolume,
     alignmentMovie,
   } = searchData;
   // generate a new id for the search directory
@@ -37,6 +38,15 @@ async function copyAlignment(searchData) {
       searchBucket,
       `/${searchBucket}/${searchInputFolder}/${uploadThumbnail}`,
       `${newSearchInputFolder}/${uploadThumbnail}`
+    );
+  }
+  if (alignedVolume && alignedVolume !== 'None') {
+    console.log(`Copy alignment movie ${alignedVolume} to ${searchBucket}`);
+    // copy aligned volume
+    await copyS3Content(
+      searchBucket,
+      `/${searchBucket}/${searchInputFolder}/${alignedVolume}`,
+      `${newSearchInputFolder}/${alignedVolume}`
     );
   }
   if (alignmentMovie && alignmentMovie !== 'None') {
@@ -95,6 +105,7 @@ async function copyAlignment(searchData) {
     alignFinished: searchData.alignFinished,
     alignmentSize: searchData.alignmentSize,
     alignmentErrorMessage: searchData.alignmentErrorMessage,
+    alignedVolume: searchData.alignedVolume,
     alignmentMovie: searchData.alignmentMovie,
     alignmentScore: searchData.alignmentScore,
     computedMIPs: searchData.computedMIPs,

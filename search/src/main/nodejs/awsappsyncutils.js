@@ -54,6 +54,7 @@ const getSearchMetadataGQL = `query getSearch($searchId: ID!) {
         errorMessage
         alignmentErrorMessage
         simulateMIPGeneration
+        alignedVolume
         alignmentMovie
         alignmentScore
     }
@@ -101,6 +102,7 @@ const lookupSearchMetadataGQL = `query listSearches($searchFilter: TableSearchFi
             errorMessage
             alignmentErrorMessage
             simulateMIPGeneration
+            alignedVolume
             alignmentMovie
             alignmentScore
         }
@@ -179,6 +181,7 @@ const updateSearchMetadataGQL = `mutation updateSearch($updateInput: UpdateSearc
         computedMIPs
         errorMessage
         alignmentErrorMessage
+        alignedVolume
         alignmentMovie
         alignmentScore
     }

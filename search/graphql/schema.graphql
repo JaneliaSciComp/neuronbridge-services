@@ -22,6 +22,7 @@ type Search @aws_cognito_user_pools @aws_iam {
   alignFinished: AWSDateTime
   alignStarted: AWSDateTime
   alignmentErrorMessage: String
+  alignedVolume: String
   alignmentMovie: String
   alignmentScore: String
   alignmentSize: Int
@@ -209,6 +210,7 @@ input UpdateSearchInput {
   alignFinished: AWSDateTime
   alignStarted: AWSDateTime
   alignmentErrorMessage: String
+  alignedVolume: String
   alignmentMovie: String
   alignmentScore: String
   alignmentSize: Int
