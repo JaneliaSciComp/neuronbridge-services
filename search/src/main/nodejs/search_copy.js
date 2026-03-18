@@ -41,7 +41,7 @@ async function copyAlignment(searchData) {
     );
   }
   if (alignedVolume && alignedVolume !== 'None') {
-    console.log(`Copy alignment movie ${alignedVolume} to ${searchBucket}`);
+    console.log(`Copy aligned volume ${alignedVolume} to ${searchBucket}`);
     // copy aligned volume
     await copyS3Content(
       searchBucket,
