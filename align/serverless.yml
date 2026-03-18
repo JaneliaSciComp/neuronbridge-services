@@ -16,8 +16,8 @@ custom:
   alignInputBucket: ${file(../config.yml):config.searchBucket}
   alignOutputBucket: ${file(../config.yml):config.searchBucket}
   ec2AlignmentImageId: ami-015cc99284c6c3334
-  alignmentBrainContainerImage: janeliascicomp/neuronbridge-brainaligner:1.1
-  alignmentVNCContainerImage: janeliascicomp/neuronbridge-vncaligner:1.0
+  alignmentBrainContainerImage: ghcr.io/janeliascicomp/neuronbridge-brainaligner:1.2
+  alignmentVNCContainerImage: ghcr.io/janeliascicomp/neuronbridge-vncaligner:1.1
   defaultAlignmentThreads: 16
   sshKeyPairName: ec2_batch
 
