@@ -57,6 +57,7 @@ const getSearchMetadataGQL = `query getSearch($searchId: ID!) {
         alignedVolume
         alignmentMovie
         alignmentScore
+        librariesCountsMap
     }
 }`;
 
@@ -184,6 +185,7 @@ const updateSearchMetadataGQL = `mutation updateSearch($updateInput: UpdateSearc
         alignedVolume
         alignmentMovie
         alignmentScore
+        librariesCountsMap
     }
 }`;
 
