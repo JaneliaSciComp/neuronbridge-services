@@ -16,8 +16,8 @@ custom:
   alignInputBucket: ${file(../config.yml):config.searchBucket}
   alignOutputBucket: ${file(../config.yml):config.searchBucket}
   ec2AlignmentImageId: ami-015cc99284c6c3334
-  alignmentBrainContainerImage: janeliascicomp/neuronbridge-brainaligner:1.1
-  alignmentVNCContainerImage: janeliascicomp/neuronbridge-vncaligner:1.0
+  alignmentBrainContainerImage: ghcr.io/janeliascicomp/neuronbridge-brainaligner:1.2
+  alignmentVNCContainerImage: ghcr.io/janeliascicomp/neuronbridge-vncaligner:1.1
   defaultAlignmentThreads: 16
   sshKeyPairName: ec2_batch
 
@@ -49,6 +49,33 @@ resources:
 
   Resources:
 
+    AlignmentLaunchTemplate:
+      Type: AWS::EC2::LaunchTemplate
+      Properties:
+        LaunchTemplateName: "${self:custom.stackName}-launch-template"
+        LaunchTemplateData:
+          TagSpecifications:
+            - ResourceType: instance
+              Tags:
+                - Key: PROJECT
+                  Value: ${file(../config.yml):config.project}
+                - Key: VERSION
+                  Value: ${self:custom.version}
+                - Key: DEVELOPER
+                  Value: ${env:USER}
+                - Key: STAGE
+                  Value: ${self:provider.stage}
+            - ResourceType: volume
+              Tags:
+                - Key: PROJECT
+                  Value: ${file(../config.yml):config.project}
+                - Key: VERSION
+                  Value: ${self:custom.version}
+                - Key: DEVELOPER
+                  Value: ${env:USER}
+                - Key: STAGE
+                  Value: ${self:provider.stage}
+
     ComputeAlignmentEnv:
       Type: AWS::Batch::ComputeEnvironment
       Properties:
@@ -70,7 +97,9 @@ resources:
             - !ImportValue 'janelia-neuronbridge-vpc-shared-AppSecurityGroupId'
           Ec2KeyPair: ${self:custom.sshKeyPairName}
           InstanceRole: ecsInstanceRole
-          Tags: ${self:provider.stackTags}
+          LaunchTemplate:
+            LaunchTemplateId: !Ref AlignmentLaunchTemplate
+            Version: $Latest
 
     ComputeAlignmentJobQueue:
       Type: AWS::Batch::JobQueue

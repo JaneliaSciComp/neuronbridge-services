@@ -1,7 +1,7 @@
 import { getIntermediateSearchResultsPrefix, getSearchMaskId, getSearchResultsKey } from './searchutils';
 import { streamObject, removeKey, DEBUG } from './utils';
 import { queryDb } from './clientDbUtils';
-import { updateSearchMetadata, SEARCH_COMPLETED } from './awsappsyncutils';
+import { getSearchMetadata, updateSearchMetadata, SEARCH_COMPLETED } from './awsappsyncutils';
 import zlib from 'zlib';
 
 const maxResultsLength = process.env.MAX_CUSTOM_RESULTS || -1;
@@ -362,11 +362,13 @@ export const searchCombiner = async (event) => {
     console.log(`Saved ${allMatches.length} matches to ${outputUri}`);
 
     // write down the progress - done
+    const existingSearch = await getSearchMetadata(searchId);
     await updateSearchMetadata({
         id: searchId,
         step: SEARCH_COMPLETED,
         nTotalMatches: nTotalMatches,
-        cdsFinished: now.toISOString()
+        cdsFinished: now.toISOString(),
+        ...(existingSearch.librariesCountsMap ? { librariesCountsMap: existingSearch.librariesCountsMap } : {}),
     });
 
     if (!DEBUG) {
