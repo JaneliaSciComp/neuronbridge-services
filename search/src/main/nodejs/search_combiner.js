@@ -368,7 +368,7 @@ export const searchCombiner = async (event) => {
         step: SEARCH_COMPLETED,
         nTotalMatches: nTotalMatches,
         cdsFinished: now.toISOString(),
-        ...(existingSearch.librariesCountsMap ? { librariesCountsMap: existingSearch.librariesCountsMap } : {}),
+        ...(existingSearch?.librariesCountsMap ? { librariesCountsMap: existingSearch.librariesCountsMap } : {}),
     });
 
     if (!DEBUG) {

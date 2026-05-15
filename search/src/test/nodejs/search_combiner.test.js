@@ -11,6 +11,7 @@ jest.mock('../../main/nodejs/utils');
 
 import * as search_combiner from '../../main/nodejs/search_combiner';
 
+import * as awsappsyncutils from '../../main/nodejs/awsappsyncutils';
 import * as clientDbUtils from '../../main/nodejs/clientDbUtils';
 import * as utils from '../../main/nodejs/utils';
 import * as searchutils from '../../main/nodejs/searchutils';
@@ -84,6 +85,7 @@ describe('combine EM SearchResults', () => {
             EM_PUBLISHED_SKELETONS_TABLE: 'em-published-skeletons',
             DEBUG: 'true',
         };
+        jest.spyOn(awsappsyncutils, 'getSearchMetadata').mockResolvedValue({});
    });
 
     it('combine successful EM search results', async () => {
@@ -223,6 +225,7 @@ describe('combine LM SearchResults', () => {
             LM_PUBLISHED_STACKS_TABLE: 'lm-published-stacks',
             DEBUG: 'true',
         };
+        jest.spyOn(awsappsyncutils, 'getSearchMetadata').mockResolvedValue({});
     });
 
     it('combine successful LM search results', async () => {
