@@ -8,6 +8,17 @@ Deploy to a given stage, e.g. dev or prod:
 ```
 npm run sls -- deploy -s <stage>
 ```
+
+*Note*
+In case the deployment hangs for a long time without actually updating the stack the solution is to install nvm using brew `brew install nvm` then use nvm to install node 20.x. (Before using nvm you may also need to setup the proper environment if you don't have it in your .bashrc `source /opt/homebrew/opt/nvm/nvm.sh`)
+```
+nvm install 20
+```
+and use node 20.x.
+```
+nvm use 20
+```
+
 ## Deploying a single Lambda function
 ```
 npm run sls -- deploy -s <stage> -f <functionName>
