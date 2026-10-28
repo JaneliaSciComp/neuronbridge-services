@@ -96,7 +96,7 @@ useDotenv: true
 provider:
   name: aws
   architecture: arm64
-  runtime: nodejs20.x
+  runtime: nodejs24.x
   region: ${opt:region, "us-east-1"}
   stage: ${opt:stage, "dev"}
   deploymentBucket:
