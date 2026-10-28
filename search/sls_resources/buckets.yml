@@ -50,8 +50,10 @@ Resources:
       BucketName: ${self:custom.downloadBucket}
       LifecycleConfiguration:
         Rules:
+          # Only expire the zips download_creator writes under test/, so the
+          # README placeholder at the bucket root keeps the bucket non-empty.
           - Id: DeleteRule
-            Prefix: ''
+            Prefix: 'test/'
             Status: Enabled
             ExpirationInDays: '1'
 Outputs:
